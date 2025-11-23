@@ -49,6 +49,9 @@ class Settings(BaseSettings):
         "http://localhost:19006",  # Expo web alternative port
         "http://127.0.0.1:8081",
         "http://127.0.0.1:19006",
+        "http://10.145.13.125:8081",
+        "http://10.145.13.125:19006",
+        "*" # Allow all for development
     ]
 
     # Rate Limiting

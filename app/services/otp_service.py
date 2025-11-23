@@ -72,18 +72,21 @@ class OTPService:
 
     async def send_otp_sms(self, phone_number: str, otp: str) -> bool:
         if settings.SMS_PROVIDER == "mock":
-            # Mock SMS sending for development
-            print(f"\n{'='*50}")
-            print(f"📱 SMS to {phone_number}")
-            print(f"Your Faction OTP is: {otp}")
-            print(f"Valid for {self.otp_expire_minutes} minutes")
-            print(f"{'='*50}\n")
-            return True
+            return await self._send_mock_sms(phone_number, otp)
 
         elif settings.SMS_PROVIDER == "twilio":
             return await self._send_via_twilio(phone_number, otp)
 
         return False
+
+    async def _send_mock_sms(self, phone_number: str, otp: str) -> bool:
+        """Mock SMS sending for development"""
+        print(f"\n{'='*50}")
+        print(f"📱 SMS to {phone_number}")
+        print(f"Your Faction OTP is: {otp}")
+        print(f"Valid for {self.otp_expire_minutes} minutes")
+        print(f"{'='*50}\n")
+        return True
 
     async def _send_via_twilio(self, phone_number: str, otp: str) -> bool:
         try:
