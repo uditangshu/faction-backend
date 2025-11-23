@@ -65,3 +65,10 @@ class PhoneAlreadyExistsException(ConflictException):
     def __init__(self):
         super().__init__(detail="Phone number already registered")
 
+
+class SMSDeliveryException(HTTPException):
+    """SMS delivery failed exception"""
+
+    def __init__(self, detail: str = "Failed to send OTP. Please try again later"):
+        super().__init__(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=detail)
+

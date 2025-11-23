@@ -17,6 +17,7 @@ from app.utils.exceptions import (
     NotFoundException,
     PhoneAlreadyExistsException,
     UnauthorizedException,
+    SMSDeliveryException,
 )
 from app.utils.phone import validate_indian_phone
 
@@ -78,13 +79,17 @@ class AuthService:
 
         if settings.SMS_PROVIDER == "twilio":
             # Twilio generates its own OTP
-            await self.otp_service.send_otp_sms(formatted_phone, "")
+            success = await self.otp_service.send_otp_sms(formatted_phone, "")
+            if not success:
+                raise SMSDeliveryException()
             return temp_token, ""  # No OTP returned for Twilio
         else:
             # Mock mode: generate and store our own OTP
             otp = self.otp_service.generate_otp()
             await self.otp_service.store_otp(formatted_phone, otp, temp_token, purpose="signup")
-            await self.otp_service.send_otp_sms(formatted_phone, otp)
+            success = await self.otp_service.send_otp_sms(formatted_phone, otp)
+            if not success:
+                raise SMSDeliveryException()
             return temp_token, otp
 
     async def verify_signup(self, temp_token: str, otp: str, ip_address: str | None = None, user_agent: str | None = None) -> dict:
@@ -192,13 +197,17 @@ class AuthService:
 
         if settings.SMS_PROVIDER == "twilio":
             # Twilio generates its own OTP
-            await self.otp_service.send_otp_sms(formatted_phone, "")
+            success = await self.otp_service.send_otp_sms(formatted_phone, "")
+            if not success:
+                raise SMSDeliveryException()
             return temp_token, ""  # No OTP returned for Twilio
         else:
             # Mock mode: generate and store our own OTP
             otp = self.otp_service.generate_otp()
             await self.otp_service.store_otp(formatted_phone, otp, temp_token, purpose="login")
-            await self.otp_service.send_otp_sms(formatted_phone, otp)
+            success = await self.otp_service.send_otp_sms(formatted_phone, otp)
+            if not success:
+                raise SMSDeliveryException()
             return temp_token, otp
 
     async def verify_login(self, temp_token: str, otp: str, ip_address: str | None = None, user_agent: str | None = None) -> dict:

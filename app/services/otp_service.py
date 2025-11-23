@@ -93,11 +93,15 @@ class OTPService:
             twilio_service = TwilioService()
 
             if not twilio_service.is_configured():
-                print(" Twilio not configured, falling back to mock")
-                return await self._send_mock_sms(phone_number, otp)
+                print(" Twilio not configured - credentials missing")
+                return False
 
             # Send verification code via Twilio
             result = await twilio_service.send_verification_code(phone_number)
+
+            if not result or result.get('status') != 'pending':
+                print(f" Twilio SMS failed - unexpected status: {result.get('status') if result else 'None'}")
+                return False
 
             print(f" Twilio SMS sent to {phone_number}")
             print(f"   SID: {result.get('sid')}")
@@ -107,6 +111,5 @@ class OTPService:
 
         except Exception as e:
             print(f"❌ Twilio SMS failed: {e}")
-            print(f"   Falling back to mock mode")
-            return await self._send_mock_sms(phone_number, otp)
+            return False
 
