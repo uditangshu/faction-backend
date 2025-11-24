@@ -44,6 +44,7 @@ class User(SQLModel, table=True):
     
     id: UUID = Field(default_factory=uuid4, primary_key=True)
     phone_number: str = Field(unique=True, index=True, max_length=15)
+    password_hash: str | None = Field(default=None)  # Nullable for migration, will be required for new users
     name: str = Field(max_length=100)
     class_level: ClassLevel
     target_exams: list[str] = Field(sa_column=Column(JSON), default=[])

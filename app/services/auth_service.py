@@ -8,7 +8,7 @@ from sqlalchemy import select
 
 from app.models.user import User, UserRole, ClassLevel, TargetExam
 from app.models.session import DeviceType
-from app.core.security import create_access_token, create_refresh_token
+from app.core.security import create_access_token, create_refresh_token, hash_password, verify_password
 from app.core.config import settings
 from app.services.otp_service import OTPService
 from app.services.twilio_service import TwilioService
@@ -45,6 +45,7 @@ class AuthService:
         name: str,
         class_level: ClassLevel,
         target_exams: list[TargetExam],
+        password: str,
         device_id: str,
         device_type: DeviceType,
         device_model: str | None = None,
@@ -60,8 +61,11 @@ class AuthService:
             raise PhoneAlreadyExistsException()
 
         temp_token = self.otp_service.generate_temp_token()
+        
+        # Hash password before storing
+        password_hash = hash_password(password)
 
-        # Store signup data
+        # Store signup data including password hash
         await self.otp_service.redis.set_value(
             f"signup_data:{temp_token}",
             {
@@ -69,6 +73,7 @@ class AuthService:
                 "name": name,
                 "class_level": class_level,
                 "target_exams": [exam.value for exam in target_exams],
+                "password_hash": password_hash,
                 "device_id": device_id,
                 "device_type": device_type,
                 "device_model": device_model,
@@ -108,9 +113,10 @@ class AuthService:
             # Verify with our OTP system (mock mode)
             await self.otp_service.verify_otp(temp_token, otp)
 
-        # Create user
+        # Create user with password hash
         user = User(
             phone_number=phone_number,
+            password_hash=signup_data["password_hash"],
             name=signup_data["name"],
             class_level=ClassLevel(signup_data["class_level"]),
             target_exams=signup_data["target_exams"],
@@ -160,79 +166,36 @@ class AuthService:
             "user": user,
         }
 
-    async def initiate_login(
+    async def login(
         self,
         phone_number: str,
+        password: str,
         device_id: str,
         device_type: DeviceType,
         device_model: str | None = None,
         os_version: str | None = None,
-    ) -> tuple[str, str]:
+        ip_address: str | None = None,
+        user_agent: str | None = None,
+    ) -> dict:
+        """Login with phone number and password - returns tokens immediately"""
         is_valid, formatted_phone = validate_indian_phone(phone_number)
         if not is_valid:
             raise UnauthorizedException("Invalid phone number")
 
-        # Check if user exists
+        # Get user
         user = await self.get_user_by_phone(formatted_phone)
         if not user:
-            raise NotFoundException("Phone number not registered")
+            raise UnauthorizedException("Invalid phone number or password")
 
         if not user.is_active:
             raise UnauthorizedException("Account is inactive")
 
-        temp_token = self.otp_service.generate_temp_token()
-
-        # Store phone number with temp token for verification
-        await self.otp_service.redis.set_value(
-            f"login_phone:{temp_token}",
-            {
-                "phone_number": formatted_phone,
-                "device_id": device_id,
-                "device_type": device_type,
-                "device_model": device_model,
-                "os_version": os_version,
-            },
-            expire=300,
-        )
-
-        if settings.SMS_PROVIDER == "twilio":
-            # Twilio generates its own OTP
-            success = await self.otp_service.send_otp_sms(formatted_phone, "")
-            if not success:
-                raise SMSDeliveryException()
-            return temp_token, ""  # No OTP returned for Twilio
-        else:
-            # Mock mode: generate and store our own OTP
-            otp = self.otp_service.generate_otp()
-            await self.otp_service.store_otp(formatted_phone, otp, temp_token, purpose="login")
-            success = await self.otp_service.send_otp_sms(formatted_phone, otp)
-            if not success:
-                raise SMSDeliveryException()
-            return temp_token, otp
-
-    async def verify_login(self, temp_token: str, otp: str, ip_address: str | None = None, user_agent: str | None = None) -> dict:
-        login_data = await self.otp_service.redis.get_value(f"login_phone:{temp_token}")
-        if not login_data:
-            raise UnauthorizedException("Login session expired")
-
-        phone_number = login_data["phone_number"]
-
-        # Verify OTP based on provider
-        if settings.SMS_PROVIDER == "twilio":
-            # Verify with Twilio
-            twilio_service = TwilioService()
-            await twilio_service.verify_code(phone_number, otp)
-        else:
-            # Verify with our OTP system (mock mode)
-            await self.otp_service.verify_otp(temp_token, otp)
-
-        # Get user
-        user = await self.get_user_by_phone(phone_number)
-        if not user:
-            raise NotFoundException("User not found")
-
-        # Clean up temp data
-        await self.otp_service.redis.delete_key(f"login_phone:{temp_token}")
+        # Verify password
+        if not user.password_hash:
+            raise UnauthorizedException("Please set up your password first")
+        
+        if not verify_password(password, user.password_hash):
+            raise UnauthorizedException("Invalid phone number or password")
 
         # Get old active session before invalidating (for force logout and push notification)
         old_session_id = await self.otp_service.redis.get_active_session(str(user.id))
@@ -257,13 +220,20 @@ class AuthService:
             
         # Send push notification to old device to force logout
         if old_push_token:
+            print(f"📱 Found old push token, sending logout notification: {old_push_token[:20]}...")
             try:
                 from app.services.push_notification_service import PushNotificationService
                 push_service = PushNotificationService()
-                await push_service.send_logout_notification(old_push_token)
+                success = await push_service.send_logout_notification(old_push_token)
+                if success:
+                    print("✅ Logout push notification sent successfully")
+                else:
+                    print("⚠️ Logout push notification failed")
             except Exception as e:
-                print(f"Failed to send logout push notification: {e}")
+                print(f"❌ Failed to send logout push notification: {e}")
                 # Don't block login if push notification fails
+        else:
+            print("⚠️ No push token found for old session")
 
         # Create new session
         session_id = uuid4()
@@ -273,10 +243,10 @@ class AuthService:
         session = await create_user_session(
             db=self.db,
             user_id=user.id,
-            device_id=login_data["device_id"],
-            device_type=DeviceType(login_data["device_type"]),
-            device_model=login_data.get("device_model"),
-            os_version=login_data.get("os_version"),
+            device_id=device_id,
+            device_type=device_type,
+            device_model=device_model,
+            os_version=os_version,
             ip_address=ip_address,
             user_agent=user_agent,
             refresh_token_hash=refresh_token_hash,
@@ -308,9 +278,12 @@ class AuthService:
     async def register_push_token(self, user_id: str, push_token: str) -> bool:
         """Register push notification token for the current active session"""
         try:
+            print(f"📱 Registering push token for user {user_id}: {push_token[:20]}...")
+            
             # Get the active session ID from Redis
             active_session_id = await self.otp_service.redis.get_active_session(user_id)
             if not active_session_id:
+                print(f"⚠️ No active session found for user {user_id}")
                 return False
             
             # Update the session with push token
@@ -325,8 +298,84 @@ class AuthService:
             await self.db.execute(stmt)
             await self.db.commit()
             
+            print(f"✅ Push token registered successfully for session {active_session_id}")
             return True
         except Exception as e:
-            print(f"Failed to register push token: {e}")
+            print(f"❌ Failed to register push token: {e}")
             return False
+
+    async def initiate_forgot_password(self, phone_number: str) -> tuple[str, str]:
+        """Initiate forgot password flow - send OTP to user's phone"""
+        is_valid, formatted_phone = validate_indian_phone(phone_number)
+        if not is_valid:
+            raise UnauthorizedException("Invalid phone number")
+
+        # Check if user exists
+        user = await self.get_user_by_phone(formatted_phone)
+        if not user:
+            raise NotFoundException("Phone number not registered")
+
+        if not user.is_active:
+            raise UnauthorizedException("Account is inactive")
+
+        temp_token = self.otp_service.generate_temp_token()
+
+        # Store phone number with temp token for password reset verification
+        await self.otp_service.redis.set_value(
+            f"reset_password:{temp_token}",
+            {"phone_number": formatted_phone},
+            expire=300,  # 5 minutes
+        )
+
+        if settings.SMS_PROVIDER == "twilio":
+            # Twilio generates its own OTP
+            success = await self.otp_service.send_otp_sms(formatted_phone, "")
+            if not success:
+                raise SMSDeliveryException()
+            return temp_token, ""  # No OTP returned for Twilio
+        else:
+            # Mock mode: generate and store our own OTP
+            otp = self.otp_service.generate_otp()
+            await self.otp_service.store_otp(formatted_phone, otp, temp_token, purpose="reset_password")
+            success = await self.otp_service.send_otp_sms(formatted_phone, otp)
+            if not success:
+                raise SMSDeliveryException()
+            return temp_token, otp
+
+    async def reset_password(self, temp_token: str, otp: str, new_password: str) -> bool:
+        """Reset user password after OTP verification"""
+        reset_data = await self.otp_service.redis.get_value(f"reset_password:{temp_token}")
+        if not reset_data:
+            raise UnauthorizedException("Password reset session expired")
+
+        phone_number = reset_data["phone_number"]
+
+        # Verify OTP based on provider
+        if settings.SMS_PROVIDER == "twilio":
+            # Verify with Twilio
+            twilio_service = TwilioService()
+            await twilio_service.verify_code(phone_number, otp)
+        else:
+            # Verify with our OTP system (mock mode)
+            await self.otp_service.verify_otp(temp_token, otp)
+
+        # Get user
+        user = await self.get_user_by_phone(phone_number)
+        if not user:
+            raise NotFoundException("User not found")
+
+        # Hash and update password
+        user.password_hash = hash_password(new_password)
+        user.updated_at = datetime.utcnow()
+        await self.db.commit()
+
+        # Clean up temp data
+        await self.otp_service.redis.delete_key(f"reset_password:{temp_token}")
+
+        # Invalidate all user sessions (force re-login on all devices)
+        await invalidate_old_sessions(self.db, user.id)
+        await self.otp_service.redis.invalidate_user_session(str(user.id))
+
+        print(f"✅ Password reset successful for user {user.id}")
+        return True
 

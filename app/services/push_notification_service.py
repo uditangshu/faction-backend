@@ -2,7 +2,11 @@
 
 import httpx
 from typing import List, Dict, Any
+from datetime import datetime
 from app.core.config import settings
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 class PushNotificationService:
@@ -16,6 +20,8 @@ class PushNotificationService:
         This triggers immediate logout on the receiving device
         """
         try:
+            logger.info(f"Sending logout push notification to token: {push_token[:20]}...")
+            
             message = {
                 "to": push_token,
                 "sound": "default",
@@ -23,7 +29,7 @@ class PushNotificationService:
                 "body": "You have been logged out. This may be because you logged in from another device.",
                 "data": {
                     "type": "FORCE_LOGOUT",
-                    "timestamp": str(httpx.URL(""))  # Get current timestamp
+                    "timestamp": datetime.utcnow().isoformat()
                 },
                 "priority": "high",
                 "channelId": "default",
@@ -41,25 +47,31 @@ class PushNotificationService:
                     timeout=10.0
                 )
                 
+                logger.info(f"Push notification response status: {response.status_code}")
+                
                 if response.status_code == 200:
                     result = response.json()
+                    logger.info(f"Push notification response: {result}")
+                    
                     # Check if notification was accepted
                     if isinstance(result, dict) and result.get("data"):
                         data = result["data"]
                         if isinstance(data, list) and len(data) > 0:
                             status = data[0].get("status")
                             if status == "ok":
+                                logger.info("✅ Push notification sent successfully")
                                 return True
                             else:
-                                print(f"Push notification failed: {data[0].get('message')}")
+                                error_msg = data[0].get('message', 'Unknown error')
+                                logger.error(f"❌ Push notification failed: {error_msg}")
                                 return False
                     return True
                 else:
-                    print(f"Failed to send push notification: {response.status_code}")
+                    logger.error(f"❌ Failed to send push notification: HTTP {response.status_code}")
                     return False
                     
         except Exception as e:
-            print(f"Error sending push notification: {e}")
+            logger.error(f"❌ Error sending push notification: {e}")
             return False
     
     async def send_batch_notifications(self, messages: List[Dict[str, Any]]) -> bool:

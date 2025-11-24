@@ -21,6 +21,7 @@ class SignupRequest(BaseModel):
     name: str = Field(..., description="Full name", min_length=2, max_length=100)
     class_level: ClassLevel = Field(..., description="Student class")
     target_exams: list[TargetExam] = Field(..., description="Target entrance exams (at least 1 required)", min_length=1)
+    password: str = Field(..., description="User password", min_length=8, max_length=100)
     device_info: DeviceInfo = Field(..., description="Device information")
 
     @field_validator('target_exams')
@@ -43,15 +44,8 @@ class LoginRequest(BaseModel):
     """Login request schema"""
 
     phone_number: str = Field(..., description="Phone number with country code", min_length=10, max_length=15)
+    password: str = Field(..., description="User password", min_length=8, max_length=100)
     device_info: DeviceInfo = Field(..., description="Device information")
-
-
-class LoginResponse(BaseModel):
-    """Login response schema"""
-
-    temp_token: str
-    otp_sent: bool
-    expires_in: int = 300  # seconds
 
 
 class VerifyOTPRequest(BaseModel):
@@ -69,6 +63,20 @@ class TokenResponse(BaseModel):
     token_type: str = "bearer"
     expires_in: int = 1800  # seconds (30 minutes)
     session_id: str = Field(..., description="Active session ID")
+
+
+class ForgotPasswordRequest(BaseModel):
+    """Forgot password request schema"""
+
+    phone_number: str = Field(..., description="Phone number with country code", min_length=10, max_length=15)
+
+
+class ResetPasswordRequest(BaseModel):
+    """Reset password request schema"""
+
+    temp_token: str = Field(..., description="Temporary token from forgot password")
+    otp: str = Field(..., description="4-digit OTP code", min_length=4, max_length=4)
+    new_password: str = Field(..., description="New password", min_length=8, max_length=100)
 
 
 class CurrentDeviceResponse(BaseModel):
