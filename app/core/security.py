@@ -41,18 +41,13 @@ def decode_token(token: str) -> Dict[str, Any] | None:
 
 
 def hash_password(password: str) -> str:
-    """
-    Hash a password using SHA256 + bcrypt.
-    Pre-hashing with SHA256 allows passwords of any length (bcrypt has 72-byte limit).
-    """
-    # Pre-hash with SHA256 to handle long passwords and get consistent length
+   
     prehashed = sha256(password.encode('utf-8')).hexdigest()
     return pwd_context.hash(prehashed)
 
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
     """Verify a password against its hash (with SHA256 pre-hashing)"""
-    # Pre-hash the plain password the same way before verification
     prehashed = sha256(plain_password.encode('utf-8')).hexdigest()
     return pwd_context.verify(prehashed, hashed_password)
 
