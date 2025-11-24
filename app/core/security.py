@@ -41,15 +41,19 @@ def decode_token(token: str) -> Dict[str, Any] | None:
 
 
 def hash_password(password: str) -> str:
-    """Hash a password using bcrypt (truncate to 72 bytes if needed)"""
-    # Bcrypt has a 72-byte limit, truncate if necessary
-    password_bytes = password.encode('utf-8')[:72]
-    return pwd_context.hash(password_bytes)
+    """
+    Hash a password using SHA256 + bcrypt.
+    Use SHA256 digest (as bytes) to bypass bcrypt's 72-byte string limit.
+    """
+    # Pre-hash with SHA256 to get fixed-size output
+    password_digest = sha256(password.encode('utf-8')).digest()
+    # Pass bytes directly to bcrypt (avoids the 72-byte string limit)
+    return pwd_context.hash(password_digest)
 
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
-    """Verify a password against its hash"""
-    # Truncate the same way for verification
-    password_bytes = plain_password.encode('utf-8')[:72]
-    return pwd_context.verify(password_bytes, hashed_password)
+    """Verify a password against its hash (with SHA256 pre-hashing)"""
+    # Pre-hash the same way
+    password_digest = sha256(plain_password.encode('utf-8')).digest()
+    return pwd_context.verify(password_digest, hashed_password)
 
