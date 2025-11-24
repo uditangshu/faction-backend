@@ -101,6 +101,14 @@ async def get_current_user(
     except ValueError:
         raise UnauthorizedException("Invalid user ID in token")
 
+    # Check if this session has been force logged out (e.g., login from another device)
+    should_logout = await redis.should_force_logout(session_id)
+    if should_logout:
+        # Clean up the force_logout flag
+        await redis.delete_key(f"force_logout:{session_id}")
+        raise SessionExpiredException()
+    
+    # Check if session is still the active one
     is_valid = await redis.is_session_valid(user_id_str, session_id)
     if not is_valid:
         raise SessionExpiredException()

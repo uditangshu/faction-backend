@@ -83,4 +83,12 @@ class RedisService:
         """Check if session is the active one for this user"""
         active_session = await self.get_active_session(user_id)
         return active_session == session_id
+    
+    async def set_force_logout(self, session_id: str, expire: int = 300) -> bool:
+        """Mark a session for forced logout (5 min TTL)"""
+        return await self.set_value(f"force_logout:{session_id}", "true", expire)
+    
+    async def should_force_logout(self, session_id: str) -> bool:
+        """Check if session should be force logged out"""
+        return await self.exists(f"force_logout:{session_id}")
 

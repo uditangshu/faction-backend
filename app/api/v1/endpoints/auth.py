@@ -1,7 +1,8 @@
 """Authentication endpoints"""
 
 from fastapi import APIRouter, status, Request
-from app.api.v1.dependencies import AuthServiceDep
+from pydantic import BaseModel
+from app.api.v1.dependencies import AuthServiceDep, CurrentUserDep
 from app.schemas.auth import (
     SignupRequest,
     SignupResponse,
@@ -11,6 +12,11 @@ from app.schemas.auth import (
     TokenResponse,
 )
 from app.schemas.user import UserResponse
+
+
+class PushTokenRequest(BaseModel):
+    """Request schema for registering push token"""
+    push_token: str
 
 router = APIRouter(prefix="/auth", tags=["Authentication"])
 
@@ -106,4 +112,30 @@ async def verify_otp(
         "session_id": result["session_id"],
         "expires_in": 1800,  # 30 minutes
     }
+
+
+@router.get("/session-check", status_code=status.HTTP_200_OK)
+async def session_check(current_user: CurrentUserDep) -> dict:
+    """
+    Lightweight endpoint to check if session is still valid.
+    Returns 401 if session has been invalidated (e.g., from another device login).
+    """
+    return {
+        "valid": True,
+        "user_id": str(current_user.id),
+    }
+
+
+@router.post("/register-push-token", status_code=status.HTTP_200_OK)
+async def register_push_token(
+    request: PushTokenRequest,
+    current_user: CurrentUserDep,
+    auth_service: AuthServiceDep,
+) -> dict:
+    """
+    Register push notification token for the current session.
+    Used for instant logout notifications when user logs in from another device.
+    """
+    await auth_service.register_push_token(str(current_user.id), request.push_token)
+    return {"success": True}
 

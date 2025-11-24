@@ -234,8 +234,36 @@ class AuthService:
         # Clean up temp data
         await self.otp_service.redis.delete_key(f"login_phone:{temp_token}")
 
+        # Get old active session before invalidating (for force logout and push notification)
+        old_session_id = await self.otp_service.redis.get_active_session(str(user.id))
+        
+        # Get old session's push token before invalidating
+        old_push_token = None
+        if old_session_id:
+            from app.models.session import UserSession
+            result = await self.db.execute(
+                select(UserSession).where(UserSession.id == UUID(old_session_id))
+            )
+            old_session = result.scalar_one_or_none()
+            if old_session:
+                old_push_token = old_session.push_token
+        
         # Invalidate all old sessions for this user (enforce single device)
         await invalidate_old_sessions(self.db, user.id)
+
+        # Mark old session for immediate force logout
+        if old_session_id:
+            await self.otp_service.redis.set_force_logout(old_session_id)
+            
+        # Send push notification to old device to force logout
+        if old_push_token:
+            try:
+                from app.services.push_notification_service import PushNotificationService
+                push_service = PushNotificationService()
+                await push_service.send_logout_notification(old_push_token)
+            except Exception as e:
+                print(f"Failed to send logout push notification: {e}")
+                # Don't block login if push notification fails
 
         # Create new session
         session_id = uuid4()
@@ -276,4 +304,29 @@ class AuthService:
             "session_id": str(session.id),
             "user": user,
         }
+
+    async def register_push_token(self, user_id: str, push_token: str) -> bool:
+        """Register push notification token for the current active session"""
+        try:
+            # Get the active session ID from Redis
+            active_session_id = await self.otp_service.redis.get_active_session(user_id)
+            if not active_session_id:
+                return False
+            
+            # Update the session with push token
+            from app.models.session import UserSession
+            from sqlalchemy import update
+            
+            stmt = (
+                update(UserSession)
+                .where(UserSession.id == UUID(active_session_id))
+                .values(push_token=push_token)
+            )
+            await self.db.execute(stmt)
+            await self.db.commit()
+            
+            return True
+        except Exception as e:
+            print(f"Failed to register push token: {e}")
+            return False
 

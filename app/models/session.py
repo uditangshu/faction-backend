@@ -27,6 +27,7 @@ class UserSession(SQLModel, table=True):
     ip_address: str | None = Field(default=None, max_length=45)
     user_agent: str | None = Field(default=None)
     refresh_token_hash: str
+    push_token: str | None = Field(default=None)  # Expo push notification token
     is_active: bool = Field(default=True, index=True)
     expires_at: datetime
     last_active: datetime = Field(default_factory=datetime.utcnow)
