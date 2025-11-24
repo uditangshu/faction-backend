@@ -41,13 +41,15 @@ def decode_token(token: str) -> Dict[str, Any] | None:
 
 
 def hash_password(password: str) -> str:
-   
-    prehashed = sha256(password.encode('utf-8')).hexdigest()
-    return pwd_context.hash(prehashed)
+    """Hash a password using bcrypt (truncate to 72 bytes if needed)"""
+    # Bcrypt has a 72-byte limit, truncate if necessary
+    password_bytes = password.encode('utf-8')[:72]
+    return pwd_context.hash(password_bytes)
 
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
-    """Verify a password against its hash (with SHA256 pre-hashing)"""
-    prehashed = sha256(plain_password.encode('utf-8')).hexdigest()
-    return pwd_context.verify(prehashed, hashed_password)
+    """Verify a password against its hash"""
+    # Truncate the same way for verification
+    password_bytes = plain_password.encode('utf-8')[:72]
+    return pwd_context.verify(password_bytes, hashed_password)
 
