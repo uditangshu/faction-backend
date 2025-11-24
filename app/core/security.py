@@ -4,12 +4,9 @@ from datetime import datetime, timedelta
 from typing import Any, Dict
 from hashlib import sha256
 from jose import jwt, JWTError
-from passlib.context import CryptContext
+import bcrypt
 
 from app.core.config import settings
-
-# Password hashing context
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 
 def create_access_token(data: Dict[str, Any], expires_delta: timedelta | None = None) -> str:
@@ -43,17 +40,21 @@ def decode_token(token: str) -> Dict[str, Any] | None:
 def hash_password(password: str) -> str:
     """
     Hash a password using SHA256 + bcrypt.
-    Use SHA256 digest (as bytes) to bypass bcrypt's 72-byte string limit.
+    SHA256 pre-hash ensures any length password works (bcrypt has 72-byte limit).
     """
-    # Pre-hash with SHA256 to get fixed-size output
+    # Pre-hash with SHA256 to get fixed 32-byte output
     password_digest = sha256(password.encode('utf-8')).digest()
-    # Pass bytes directly to bcrypt (avoids the 72-byte string limit)
-    return pwd_context.hash(password_digest)
+    # Hash with bcrypt
+    salt = bcrypt.gensalt()
+    hashed = bcrypt.hashpw(password_digest, salt)
+    # Return as string for storage
+    return hashed.decode('utf-8')
 
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
     """Verify a password against its hash (with SHA256 pre-hashing)"""
     # Pre-hash the same way
     password_digest = sha256(plain_password.encode('utf-8')).digest()
-    return pwd_context.verify(password_digest, hashed_password)
+    # Verify with bcrypt
+    return bcrypt.checkpw(password_digest, hashed_password.encode('utf-8'))
 
