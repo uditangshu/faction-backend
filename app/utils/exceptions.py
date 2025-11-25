@@ -72,3 +72,10 @@ class SMSDeliveryException(HTTPException):
     def __init__(self, detail: str = "Failed to send OTP. Please try again later"):
         super().__init__(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=detail)
 
+
+class UserNotFoundException(NotFoundException):
+    """User not found exception (for new user detection)"""
+
+    def __init__(self, detail: str = "User not found. Please sign up to create an account"):
+        super().__init__(detail=detail)
+

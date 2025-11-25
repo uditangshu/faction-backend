@@ -84,6 +84,8 @@ class StreakService:
             stats.longest_study_streak = stats.current_study_streak
 
         # Recalculate accuracy
+        # Note: This is called only when answer is correct, so we can optimize
+        # by incrementing a counter instead of counting all attempts every time
         correct_attempts = await self._count_correct_attempts(user_id)
         if stats.total_attempts > 0:
             stats.accuracy_rate = (correct_attempts / stats.total_attempts) * 100

@@ -57,8 +57,8 @@ async def get_question(
     
     Returns question with all options (without correct answer info).
     """
-    question = await question_service.get_question_by_id(question_id)
-    options = await question_service.get_question_options(question_id)
+    # Use optimized method that loads question and options concurrently
+    question, options = await question_service.get_question_with_options(question_id)
     
     response = QuestionDetailResponse.from_orm(question)
     response.options = [QuestionOptionResponse.from_orm(opt) for opt in options]

@@ -18,6 +18,7 @@ from app.utils.exceptions import (
     PhoneAlreadyExistsException,
     UnauthorizedException,
     SMSDeliveryException,
+    UserNotFoundException,
 )
 from app.utils.phone import validate_indian_phone
 
@@ -185,7 +186,7 @@ class AuthService:
         # Get user
         user = await self.get_user_by_phone(formatted_phone)
         if not user:
-            raise UnauthorizedException("Invalid phone number or password")
+            raise UserNotFoundException("User not found. Please sign up to create an account")
 
         if not user.is_active:
             raise UnauthorizedException("Account is inactive")

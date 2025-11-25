@@ -54,7 +54,7 @@ class Question(SQLModel, table=True):
     attempt_count: int = Field(default=0)
     
     created_by: UUID = Field(foreign_key="users.id")
-    is_active: bool = Field(default=True)
+    is_active: bool = Field(default=True, index=True)
     is_premium: bool = Field(default=False)
     created_at: datetime = Field(default_factory=datetime.utcnow)
     updated_at: datetime = Field(default_factory=datetime.utcnow)

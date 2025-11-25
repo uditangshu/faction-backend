@@ -1,10 +1,11 @@
 """Question bank service"""
 
 import json
+from asyncio import gather
 from uuid import UUID
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func, and_
-from typing import List, Optional
+from typing import List, Optional, Tuple
 
 from app.models.question import Question, QuestionOption, QuestionType
 from app.models.attempt import QuestionAttempt
@@ -55,7 +56,7 @@ class QuestionService:
 
     async def get_question_by_id(self, question_id: UUID) -> Question:
         """
-        Get question by ID with options.
+        Get question by ID.
 
         Args:
             question_id: Question UUID
@@ -75,6 +76,38 @@ class QuestionService:
             raise NotFoundException("Question not found")
 
         return question
+
+    async def get_question_with_options(self, question_id: UUID) -> Tuple[Question, List[QuestionOption]]:
+        """
+        Get question by ID with options in a single optimized query.
+
+        Args:
+            question_id: Question UUID
+
+        Returns:
+            Tuple of (Question, List[QuestionOption])
+
+        Raises:
+            NotFoundException: If question not found
+        """
+        # Execute both queries concurrently for better performance
+        question_result, options_result = await gather(
+            self.db.execute(
+                select(Question).where(Question.id == question_id, Question.is_active == True)
+            ),
+            self.db.execute(
+                select(QuestionOption)
+                .where(QuestionOption.question_id == question_id)
+                .order_by(QuestionOption.option_order)
+            )
+        )
+        
+        question = question_result.scalar_one_or_none()
+        if not question:
+            raise NotFoundException("Question not found")
+        
+        options = list(options_result.scalars().all())
+        return question, options
 
     async def get_question_options(self, question_id: UUID) -> List[QuestionOption]:
         """Get options for a question"""
