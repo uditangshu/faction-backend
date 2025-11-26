@@ -200,6 +200,7 @@ class AuthService:
 
         # Get old active session before invalidating (for force logout and push notification)
         old_session_id = await self.otp_service.redis.get_active_session(str(user.id))
+        print(f"🔍 Old active session ID: {old_session_id}")
         
         # Get old session's push token before invalidating
         old_push_token = None
@@ -211,33 +212,39 @@ class AuthService:
             old_session = result.scalar_one_or_none()
             if old_session:
                 old_push_token = old_session.push_token
+                print(f"📱 Found old push token for session {old_session_id}: {old_push_token[:20] if old_push_token else 'None'}...")
         
         # Invalidate all old sessions for this user (enforce single device)
-        await invalidate_old_sessions(self.db, user.id)
+        # This happens BEFORE creating the new session to ensure old sessions are marked inactive
+        invalidated_count = await invalidate_old_sessions(self.db, user.id)
+        print(f"🔒 Invalidated {invalidated_count} old session(s)")
 
-        # Mark old session for immediate force logout
+        # Mark old session for immediate force logout (if it existed)
         if old_session_id:
             await self.otp_service.redis.set_force_logout(old_session_id)
+            print(f"🚪 Marked old session {old_session_id} for force logout")
             
-        # Send push notification to old device to force logout
+        # Send push notification to OLD device to force logout
+        # This notification goes ONLY to the old device, not the new one
         if old_push_token:
-            print(f"📱 Found old push token, sending logout notification: {old_push_token[:20]}...")
+            print(f"📱 Sending logout notification to OLD device (token: {old_push_token[:20]}...)")
             try:
                 from app.services.push_notification_service import PushNotificationService
                 push_service = PushNotificationService()
                 success = await push_service.send_logout_notification(old_push_token)
                 if success:
-                    print("✅ Logout push notification sent successfully")
+                    print("✅ Logout push notification sent successfully to OLD device")
                 else:
                     print("⚠️ Logout push notification failed")
             except Exception as e:
                 print(f"❌ Failed to send logout push notification: {e}")
                 # Don't block login if push notification fails
         else:
-            print("⚠️ No push token found for old session")
+            print("⚠️ No push token found for old session - old device won't receive logout notification")
 
-        # Create new session
+        # Create NEW session for the NEW device
         session_id = uuid4()
+        print(f"🆕 Creating new session for NEW device: {session_id}")
         refresh_token = create_refresh_token({"sub": str(user.id), "session_id": str(session_id)})
         refresh_token_hash = sha256(refresh_token.encode()).hexdigest()
 
@@ -255,7 +262,9 @@ class AuthService:
         )
 
         # Store active session in Redis (overwrites old session)
+        # This ensures the new device's session is now the active one
         await self.otp_service.redis.set_active_session(str(user.id), str(session.id))
+        print(f"✅ New session {session.id} set as active (old session {old_session_id} is no longer active)")
 
         # Update last login
         user.updated_at = datetime.utcnow()
@@ -277,18 +286,39 @@ class AuthService:
         }
 
     async def register_push_token(self, user_id: str, push_token: str) -> bool:
-        """Register push notification token for the current active session"""
+        """
+        Register push notification token for the current active session.
+        This ensures the push token is only registered to the NEW device's session,
+        not the old one that was just invalidated.
+        """
         try:
             print(f"📱 Registering push token for user {user_id}: {push_token[:20]}...")
             
             # Get the active session ID from Redis
+            # This will be the NEW session if user just logged in from a new device
             active_session_id = await self.otp_service.redis.get_active_session(user_id)
             if not active_session_id:
                 print(f"⚠️ No active session found for user {user_id}")
                 return False
             
-            # Update the session with push token
+            print(f"📱 Active session ID: {active_session_id} (this is the NEW device's session)")
+            
+            # Verify the session exists and is active
             from app.models.session import UserSession
+            result = await self.db.execute(
+                select(UserSession).where(UserSession.id == UUID(active_session_id))
+            )
+            session = result.scalar_one_or_none()
+            
+            if not session:
+                print(f"❌ Session {active_session_id} not found in database")
+                return False
+            
+            if not session.is_active:
+                print(f"⚠️ Session {active_session_id} is not active - this shouldn't happen")
+                return False
+            
+            # Update the session with push token
             from sqlalchemy import update
             
             stmt = (
@@ -299,10 +329,13 @@ class AuthService:
             await self.db.execute(stmt)
             await self.db.commit()
             
-            print(f"✅ Push token registered successfully for session {active_session_id}")
+            print(f"✅ Push token registered successfully for NEW device's session {active_session_id}")
+            print(f"✅ This push token will receive notifications for future logins from other devices")
             return True
         except Exception as e:
             print(f"❌ Failed to register push token: {e}")
+            import traceback
+            print(traceback.format_exc())
             return False
 
     async def initiate_forgot_password(self, phone_number: str) -> tuple[str, str]:
