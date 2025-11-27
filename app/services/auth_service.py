@@ -202,8 +202,11 @@ class AuthService:
         old_session_id = await self.otp_service.redis.get_active_session(str(user.id))
         print(f"🔍 Old active session ID: {old_session_id}")
         
-        # Get old session's push token before invalidating
+        # Get old session details (push token and device_id) before invalidating
         old_push_token = None
+        old_device_id = None
+        is_same_device = False
+        
         if old_session_id:
             from app.models.session import UserSession
             result = await self.db.execute(
@@ -212,35 +215,42 @@ class AuthService:
             old_session = result.scalar_one_or_none()
             if old_session:
                 old_push_token = old_session.push_token
-                print(f"📱 Found old push token for session {old_session_id}: {old_push_token[:20] if old_push_token else 'None'}...")
+                old_device_id = old_session.device_id
+                is_same_device = old_device_id == device_id
+                print(f"📱 Old session info - device_id: {old_device_id}, push_token: {old_push_token[:20] if old_push_token else 'None'}...")
+                print(f"🔍 Is same device? {is_same_device} (old: {old_device_id}, new: {device_id})")
         
         # Invalidate all old sessions for this user (enforce single device)
         # This happens BEFORE creating the new session to ensure old sessions are marked inactive
         invalidated_count = await invalidate_old_sessions(self.db, user.id)
         print(f"🔒 Invalidated {invalidated_count} old session(s)")
 
-        # Mark old session for immediate force logout (if it existed)
-        if old_session_id:
+        # Only send logout notification if it's a DIFFERENT device
+        # Don't send if user is logging back in on the same device after logout
+        if old_session_id and not is_same_device:
+            # Mark old session for immediate force logout
             await self.otp_service.redis.set_force_logout(old_session_id)
-            print(f"🚪 Marked old session {old_session_id} for force logout")
+            print(f"🚪 Marked old session {old_session_id} for force logout (different device)")
             
-        # Send push notification to OLD device to force logout
-        # This notification goes ONLY to the old device, not the new one
-        if old_push_token:
-            print(f"📱 Sending logout notification to OLD device (token: {old_push_token[:20]}...)")
-            try:
-                from app.services.push_notification_service import PushNotificationService
-                push_service = PushNotificationService()
-                success = await push_service.send_logout_notification(old_push_token)
-                if success:
-                    print("✅ Logout push notification sent successfully to OLD device")
-                else:
-                    print("⚠️ Logout push notification failed")
-            except Exception as e:
-                print(f"❌ Failed to send logout push notification: {e}")
-                # Don't block login if push notification fails
+            # Send push notification to OLD device to force logout
+            if old_push_token:
+                print(f"📱 Sending logout notification to OLD device (token: {old_push_token[:20]}...)")
+                try:
+                    from app.services.push_notification_service import PushNotificationService
+                    push_service = PushNotificationService()
+                    success = await push_service.send_logout_notification(old_push_token)
+                    if success:
+                        print("✅ Logout push notification sent successfully to OLD device")
+                    else:
+                        print("⚠️ Logout push notification failed")
+                except Exception as e:
+                    print(f"❌ Failed to send logout push notification: {e}")
+            else:
+                print("⚠️ No push token found for old session")
+        elif is_same_device:
+            print(f"✅ Same device login detected - skipping logout notification")
         else:
-            print("⚠️ No push token found for old session - old device won't receive logout notification")
+            print("ℹ️ No old session found")
 
         # Create NEW session for the NEW device
         session_id = uuid4()
@@ -334,6 +344,37 @@ class AuthService:
             return True
         except Exception as e:
             print(f"❌ Failed to register push token: {e}")
+            import traceback
+            print(traceback.format_exc())
+            return False
+
+    async def logout(self, user_id: str, session_id: str | None = None) -> bool:
+        
+        try:
+            print(f"🔓 Logging out user {user_id}, session {session_id}")
+            
+            from app.models.session import UserSession
+            from sqlalchemy import update
+            
+            # If we have a session_id, clear the push token and mark it inactive
+            if session_id:
+                # Clear push token first - this prevents logout notification on re-login
+                stmt = (
+                    update(UserSession)
+                    .where(UserSession.id == UUID(session_id))
+                    .values(push_token=None, is_active=False)
+                )
+                await self.db.execute(stmt)
+                await self.db.commit()
+                print(f"✅ Session {session_id} push token cleared and marked inactive")
+            
+            # Invalidate the active session in Redis
+            await self.otp_service.redis.invalidate_user_session(user_id)
+            print(f"✅ Active session removed from Redis for user {user_id}")
+            
+            return True
+        except Exception as e:
+            print(f"❌ Failed to logout: {e}")
             import traceback
             print(traceback.format_exc())
             return False
