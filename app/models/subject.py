@@ -15,7 +15,7 @@ class Subject(SQLModel, table=True):
     code: str = Field(max_length=20, unique=True)
     description: str | None = None
     is_active: bool = Field(default=True)
-    created_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(default_factory=datetime.now())
 
 
 class Topic(SQLModel, table=True):
@@ -46,5 +46,5 @@ class Concept(SQLModel, table=True):
     difficulty_level: int = Field(ge=1, le=5, default=1)
     weightage: float = Field(ge=0.0, le=1.0, default=0.1)  # Importance weightage
     is_active: bool = Field(default=True)
-    created_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(default_factory=datetime.now())
 

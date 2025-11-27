@@ -33,6 +33,7 @@ async def signup(
         class_level=request.class_level,
         target_exams=request.target_exams,
         password=request.password,
+        role= request.role,
         device_id=request.device_info.device_id,
         device_type=request.device_info.device_type,
         device_model=request.device_info.device_model,

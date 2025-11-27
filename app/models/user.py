@@ -48,9 +48,10 @@ class User(SQLModel, table=True):
     name: str = Field(max_length=100)
     class_level: ClassLevel
     target_exams: list[str] = Field(sa_column=Column(JSON), default=[])
-    role: UserRole = Field(default=UserRole.STUDENT)
+    role: UserRole = Field(default=UserRole.STUDENT, index=True, 
+        description="User's permission level within the application")
     subscription_type: SubscriptionType = Field(default=SubscriptionType.FREE)
     is_active: bool = Field(default=True)
-    created_at: datetime = Field(default_factory=datetime.utcnow)
-    updated_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(default_factory=datetime.now())
+    updated_at: datetime = Field(default_factory=datetime.now())
 

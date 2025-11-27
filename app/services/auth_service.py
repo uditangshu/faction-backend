@@ -49,6 +49,7 @@ class AuthService:
         password: str,
         device_id: str,
         device_type: DeviceType,
+        role : UserRole,
         device_model: str | None = None,
         os_version: str | None = None,
     ) -> tuple[str, str]:
@@ -73,6 +74,7 @@ class AuthService:
                 "phone_number": formatted_phone,
                 "name": name,
                 "class_level": class_level,
+                "role" : role,
                 "target_exams": [exam.value for exam in target_exams],
                 "password_hash": password_hash,
                 "device_id": device_id,
@@ -121,7 +123,7 @@ class AuthService:
             name=signup_data["name"],
             class_level=ClassLevel(signup_data["class_level"]),
             target_exams=signup_data["target_exams"],
-            role=UserRole.STUDENT,
+            role=signup_data["role"],
         )
 
         self.db.add(user)
@@ -258,7 +260,7 @@ class AuthService:
             ip_address=ip_address,
             user_agent=user_agent,
             refresh_token_hash=refresh_token_hash,
-            expires_at=datetime.utcnow() + timedelta(days=settings.REFRESH_TOKEN_EXPIRE_DAYS),
+            expires_at=datetime.now() + timedelta(days=settings.REFRESH_TOKEN_EXPIRE_DAYS),
         )
 
         # Store active session in Redis (overwrites old session)
