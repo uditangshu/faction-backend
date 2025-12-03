@@ -48,7 +48,7 @@ async def get_daily_streak(
 ) -> Optional[UserDailyStreak]:
     """Get daily streak for a specific date"""
     result = await db.execute(
-        select(UserDailyStreak).where(
+        select().where(
             and_(
                 UserDailyStreak.user_id == user_id,
                 UserDailyStreak.streak_date == streak_date,

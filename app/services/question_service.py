@@ -1,16 +1,12 @@
 """Question bank service"""
 
-import json
-from asyncio import gather
 from uuid import UUID
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, func, and_
+from sqlalchemy import select, func, delete
 from typing import List, Optional, Tuple
 
-from app.models.question import Question, QuestionOption, QuestionType
-from app.models.attempt import QuestionAttempt
-from app.models.subject import Subject, Topic
-from app.utils.exceptions import NotFoundException
+from app.models.question import Chapter, Question, QuestionType, DifficultyLevel
+from app.models.user import TargetExam
 
 
 class QuestionService:
@@ -19,206 +15,150 @@ class QuestionService:
     def __init__(self, db: AsyncSession):
         self.db = db
 
+    async def create_question(
+        self,
+        chapter_id: UUID,
+        type: QuestionType,
+        difficulty: DifficultyLevel,
+        exam_type: List[TargetExam],
+        question_text: str,
+        marks: int,
+        solution_text: str,
+        question_image: Optional[str] = None,
+        integer_answer: Optional[int] = None,
+        mcq_options: Optional[List[str]] = None,
+        mcq_correct_option: Optional[int] = None,
+        scq_options: Optional[List[str]] = None,
+        scq_correct_options: Optional[List[int]] = None,
+    ) -> Question:
+        """Create a new question"""
+        question = Question(
+            chapter_id=chapter_id,
+            type=type,
+            difficulty=difficulty,
+            exam_type=exam_type,
+            question_text=question_text,
+            marks=marks,
+            solution_text=solution_text,
+            question_image=question_image,
+            integer_answer=integer_answer,
+            mcq_options=mcq_options,
+            mcq_correct_option=mcq_correct_option,
+            scq_options=scq_options,
+            scq_correct_options=scq_correct_options,
+            questions_solved=0,
+        )
+        self.db.add(question)
+        await self.db.commit()
+        await self.db.refresh(question)
+        return question
+
     async def get_questions(
         self,
+        chapter_id: Optional[UUID] = None,
         subject_id: Optional[UUID] = None,
-        topic_id: Optional[UUID] = None,
         difficulty_level: Optional[int] = None,
         skip: int = 0,
         limit: int = 20,
-    ) -> List[Question]:
+    ) -> Tuple[List[Question], int]:
         """
-        Get list of questions with filters.
-
-        Args:
-            subject_id: Filter by subject
-            topic_id: Filter by topic
-            difficulty_level: Filter by difficulty (1-5)
-            skip: Number of records to skip
-            limit: Maximum number of records to return
+        Get list of questions with filters and total count.
 
         Returns:
-            List of questions
+            Tuple of (questions list, total count)
         """
-        query = select(Question).where(Question.is_active == True)
+        query = select(Question)
+        count_query = select(func.count(Question.id))
 
         if subject_id:
-            query = query.where(Question.subject_id == subject_id)
-        if topic_id:
-            query = query.where(Question.topic_id == topic_id)
+            query = query.join(Chapter).where(Chapter.subject_id == subject_id)
+            count_query = count_query.join(Chapter).where(Chapter.subject_id == subject_id)
+        if chapter_id:
+            query = query.where(Question.chapter_id == chapter_id)
+            count_query = count_query.where(Question.chapter_id == chapter_id)
         if difficulty_level:
-            query = query.where(Question.difficulty_level == difficulty_level)
+            query = query.where(Question.difficulty == difficulty_level)
+            count_query = count_query.where(Question.difficulty == difficulty_level)
 
+        # Get total count
+        total_result = await self.db.execute(count_query)
+        total = total_result.scalar() or 0
+
+        # Apply pagination
         query = query.offset(skip).limit(limit)
-
         result = await self.db.execute(query)
-        return list(result.scalars().all())
+        
+        return list(result.scalars().all()), total
 
-    async def get_question_by_id(self, question_id: UUID) -> Question:
-        """
-        Get question by ID.
-
-        Args:
-            question_id: Question UUID
-
-        Returns:
-            Question object
-
-        Raises:
-            NotFoundException: If question not found
-        """
+    async def get_question_by_id(self, question_id: UUID) -> Optional[Question]:
+        """Get question by ID"""
         result = await self.db.execute(
-            select(Question).where(Question.id == question_id, Question.is_active == True)
+            select(Question).where(Question.id == question_id)
         )
-        question = result.scalar_one_or_none()
+        return result.scalar_one_or_none()
 
+    async def update_question(
+        self,
+        question_id: UUID,
+        chapter_id: Optional[UUID] = None,
+        type: Optional[QuestionType] = None,
+        difficulty: Optional[DifficultyLevel] = None,
+        exam_type: Optional[List[TargetExam]] = None,
+        question_text: Optional[str] = None,
+        marks: Optional[int] = None,
+        solution_text: Optional[str] = None,
+        question_image: Optional[str] = None,
+        integer_answer: Optional[int] = None,
+        mcq_options: Optional[List[str]] = None,
+        mcq_correct_option: Optional[int] = None,
+        scq_options: Optional[List[str]] = None,
+        scq_correct_options: Optional[List[int]] = None,
+    ) -> Optional[Question]:
+        """Update an existing question"""
+        question = await self.get_question_by_id(question_id)
         if not question:
-            raise NotFoundException("Question not found")
+            return None
 
+        # Update only provided fields
+        if chapter_id is not None:
+            question.chapter_id = chapter_id
+        if type is not None:
+            question.type = type
+        if difficulty is not None:
+            question.difficulty = difficulty
+        if exam_type is not None:
+            question.exam_type = exam_type
+        if question_text is not None:
+            question.question_text = question_text
+        if marks is not None:
+            question.marks = marks
+        if solution_text is not None:
+            question.solution_text = solution_text
+        if question_image is not None:
+            question.question_image = question_image
+        if integer_answer is not None:
+            question.integer_answer = integer_answer
+        if mcq_options is not None:
+            question.mcq_options = mcq_options
+        if mcq_correct_option is not None:
+            question.mcq_correct_option = mcq_correct_option
+        if scq_options is not None:
+            question.scq_options = scq_options
+        if scq_correct_options is not None:
+            question.scq_correct_options = scq_correct_options
+
+        self.db.add(question)
+        await self.db.commit()
+        await self.db.refresh(question)
         return question
 
-    async def get_question_with_options(self, question_id: UUID) -> Tuple[Question, List[QuestionOption]]:
-        """
-        Get question by ID with options in a single optimized query.
-
-        Args:
-            question_id: Question UUID
-
-        Returns:
-            Tuple of (Question, List[QuestionOption])
-
-        Raises:
-            NotFoundException: If question not found
-        """
-        # Execute both queries concurrently for better performance
-        question_result, options_result = await gather(
-            self.db.execute(
-                select(Question).where(Question.id == question_id, Question.is_active == True)
-            ),
-            self.db.execute(
-                select(QuestionOption)
-                .where(QuestionOption.question_id == question_id)
-                .order_by(QuestionOption.option_order)
-            )
-        )
-        
-        question = question_result.scalar_one_or_none()
-        if not question:
-            raise NotFoundException("Question not found")
-        
-        options = list(options_result.scalars().all())
-        return question, options
-
-    async def get_question_options(self, question_id: UUID) -> List[QuestionOption]:
-        """Get options for a question"""
-        result = await self.db.execute(
-            select(QuestionOption)
-            .where(QuestionOption.question_id == question_id)
-            .order_by(QuestionOption.option_order)
-        )
-        return list(result.scalars().all())
-
-    async def evaluate_answer(
-        self, question: Question, user_answer: str, options: List[QuestionOption]
-    ) -> tuple[bool, int]:
-        """
-        Evaluate user's answer.
-
-        Args:
-            question: Question object
-            user_answer: User's answer
-            options: Question options
-
-        Returns:
-            Tuple of (is_correct, marks_obtained)
-        """
-        is_correct = False
-        marks = 0
-
-        if question.question_type == QuestionType.MCQ:
-            # Find correct option
-            correct_option = next((opt for opt in options if opt.is_correct), None)
-            if correct_option and user_answer == correct_option.option_label:
-                is_correct = True
-                marks = question.points
-
-        elif question.question_type == QuestionType.NUMERICAL:
-            try:
-                user_value = float(user_answer)
-                correct_value = question.correct_numerical_value
-                tolerance = question.numerical_tolerance or 0.01
-
-                if correct_value is not None and abs(user_value - correct_value) <= tolerance:
-                    is_correct = True
-                    marks = question.points
-            except (ValueError, TypeError):
-                is_correct = False
-
-        elif question.question_type == QuestionType.MULTI_SELECT:
-            # Parse user answer as list
-            try:
-                user_options = json.loads(user_answer) if isinstance(user_answer, str) else user_answer
-                correct_options = sorted([opt.option_label for opt in options if opt.is_correct])
-                user_options_sorted = sorted(user_options)
-
-                if correct_options == user_options_sorted:
-                    is_correct = True
-                    marks = question.points
-            except (json.JSONDecodeError, TypeError):
-                is_correct = False
-
-        return is_correct, marks
-
-    async def submit_answer(
-        self, user_id: UUID, question_id: UUID, user_answer: str, time_taken: int
-    ) -> dict:
-        """
-        Submit and evaluate user's answer.
-
-        Args:
-            user_id: User UUID
-            question_id: Question UUID
-            user_answer: User's answer
-            time_taken: Time taken in seconds
-
-        Returns:
-            Dict with evaluation results
-
-        Raises:
-            NotFoundException: If question not found
-        """
-        # Get question and options
+    async def delete_question(self, question_id: UUID) -> bool:
+        """Delete a question by ID"""
         question = await self.get_question_by_id(question_id)
-        options = await self.get_question_options(question_id)
-
-        # Evaluate answer
-        is_correct, marks = await self.evaluate_answer(question, user_answer, options)
-
-        # Create attempt record
-        attempt = QuestionAttempt(
-            user_id=user_id,
-            question_id=question_id,
-            user_answer=user_answer,
-            is_correct=is_correct,
-            marks_obtained=marks,
-            time_taken=time_taken,
-        )
-
-        self.db.add(attempt)
-
-        # Update question stats
-        question.attempt_count += 1
-        if is_correct:
-            question.solved_count += 1
-
+        if not question:
+            return False
+        
+        stmt = delete(Question).where(Question.id == question_id)
+        await self.db.execute(stmt)
         await self.db.commit()
-        await self.db.refresh(attempt)
-
-        return {
-            "attempt_id": attempt.id,
-            "is_correct": is_correct,
-            "marks_obtained": marks,
-            "time_taken": time_taken,
-            "explanation": question.explanation if is_correct or True else None,  # Always show for now
-        }
-
+        return True

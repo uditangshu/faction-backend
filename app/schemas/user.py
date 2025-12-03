@@ -12,7 +12,7 @@ class UserBase(BaseModel):
     phone_number: str
     name: str
     class_level: ClassLevel
-    target_exam: TargetExam
+    target_exams: list[TargetExam]
 
 
 class UserResponse(UserBase):

@@ -3,15 +3,28 @@
 from datetime import datetime
 from enum import Enum
 from uuid import UUID, uuid4
-from sqlmodel import Field, SQLModel
-
+from sqlmodel import SQLModel, Field, Relationship, JSON, Column
+from typing import List, Optional
+from app.models.user import TargetExam
 
 class QuestionType(str, Enum):
-    """Question type enumeration"""
+    INTEGER = "integer"
     MCQ = "mcq"
-    NUMERICAL = "numerical"
-    MULTI_SELECT = "multi_select"
-    ASSERTION_REASON = "assertion_reason"
+    MATCH = "match_the_column"
+    SCQ = "scq"
+
+class Class_level(int, Enum) : 
+    """Class Level enumeration"""
+    Ninth = 9
+    Tenth = 10
+    Eleventh = 11
+    Twelth = 12
+
+class Subject_Type(str, Enum):
+    PHYSICS = "Physics"
+    CHEMISTRY = "Chemistry"
+    MATHS = "Maths"
+    BIOLOGY = "Biology"
 
 
 class DifficultyLevel(int, Enum):
@@ -23,53 +36,68 @@ class DifficultyLevel(int, Enum):
     MASTER = 5
 
 
+class Class(SQLModel, table=True):
+    """Class Model"""
+    id: UUID = Field(default_factory=uuid4, primary_key=True)
+    class_level: Class_level
+    subjects: List["Subject"] = Relationship(back_populates="subject_class_lvl")
+
+
+class Subject(SQLModel, table=True):
+    id: UUID = Field(default_factory=uuid4, primary_key=True)
+    subject_type: Subject_Type
+    
+    # Foreign Key
+    class_id: UUID = Field(foreign_key="class.id")
+    
+    # Relationships
+    subject_class_lvl: Optional[Class] = Relationship(back_populates="subjects")
+    chapters: List["Chapter"] = Relationship(back_populates="subject")
+
+class Chapter(SQLModel, table=True):
+    id: UUID = Field(default_factory=uuid4, primary_key=True)
+    name: str
+    
+    # Foreign Key
+    subject_id: UUID = Field(foreign_key="subject.id")
+    
+    # Relationships
+    subject: Optional[Subject] = Relationship(back_populates="chapters")
+    questions: List["Question"] = Relationship(back_populates="chapter")
+
 class Question(SQLModel, table=True):
-    """Question model"""
-    
-    __tablename__ = "questions"
-    
     id: UUID = Field(default_factory=uuid4, primary_key=True)
-    subject_id: UUID = Field(foreign_key="subjects.id", index=True)
-    topic_id: UUID = Field(foreign_key="topics.id", index=True)
-    concept_id: UUID | None = Field(default=None, foreign_key="concepts.id", index=True)
     
+    # Foreign Key
+    chapter_id: UUID = Field(foreign_key="chapter.id")
+    chapter: Optional[Chapter] = Relationship(back_populates="questions")
+
+    # Core Attributes
+    type: QuestionType
+    difficulty: DifficultyLevel
+
+    # Storing a list of Enums using JSON column
+    # Example data: ["JEE", "NEET"]
+    exam_type: List[TargetExam] = Field(sa_column=Column(JSON)) 
+
+    # Common Fields
     question_text: str
-    question_type: QuestionType
-    difficulty_level: int = Field(ge=1, le=5, default=1)
-    difficulty_rating: int = Field(default=1200)  # ELO-style rating (800-2000+)
+    marks: int
+    solution_text: str
     
-    # For numerical questions
-    correct_numerical_value: float | None = None
-    numerical_tolerance: float | None = Field(default=0.01)
+    # Optional / Specific Fields
+    question_image: Optional[str] = None
     
-    # Metadata
-    time_limit: int = Field(default=120)  # seconds
-    points: int = Field(default=10)
-    explanation: str | None = None
-    solution_video_url: str | None = None
-    image_url: str | None = None
+    # Integer type
+    integer_answer: Optional[int] = None
     
-    # Stats
-    solved_count: int = Field(default=0)
-    attempt_count: int = Field(default=0)
+    # MCQ type (Lists stored as JSON)
+    mcq_options: Optional[List[str]] = Field(default=None, sa_column=Column(JSON))
+    mcq_correct_option: Optional[int] = None # Index of the correct option
     
-    created_by: UUID = Field(foreign_key="users.id")
-    is_active: bool = Field(default=True, index=True)
-    is_premium: bool = Field(default=False)
-    created_at: datetime = Field(default_factory=datetime.utcnow)
-    updated_at: datetime = Field(default_factory=datetime.utcnow)
+    # SCQ / Multiple Correct type
+    scq_options: Optional[List[str]] = Field(default=None, sa_column=Column(JSON))
+    scq_correct_options: Optional[List[int]] = Field(default=None, sa_column=Column(JSON))
 
-
-class QuestionOption(SQLModel, table=True):
-    """Question options for MCQ and Multi-Select questions"""
-    
-    __tablename__ = "question_options"
-    
-    id: UUID = Field(default_factory=uuid4, primary_key=True)
-    question_id: UUID = Field(foreign_key="questions.id", index=True)
-    option_text: str
-    option_label: str = Field(max_length=2)  # A, B, C, D
-    is_correct: bool = Field(default=False)
-    option_order: int = Field(default=0)
-    created_at: datetime = Field(default_factory=datetime.utcnow)
-
+    #stats
+    questions_solved: int

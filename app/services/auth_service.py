@@ -48,6 +48,7 @@ class AuthService:
         target_exams: list[TargetExam],
         password: str,
         device_id: str,
+        role: UserRole,
         device_type: DeviceType,
         device_model: str | None = None,
         os_version: str | None = None,

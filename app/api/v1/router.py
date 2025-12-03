@@ -1,12 +1,21 @@
 """Main v1 router combining all endpoints"""
 
 from fastapi import APIRouter
-from app.api.v1.endpoints import auth, users, questions, streaks
+from app.api.v1.endpoints.auth import auth
+from app.api.v1.endpoints.users import users
+from app.api.v1.endpoints.streaks import streaks
+from app.api.v1.endpoints.curriculum import questions, classes, subjects, chapter  
 
 api_router = APIRouter()
 
 # Include all route modules
 api_router.include_router(auth.router)
 api_router.include_router(users.router)
-api_router.include_router(questions.router)
 api_router.include_router(streaks.router)
+
+# Curriculum routes
+api_router.include_router(classes.router)
+api_router.include_router(subjects.router)
+api_router.include_router(chapter.router)
+api_router.include_router(questions.router)
+

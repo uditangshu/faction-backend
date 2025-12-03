@@ -12,7 +12,7 @@ class QuestionAttempt(SQLModel, table=True):
     
     id: UUID = Field(default_factory=uuid4, primary_key=True)
     user_id: UUID = Field(foreign_key="users.id", index=True)
-    question_id: UUID = Field(foreign_key="questions.id", index=True)
+    question_id: UUID = Field(foreign_key="question.id", index=True)
     
     # Answer data
     user_answer: str  # Stored as JSON string for multi-select

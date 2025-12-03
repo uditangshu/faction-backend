@@ -3,6 +3,7 @@
 from pydantic import BaseModel, Field, field_validator
 from app.models.user import ClassLevel, TargetExam
 from app.models.session import DeviceType
+from app.models.user import UserRole
 
 
 class DeviceInfo(BaseModel):
@@ -23,6 +24,7 @@ class SignupRequest(BaseModel):
     target_exams: list[TargetExam] = Field(..., description="Target entrance exams (at least 1 required)", min_length=1)
     password: str = Field(..., description="User password", min_length=8, max_length=100)
     device_info: DeviceInfo = Field(..., description="Device information")
+    role: UserRole = Field(..., description="Defines the role for the user")
 
     @field_validator('target_exams')
     @classmethod

@@ -15,6 +15,10 @@ class StreakResponse(BaseModel):
     total_questions_solved: int
     accuracy_rate: float
 
+class StreakRequest(BaseModel):
+    """User Streak Information Request"""
+    
+    
 
 class CalendarDayData(BaseModel):
     """Calendar day data"""
