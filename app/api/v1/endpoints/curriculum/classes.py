@@ -5,7 +5,7 @@ from uuid import UUID
 from fastapi import APIRouter
 
 from app.api.v1.dependencies import ClassServiceDep
-from app.models.question import Class_level
+from app.models.Basequestion import Class_level
 from app.schemas.question import (
     ClassCreateRequest,
     ClassResponse,

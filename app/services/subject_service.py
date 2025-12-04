@@ -5,7 +5,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from typing import List, Optional
 
-from app.models.question import Subject, Subject_Type
+from app.models.Basequestion import Subject, Subject_Type
 from app.db.question_calls import create_subject, delete_subject, get_nested_subjects
 
 

@@ -5,7 +5,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from typing import List, Optional
 
-from app.models.question import Class, Class_level
+from app.models.Basequestion import Class, Class_level
 from app.db.question_calls import create_class, delete_class, get_nested_class
 
 

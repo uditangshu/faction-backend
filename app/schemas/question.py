@@ -3,7 +3,7 @@
 from uuid import UUID
 from typing import List, Optional
 from pydantic import BaseModel, Field
-from app.models.question import QuestionType, Class_level, Subject_Type, DifficultyLevel
+from app.models.Basequestion import QuestionType, Class_level, Subject_Type, DifficultyLevel
 from app.models.user import TargetExam
 
 
@@ -240,3 +240,118 @@ class QuestionFilters(BaseModel):
     skip: int = Field(0, ge=0)
     limit: int = Field(20, ge=1, le=100)
 
+
+# ==================== Bookmark/Analysis Schemas ====================
+
+class BookmarkCreateRequest(BaseModel):
+    """Request to create a bookmark"""
+    question_id: UUID
+
+
+class BookmarkResponse(BaseModel):
+    """Bookmark response"""
+    id: UUID
+    user_id: UUID
+    question_id: UUID
+    created_apt: str
+
+    class Config:
+        from_attributes = True
+
+
+class BookmarkListResponse(BaseModel):
+    """List of bookmarks response"""
+    bookmarks: List[BookmarkResponse]
+    total: int
+
+
+class BookmarkToggleResponse(BaseModel):
+    """Response for bookmark toggle"""
+    is_bookmarked: bool
+    bookmark: Optional[BookmarkResponse] = None
+
+
+# ==================== Attempt Schemas ====================
+
+class AttemptCreateRequest(BaseModel):
+    """Request to create an attempt"""
+    question_id: UUID
+    user_answer: List[str]
+    is_correct: bool
+    marks_obtained: int = Field(0, ge=0)
+    time_taken: int = Field(0, ge=0, description="Time taken in seconds")
+    hint_used: bool = False
+
+
+class AttemptResponse(BaseModel):
+    """Attempt response"""
+    id: UUID
+    user_id: UUID
+    question_id: UUID
+    user_answer: List[str]
+    is_correct: bool
+    marks_obtained: int
+    time_taken: int
+    attempted_at: str
+    explanation_viewed: bool
+    hint_used: bool
+
+    class Config:
+        from_attributes = True
+
+
+class AttemptUpdateRequest(BaseModel):
+    """Request to update an attempt"""
+    explanation_viewed: Optional[bool] = None
+    hint_used: Optional[bool] = None
+
+
+class AttemptListResponse(BaseModel):
+    """Paginated list of attempts"""
+    attempts: List[AttemptResponse]
+    total: int
+    skip: int
+    limit: int
+
+
+class AttemptStatsResponse(BaseModel):
+    """User attempt statistics"""
+    total_attempts: int
+    correct_attempts: int
+    incorrect_attempts: int
+    accuracy: float
+    total_marks: int
+    average_time_seconds: float
+
+
+# ==================== PYQ Schemas ====================
+
+class PYQCreateRequest(BaseModel):
+    """Request to create a PYQ entry"""
+    question_id: UUID
+    exam_detail: List[str] = Field(..., description="List of exam details (e.g., ['JEE 2023', 'JEE 2022'])")
+
+
+class PYQResponse(BaseModel):
+    """PYQ response"""
+    id: UUID
+    user_id: UUID
+    question_id: UUID
+    exam_detail: List[str]
+    created_at: str
+
+    class Config:
+        from_attributes = True
+
+
+class PYQUpdateRequest(BaseModel):
+    """Request to update a PYQ"""
+    exam_detail: List[str]
+
+
+class PYQListResponse(BaseModel):
+    """Paginated list of PYQs"""
+    pyqs: List[PYQResponse]
+    total: int
+    skip: int
+    limit: int

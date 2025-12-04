@@ -5,7 +5,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func, delete
 from typing import List, Optional, Tuple
 
-from app.models.question import Chapter, Question, QuestionType, DifficultyLevel
+from app.models.Basequestion import Chapter, Question, QuestionType, DifficultyLevel
 from app.models.user import TargetExam
 
 

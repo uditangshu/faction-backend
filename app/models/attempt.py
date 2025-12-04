@@ -2,8 +2,8 @@
 
 from datetime import datetime
 from uuid import UUID, uuid4
-from sqlmodel import Field, SQLModel
-
+from sqlmodel import Field, SQLModel, JSON, Column
+from typing import List, Optional
 
 class QuestionAttempt(SQLModel, table=True):
     """User question attempt records"""
@@ -15,12 +15,12 @@ class QuestionAttempt(SQLModel, table=True):
     question_id: UUID = Field(foreign_key="question.id", index=True)
     
     # Answer data
-    user_answer: str  # Stored as JSON string for multi-select
+    user_answer: List[str] = Field(sa_column=Column(JSON))
     is_correct: bool = Field(index=True)
     marks_obtained: int = Field(default=0)
-    time_taken: int  # seconds
+    time_taken: int  = Field(default=0)
     
     # Metadata
-    attempted_at: datetime = Field(default_factory=datetime.utcnow, index=True)
+    attempted_at: datetime = Field(default_factory=datetime.now)
     explanation_viewed: bool = Field(default=False)
-
+    hint_used: bool = Field(default=True)

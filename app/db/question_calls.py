@@ -6,7 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, delete, join
 from sqlalchemy.orm import selectinload
 
-from app.models.question import (
+from app.models.Basequestion import (
 Question, Class, Subject_Type,
 Subject, Chapter , QuestionType, Class_level, DifficultyLevel
 )

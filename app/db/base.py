@@ -6,23 +6,26 @@ from sqlmodel import SQLModel
 from app.models.user import User
 from app.models.otp import OTPVerification
 from app.models.session import UserSession
-from app.models.subject import Subject, Topic, Concept
-from app.models.question import Question, QuestionOption
+from app.models.Basequestion import Question, Subject, Chapter, Class
 from app.models.attempt import QuestionAttempt
+from app.models.analysis import BookMarkedQuestion
+from app.models.pyq import PreviousYearProblems
 from app.models.streak import UserStudyStats, UserDailyStreak
 
 __all__ = [
     "SQLModel",
+    "Chapter",
+    "Class",
     "User",
     "OTPVerification",
     "UserSession",
     "Subject",
-    "Topic",
-    "Concept",
     "Question",
     "QuestionOption",
     "QuestionAttempt",
     "UserStudyStats",
     "UserDailyStreak",
+    "PreviousYearProblems",
+    "BookMarkedQuestion"
 ]
 

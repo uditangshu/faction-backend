@@ -1,16 +1,11 @@
 """Question bank service"""
 
-import json
-from asyncio import gather
 from uuid import UUID
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, func, and_
-from typing import List, Optional, Tuple
+from sqlalchemy import select
+from typing import List, Optional
 
-from app.models.question import Question, QuestionOption, QuestionType
-from app.models.attempt import QuestionAttempt
-from app.models.subject import Subject, Topic
-from app.utils.exceptions import NotFoundException
+from app.models.Basequestion import Question
 
 
 class QOTDService:

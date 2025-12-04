@@ -2,9 +2,9 @@
 
 from uuid import UUID
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import delete
 
 from app.models.attempt import QuestionAttempt
-
 
 async def create_attempt(
     db: AsyncSession,
@@ -29,3 +29,21 @@ async def create_attempt(
     await db.refresh(attempt)
     return attempt
 
+
+async def remove_attempt(
+        db: AsyncSession,
+        attempt_id: UUID,
+):
+    stmt= delete(QuestionAttempt).where(QuestionAttempt.id == attempt_id)
+    await db.execute(stmt)
+
+
+async def update_attempt(
+        db: AsyncSession,
+        updated_attempt: QuestionAttempt,
+) -> QuestionAttempt:
+    
+    db.merge(updated_attempt)
+    await db.commit()
+    await db.refresh(updated_attempt)
+    return updated_attempt

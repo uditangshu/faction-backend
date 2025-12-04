@@ -52,6 +52,6 @@ class User(SQLModel, table=True):
         description="User's permission level within the application")
     subscription_type: SubscriptionType = Field(default=SubscriptionType.FREE)
     is_active: bool = Field(default=True)
-    created_at: datetime = Field(default_factory=datetime.now())
-    updated_at: datetime = Field(default_factory=datetime.now())
+    created_at: datetime = Field(default_factory=datetime.now)
+    updated_at: datetime = Field(default_factory=datetime.now)
 

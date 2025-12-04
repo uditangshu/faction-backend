@@ -22,6 +22,8 @@ from app.models import (
     QuestionAttempt,
     UserStudyStats,
     UserDailyStreak,
+    PreviousYearProblems,
+    BookMarkedQuestion
 )
 from app.core.config import settings
 

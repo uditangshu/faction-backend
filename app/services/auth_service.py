@@ -50,7 +50,6 @@ class AuthService:
         device_id: str,
         role: UserRole,
         device_type: DeviceType,
-        role : UserRole,
         device_model: str | None = None,
         os_version: str | None = None,
     ) -> tuple[str, str]:

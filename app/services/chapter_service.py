@@ -7,7 +7,7 @@ from sqlalchemy.orm import selectinload
 
 from typing import List, Optional
 
-from app.models.question import Chapter
+from app.models.Basequestion import Chapter
 from app.db.question_calls import create_chaps, delete_chaps, get_nested_chapters
 
 
