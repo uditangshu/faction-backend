@@ -84,10 +84,39 @@ class ChapterListResponse(BaseModel):
     total: int
 
 
+# ==================== Topic Schemas ====================
+
+class TopicCreateRequest(BaseModel):
+    """Request to create a new topic"""
+    name: str
+    chapter_id: UUID
+
+
+class TopicResponse(BaseModel):
+    """Single topic response"""
+    id: UUID
+    name: str
+    chapter_id: UUID
+
+    class Config:
+        from_attributes = True
+
+
+class TopicListResponse(BaseModel):
+    """List of topics response"""
+    topics: List[TopicResponse]
+    total: int
+
+
+class ChapterWithTopicsResponse(ChapterResponse):
+    """Chapter with its topics"""
+    topics: List[TopicResponse] = []
+
+
 class QuestionResponse(BaseModel):
     """Question response"""
     id: UUID
-    chapter_id: UUID
+    topic_id: UUID
     type: QuestionType
     difficulty: DifficultyLevel
     exam_type: List[TargetExam]
@@ -99,8 +128,8 @@ class QuestionResponse(BaseModel):
         from_attributes = True
 
 
-class ChapterWithQuestionsResponse(ChapterResponse):
-    """Chapter with its questions"""
+class TopicWithQuestionsResponse(TopicResponse):
+    """Topic with its questions"""
     questions: List["QuestionResponse"] = []
 
 
@@ -108,7 +137,7 @@ class ChapterWithQuestionsResponse(ChapterResponse):
 
 class QuestionCreateRequest(BaseModel):
     """Request to create a new question"""
-    chapter_id: UUID
+    topic_id: UUID
     type: QuestionType
     difficulty: DifficultyLevel
     exam_type: List[TargetExam]
@@ -128,7 +157,7 @@ class QuestionCreateRequest(BaseModel):
 
 class QuestionUpdateRequest(BaseModel):
     """Request to update an existing question"""
-    chapter_id: Optional[UUID] = None
+    topic_id: Optional[UUID] = None
     type: Optional[QuestionType] = None
     difficulty: Optional[DifficultyLevel] = None
     exam_type: Optional[List[TargetExam]] = None
@@ -149,7 +178,7 @@ class QuestionUpdateRequest(BaseModel):
 class QuestionDetailedResponse(BaseModel):
     """Detailed question response with all fields"""
     id: UUID
-    chapter_id: UUID
+    topic_id: UUID
     type: QuestionType
     difficulty: DifficultyLevel
     exam_type: List[TargetExam]
@@ -253,7 +282,7 @@ class BookmarkResponse(BaseModel):
     id: UUID
     user_id: UUID
     question_id: UUID
-    created_apt: str
+    created_at: str
 
     class Config:
         from_attributes = True
@@ -335,7 +364,6 @@ class PYQCreateRequest(BaseModel):
 class PYQResponse(BaseModel):
     """PYQ response"""
     id: UUID
-    user_id: UUID
     question_id: UUID
     exam_detail: List[str]
     created_at: str

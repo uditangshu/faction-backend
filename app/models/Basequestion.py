@@ -63,7 +63,6 @@ class Chapter(SQLModel, table=True):
     
     # Relationships
     subject: Optional[Subject] = Relationship(back_populates="chapters")
-    questions: List["Question"] = Relationship(back_populates="chapter")
     topics: List["Topic"] = Relationship(back_populates="chapter")
 
 class Topic(SQLModel, table= True):
@@ -71,7 +70,7 @@ class Topic(SQLModel, table= True):
     name: str
 
     #Foreign Key
-    chapter_id: UUID = Field(foreign_key="subject.id")
+    chapter_id: UUID = Field(foreign_key="chapter.id")
 
     #Relationships
     chapter: Optional[Chapter] = Relationship(back_populates="topics")
@@ -82,9 +81,9 @@ class Question(SQLModel, table=True):
     id: UUID = Field(default_factory=uuid4, primary_key=True)
     
     # Foreign Key
-    chapter_id: UUID = Field(foreign_key="chapter.id")
-    chapter: Optional[Chapter] = Relationship(back_populates="questions")
+    topic_id: UUID = Field(foreign_key="topic.id")
     topic: Optional[Topic] = Relationship(back_populates="questions")
+
     # Core Attributes
     type: QuestionType
     difficulty: DifficultyLevel

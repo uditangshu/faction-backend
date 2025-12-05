@@ -8,7 +8,7 @@ from sqlalchemy.orm import selectinload
 
 from app.models.Basequestion import (
 Question, Class, Subject_Type,
-Subject, Chapter , QuestionType, Class_level, DifficultyLevel
+Subject, Chapter, Topic, QuestionType, Class_level, DifficultyLevel
 )
 from app.models.user import TargetExam
 
@@ -92,6 +92,46 @@ async def update_chaps(db : AsyncSession, updated_chap: Chapter):
     await db.refresh(updated_chap)
     return updated_chap
 
+
+#topics
+async def create_topic(db: AsyncSession, chapter_id: UUID, name: str) -> Topic:
+    """Create a new topic"""
+    topic = Topic(
+        name=name,
+        chapter_id=chapter_id
+    )
+    db.add(topic)
+    await db.commit()
+    await db.refresh(topic)
+    return topic
+
+
+async def delete_topic(db: AsyncSession, topic_id: UUID):
+    """Delete a topic"""
+    stmt = delete(Topic).where(Topic.id == topic_id)
+    await db.execute(stmt)
+
+
+async def update_topic(db: AsyncSession, updated_topic: Topic):
+    """Update a topic"""
+    db.merge(updated_topic)
+    await db.commit()
+    await db.refresh(updated_topic)
+    return updated_topic
+
+
+async def get_nested_topics(db: AsyncSession, topic_id: UUID) -> Optional[Topic]:
+    """Get topic with questions"""
+    result = await db.execute(
+        select(Topic)
+        .where(Topic.id == topic_id)
+        .options(
+            selectinload(Topic.questions)
+        )
+    )
+    return result.scalar_one_or_none()
+
+
 #question
 
 async def create_question(db : AsyncSession,
@@ -155,8 +195,6 @@ async def get_nested_class(db: AsyncSession, class_id: UUID) -> Optional[Class]:
         .where(Class.id == class_id)
         .options(
             selectinload(Class.subjects)
-                .selectinload(Subject.chapters)
-                    .selectinload(Chapter.questions)
         )
     )
     return result.scalar_one_or_none()
@@ -175,12 +213,13 @@ async def get_nested_subjects(db: AsyncSession, sub_id: UUID) -> Optional[Subjec
     return result.scalar_one_or_none()
 
 async def get_nested_chapters(db: AsyncSession, chap_id: UUID) -> Optional[Chapter]:
-    """Get Chapters by ID"""
+    """Get Chapters with topics and questions"""
     result = await db.execute(
         select(Chapter)
         .where(Chapter.id == chap_id)
         .options(
-            selectinload(Chapter.questions)
+            selectinload(Chapter.topics)
+                .selectinload(Topic.questions)
         )
     )
     return result.scalar_one_or_none()

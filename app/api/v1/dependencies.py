@@ -20,9 +20,11 @@ from app.exceptions.auth_exceptions import UnauthorizedException, SessionExpired
 from app.services.chapter_service import ChapterService
 from app.services.class_service import ClassService
 from app.services.subject_service import SubjectService
+from app.services.topic_service import TopicService
 from app.services.analysis_service import AnalysisService
 from app.services.attempt_service import AttemptService
 from app.services.pyq_service import PYQService
+from app.services.filtering_service import FilteringService
 # Database session dependency
 DBSession = Annotated[AsyncSession, Depends(get_db_session)]
 
@@ -105,6 +107,14 @@ async def get_chapter_service(db: DBSession) -> ChapterService:
 ChapterServiceDep = Annotated[ChapterService, Depends(get_chapter_service)]
 
 
+async def get_topic_service(db: DBSession) -> TopicService:
+    """Get topic service"""
+    return TopicService(db)
+
+
+TopicServiceDep = Annotated[TopicService, Depends(get_topic_service)]
+
+
 async def get_analysis_service(db: DBSession) -> AnalysisService:
     """Get analysis service"""
     return AnalysisService(db)
@@ -127,6 +137,14 @@ async def get_pyq_service(db: DBSession) -> PYQService:
 
 
 PYQServiceDep = Annotated[PYQService, Depends(get_pyq_service)]
+
+
+async def get_filtering_service(db: DBSession) -> FilteringService:
+    """Get filtering service"""
+    return FilteringService(db)
+
+
+FilteringServiceDep = Annotated[FilteringService, Depends(get_filtering_service)]
 
 
 bearer_scheme = HTTPBearer()

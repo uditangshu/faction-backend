@@ -9,7 +9,6 @@ from app.schemas.question import (
     ChapterCreateRequest,
     ChapterResponse,
     ChapterListResponse,
-    ChapterWithQuestionsResponse,
 )
 from app.exceptions.http_exceptions import NotFoundException, BadRequestException
 
@@ -60,17 +59,6 @@ async def get_chapter(
         raise NotFoundException(f"Chapter with ID {chapter_id} not found")
     return ChapterResponse.model_validate(result)
 
-
-@router.get("/{chapter_id}/questions", response_model=ChapterWithQuestionsResponse)
-async def get_chapter_with_questions(
-    chapter_service: ChapterServiceDep,
-    chapter_id: UUID,
-) -> ChapterWithQuestionsResponse:
-    """Get a chapter with all its questions"""
-    result = await chapter_service.get_chapter_with_questions(chapter_id)
-    if not result:
-        raise NotFoundException(f"Chapter with ID {chapter_id} not found")
-    return ChapterWithQuestionsResponse.model_validate(result)
 
 
 @router.delete("/{chapter_id}", status_code=204)

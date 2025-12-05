@@ -5,7 +5,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func, delete
 from typing import List, Optional, Tuple
 
-from app.models.Basequestion import Chapter, Question, QuestionType, DifficultyLevel
+from app.models.Basequestion import Topic, Question, QuestionType, DifficultyLevel, Chapter
 from app.models.user import TargetExam
 
 
@@ -17,7 +17,7 @@ class QuestionService:
 
     async def create_question(
         self,
-        chapter_id: UUID,
+        topic_id: UUID,
         type: QuestionType,
         difficulty: DifficultyLevel,
         exam_type: List[TargetExam],
@@ -33,7 +33,7 @@ class QuestionService:
     ) -> Question:
         """Create a new question"""
         question = Question(
-            chapter_id=chapter_id,
+            topic_id=topic_id,
             type=type,
             difficulty=difficulty,
             exam_type=exam_type,
@@ -55,6 +55,7 @@ class QuestionService:
 
     async def get_questions(
         self,
+        topic_id: Optional[UUID] = None,
         chapter_id: Optional[UUID] = None,
         subject_id: Optional[UUID] = None,
         difficulty_level: Optional[int] = None,
@@ -70,12 +71,15 @@ class QuestionService:
         query = select(Question)
         count_query = select(func.count(Question.id))
 
-        if subject_id:
-            query = query.join(Chapter).where(Chapter.subject_id == subject_id)
-            count_query = count_query.join(Chapter).where(Chapter.subject_id == subject_id)
+        if topic_id:
+            query = query.where(Question.topic_id == topic_id)
+            count_query = count_query.where(Question.topic_id == topic_id)
         if chapter_id:
-            query = query.where(Question.chapter_id == chapter_id)
-            count_query = count_query.where(Question.chapter_id == chapter_id)
+            query = query.join(Topic).where(Topic.chapter_id == chapter_id)
+            count_query = count_query.join(Topic).where(Topic.chapter_id == chapter_id)
+        if subject_id:
+            query = query.join(Topic).join(Chapter).where(Chapter.subject_id == subject_id)
+            count_query = count_query.join(Topic).join(Chapter).where(Chapter.subject_id == subject_id)
         if difficulty_level:
             query = query.where(Question.difficulty == difficulty_level)
             count_query = count_query.where(Question.difficulty == difficulty_level)
@@ -100,7 +104,7 @@ class QuestionService:
     async def update_question(
         self,
         question_id: UUID,
-        chapter_id: Optional[UUID] = None,
+        topic_id: Optional[UUID] = None,
         type: Optional[QuestionType] = None,
         difficulty: Optional[DifficultyLevel] = None,
         exam_type: Optional[List[TargetExam]] = None,
@@ -120,8 +124,8 @@ class QuestionService:
             return None
 
         # Update only provided fields
-        if chapter_id is not None:
-            question.chapter_id = chapter_id
+        if topic_id is not None:
+            question.topic_id = topic_id
         if type is not None:
             question.type = type
         if difficulty is not None:

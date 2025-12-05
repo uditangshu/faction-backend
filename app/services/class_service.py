@@ -26,7 +26,7 @@ class ClassService:
         return result.scalar_one_or_none()
 
     async def get_class_with_subjects(self, class_id: UUID) -> Optional[Class]:
-        """Get class with all nested subjects, chapters, and questions"""
+        """Get class with all nested subjects"""
         return await get_nested_class(self.db, class_id)
 
     async def get_all_classes(self) -> List[Class]:

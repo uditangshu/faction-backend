@@ -2,11 +2,12 @@
 
 from uuid import UUID
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, delete, func
+from sqlalchemy import select, delete, func, cast
+from sqlalchemy.dialects.postgresql import JSONB
 from typing import List, Optional, Tuple
 
 from app.models.pyq import PreviousYearProblems
-
+from app.models.Basequestion import TargetExam, Question
 
 class PYQService:
     """Service for Previous Year Questions operations"""
@@ -16,13 +17,11 @@ class PYQService:
 
     async def create_pyq(
         self,
-        user_id: UUID,
         question_id: UUID,
         exam_detail: List[str],
     ) -> PreviousYearProblems:
         """Create a new PYQ entry"""
         pyq = PreviousYearProblems(
-            user_id=user_id,
             question_id=question_id,
             exam_detail=exam_detail,
         )
@@ -67,55 +66,33 @@ class PYQService:
         )
         return list(result.scalars().all()), total
 
-    async def get_pyqs_by_user(
-        self,
-        user_id: UUID,
-        skip: int = 0,
-        limit: int = 20,
-    ) -> Tuple[List[PreviousYearProblems], int]:
-        """Get all PYQs created by a user with pagination"""
-        # Count query
-        count_result = await self.db.execute(
-            select(func.count(PreviousYearProblems.id))
-            .where(PreviousYearProblems.user_id == user_id)
-        )
-        total = count_result.scalar() or 0
-
-        # Data query
-        result = await self.db.execute(
-            select(PreviousYearProblems)
-            .where(PreviousYearProblems.user_id == user_id)
-            .order_by(PreviousYearProblems.created_at.desc())
-            .offset(skip)
-            .limit(limit)
-        )
-        return list(result.scalars().all()), total
-
     async def get_pyqs_by_exam(
         self,
-        exam_name: str,
+        exam_name: List[TargetExam],
         skip: int = 0,
         limit: int = 20,
-    ) -> Tuple[List[PreviousYearProblems], int]:
+    ) -> List[PreviousYearProblems]:
         """Get all PYQs for a specific exam (searches in exam_detail array)"""
         # This searches for exam_name within the JSON array
         # Count query
-        count_result = await self.db.execute(
-            select(func.count(PreviousYearProblems.id))
-            .where(PreviousYearProblems.exam_detail.contains([exam_name]))
-        )
-        total = count_result.scalar() or 0
 
         # Data query
         result = await self.db.execute(
-            select(PreviousYearProblems)
-            .where(PreviousYearProblems.exam_detail.contains([exam_name]))
+            select(PreviousYearProblems,Question)
+            .join(Question, PreviousYearProblems.question_id==Question.id)
+            .filter(cast(Question.exam_type, JSONB).contains([exam_name]))
             .order_by(PreviousYearProblems.created_at.desc())
             .offset(skip)
             .limit(limit)
         )
-        return list(result.scalars().all()), total
+        pyqs=[]
+        
+        for pyq, question in result:
+            print("this is the service printing up", pyq)
+            pyqs.append(pyq)
 
+        return list(pyqs)
+    
     async def update_pyq(
         self,
         pyq_id: UUID,

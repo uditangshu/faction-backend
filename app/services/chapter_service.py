@@ -7,7 +7,7 @@ from sqlalchemy.orm import selectinload
 
 from typing import List, Optional
 
-from app.models.Basequestion import Chapter
+from app.models.Basequestion import Chapter, Topic
 from app.db.question_calls import create_chaps, delete_chaps, get_nested_chapters
 
 
@@ -44,7 +44,8 @@ class ChapterService:
         query = select(Chapter).where(
             Chapter.id == chapter_id
         ).options(
-            selectinload(Chapter.questions)
+            selectinload(Chapter.topics)
+                .selectinload(Topic.questions)
         )
         result = await self.db.execute(query)
         return result.scalar_one_or_none()

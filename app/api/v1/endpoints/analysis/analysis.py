@@ -88,58 +88,6 @@ async def get_bookmark(
     )
 
 
-@router.get("/question/{question_id}/status", response_model=BookmarkToggleResponse)
-async def check_bookmark_status(
-    analysis_service: AnalysisServiceDep,
-    current_user: CurrentUser,
-    question_id: UUID,
-) -> BookmarkToggleResponse:
-    """Check if a question is bookmarked by the current user"""
-    bookmark = await analysis_service.get_bookmark_by_user_and_question(
-        current_user.id, question_id
-    )
-    
-    if bookmark:
-        return BookmarkToggleResponse(
-            is_bookmarked=True,
-            bookmark=BookmarkResponse(
-                id=bookmark.id,
-                user_id=bookmark.user_id,
-                question_id=bookmark.question_id,
-                created_at=str(bookmark.created_at),
-            ),
-        )
-    return BookmarkToggleResponse(is_bookmarked=False, bookmark=None)
-
-
-@router.post("/question/{question_id}/toggle", response_model=BookmarkToggleResponse)
-async def toggle_bookmark(
-    analysis_service: AnalysisServiceDep,
-    current_user: CurrentUser,
-    question_id: UUID,
-) -> BookmarkToggleResponse:
-    """Toggle bookmark status for a question"""
-    try:
-        is_bookmarked, bookmark = await analysis_service.toggle_bookmark(
-            user_id=current_user.id,
-            question_id=question_id,
-        )
-        
-        if is_bookmarked and bookmark:
-            return BookmarkToggleResponse(
-                is_bookmarked=True,
-                bookmark=BookmarkResponse(
-                    id=bookmark.id,
-                    user_id=bookmark.user_id,
-                    question_id=bookmark.question_id,
-                    created_at=str(bookmark.created_at),
-                ),
-            )
-        return BookmarkToggleResponse(is_bookmarked=False, bookmark=None)
-    except Exception as e:
-        raise BadRequestException(f"Failed to toggle bookmark: {str(e)}")
-
-
 @router.delete("/{bookmark_id}", status_code=204)
 async def delete_bookmark(
     analysis_service: AnalysisServiceDep,

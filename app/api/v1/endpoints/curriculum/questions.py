@@ -26,7 +26,7 @@ async def create_question(
     try:
         print(request)
         new_question = await question_service.create_question(
-            chapter_id=request.chapter_id,
+            topic_id=request.topic_id,
             type=request.type,
             difficulty=request.difficulty,
             exam_type=request.exam_type,
@@ -48,6 +48,7 @@ async def create_question(
 @router.get("/", response_model=QuestionPaginatedResponse)
 async def get_questions(
     question_service: QuestionServiceDep,
+    topic_id: Optional[UUID] = Query(None, description="Filter by topic ID"),
     chapter_id: Optional[UUID] = Query(None, description="Filter by chapter ID"),
     subject_id: Optional[UUID] = Query(None, description="Filter by subject ID"),
     difficulty: Optional[int] = Query(None, ge=1, le=5, description="Filter by difficulty level (1-5)"),
@@ -56,6 +57,7 @@ async def get_questions(
 ) -> QuestionPaginatedResponse:
     """Get all questions with optional filters and pagination"""
     questions, total = await question_service.get_questions(
+        topic_id=topic_id,
         chapter_id=chapter_id,
         subject_id=subject_id,
         difficulty_level=difficulty,
@@ -92,7 +94,7 @@ async def update_question(
     """Update an existing question"""
     updated_question = await question_service.update_question(
         question_id=question_id,
-        chapter_id=request.chapter_id,
+        topic_id=request.topic_id,
         type=request.type,
         difficulty=request.difficulty,
         exam_type=request.exam_type,
