@@ -25,6 +25,8 @@ from app.services.analysis_service import AnalysisService
 from app.services.attempt_service import AttemptService
 from app.services.pyq_service import PYQService
 from app.services.filtering_service import FilteringService
+from app.services.custom_test_service import CustomTestService
+
 # Database session dependency
 DBSession = Annotated[AsyncSession, Depends(get_db_session)]
 
@@ -145,6 +147,14 @@ async def get_filtering_service(db: DBSession) -> FilteringService:
 
 
 FilteringServiceDep = Annotated[FilteringService, Depends(get_filtering_service)]
+
+
+async def get_custom_test_service(db: DBSession) -> CustomTestService:
+    """Get custom test service"""
+    return CustomTestService(db)
+
+
+CustomTestServiceDep = Annotated[CustomTestService, Depends(get_custom_test_service)]
 
 
 bearer_scheme = HTTPBearer()

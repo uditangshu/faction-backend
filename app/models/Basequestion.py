@@ -6,6 +6,7 @@ from uuid import UUID, uuid4
 from sqlmodel import SQLModel, Field, Relationship, JSON, Column
 from typing import List, Optional
 from app.models.user import TargetExam
+from app.models.linking import CustomTestQuestion, ContestQuestions
 
 class QuestionType(str, Enum):
     INTEGER = "integer"
@@ -84,6 +85,10 @@ class Question(SQLModel, table=True):
     topic_id: UUID = Field(foreign_key="topic.id")
     topic: Optional[Topic] = Relationship(back_populates="questions")
 
+    #relations
+    tests: list["CustomTestQuestion"] = Relationship(back_populates="question")
+    contest: list["ContestQuestions"] = Relationship(back_populates="question")
+    
     # Core Attributes
     type: QuestionType
     difficulty: DifficultyLevel

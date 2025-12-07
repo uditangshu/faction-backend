@@ -8,6 +8,8 @@ from app.models.attempt import QuestionAttempt
 from app.models.streak import UserStudyStats, UserDailyStreak
 from app.models.analysis import BookMarkedQuestion
 from app.models.pyq import PreviousYearProblems
+from app.models.custom_test import CustomTest, CustomTestAnalysis, CustomTestQuestion
+from app.models.contest import Contest, ContestSubmissionAnalytics, ContestLeaderboard, ContestQuestions 
 __all__ = [
     "User",
     "UserRole",
@@ -28,6 +30,13 @@ __all__ = [
     "UserStudyStats",
     "UserDailyStreak",
     "BookMarkedQuestion",
-    "PreviousYearProblems"
+    "PreviousYearProblems",
+    "CustomTest",
+    "CustomTestAnalysis",
+    "CustomTestQuestion",
+    "Contest",
+    "ContestSubmissionAnalytics",
+    "ContestQuestions",
+    "ContestLeaderboard"
 ]
 

@@ -23,7 +23,14 @@ from app.models import (
     UserStudyStats,
     UserDailyStreak,
     PreviousYearProblems,
-    BookMarkedQuestion
+    BookMarkedQuestion,
+    CustomTest,
+    CustomTestQuestion,
+    CustomTestAnalysis,
+    Contest,
+    ContestQuestions,
+    ContestLeaderboard,
+    ContestSubmissionAnalytics
 )
 from app.core.config import settings
 

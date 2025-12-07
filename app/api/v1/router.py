@@ -8,6 +8,7 @@ from app.api.v1.endpoints.curriculum import questions, classes, subjects, chapte
 from app.api.v1.endpoints.analysis import analysis
 from app.api.v1.endpoints.attempt import attempt
 from app.api.v1.endpoints.pyq import pyq, filtering
+from app.api.v1.endpoints.custom_test import custom_test
 
 api_router = APIRouter()
 
@@ -29,3 +30,5 @@ api_router.include_router(attempt.router)
 api_router.include_router(pyq.router)
 
 api_router.include_router(filtering.router)
+
+api_router.include_router(custom_test.router)
