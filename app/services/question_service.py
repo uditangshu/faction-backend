@@ -1,11 +1,12 @@
 """Question bank service"""
 
+import random
 from uuid import UUID
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func, delete
 from typing import List, Optional, Tuple
 
-from app.models.Basequestion import Topic, Question, QuestionType, DifficultyLevel, Chapter
+from app.models.Basequestion import Topic, Question, QuestionType, DifficultyLevel, Chapter, Subject
 from app.models.user import TargetExam
 
 
@@ -166,3 +167,48 @@ class QuestionService:
         await self.db.execute(stmt)
         await self.db.commit()
         return True
+
+    async def get_qotd_questions(self) -> List[Question]:
+        """
+        Get Question of the Day: 3 random questions from 3 different subjects.
+        
+        Returns:
+            List of 3 questions, each from a different subject
+        """
+        # Get all distinct subjects that have questions
+        subject_query = (
+            select(Chapter.subject_id)
+            .join(Topic, Topic.chapter_id == Chapter.id)
+            .join(Question, Question.topic_id == Topic.id)
+            .distinct()
+        )
+        subject_result = await self.db.execute(subject_query)
+        subject_ids = [row[0] for row in subject_result.all() if row[0] is not None]
+        
+        if len(subject_ids) == 0:
+            return []
+        
+        # Randomly select up to 3 different subjects
+        num_subjects_to_select = min(3, len(subject_ids))
+        selected_subject_ids = random.sample(subject_ids, num_subjects_to_select)
+        
+        qotd_questions = []
+        
+        # For each selected subject, get a random question
+        for subject_id in selected_subject_ids:
+            # Get all questions for this subject
+            question_query = (
+                select(Question)
+                .join(Topic, Question.topic_id == Topic.id)
+                .join(Chapter, Topic.chapter_id == Chapter.id)
+                .where(Chapter.subject_id == subject_id)
+            )
+            result = await self.db.execute(question_query)
+            questions = list(result.scalars().all())
+            
+            if questions:
+                # Randomly select one question from this subject
+                random_question = random.choice(questions)
+                qotd_questions.append(random_question)
+        
+        return qotd_questions

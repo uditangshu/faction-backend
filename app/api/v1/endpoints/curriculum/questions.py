@@ -11,6 +11,7 @@ from app.schemas.question import (
     QuestionResponse,
     QuestionDetailedResponse,
     QuestionPaginatedResponse,
+    QOTDResponse,
 )
 from app.exceptions.http_exceptions import NotFoundException, BadRequestException
 
@@ -70,6 +71,17 @@ async def get_questions(
         total=total,
         skip=skip,
         limit=limit,
+    )
+
+
+@router.get("/qotd", response_model=QOTDResponse)
+async def get_qotd(
+    question_service: QuestionServiceDep,
+) -> QOTDResponse:
+    """Get Question of the Day: 3 random questions from 3 different subjects"""
+    questions = await question_service.get_qotd_questions()
+    return QOTDResponse(
+        questions=[QuestionDetailedResponse.model_validate(q) for q in questions]
     )
 
 
