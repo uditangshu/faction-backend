@@ -6,7 +6,7 @@ from datetime import datetime
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, or_, func
 
-from app.models.user import User, UserRole, ClassLevel, TargetExam, SubscriptionType
+from app.models.user import User, UserRole, ClassLevel, TargetExam, SubscriptionType, ContestRank
 from app.db.user_calls import (
     get_user_by_id as db_get_user_by_id,
     get_user_by_phone as db_get_user_by_phone,
@@ -145,6 +145,7 @@ class UserService:
         name: Optional[str] = None,
         class_level: Optional[ClassLevel] = None,
         subscription_type: Optional[SubscriptionType] = None,
+        avatar_svg: Optional[str] = None,
     ) -> User:
         """
         Update user profile.
@@ -154,6 +155,7 @@ class UserService:
             name: Optional new name
             class_level: Optional new class level
             subscription_type: Optional new subscription type
+            avatar_svg: Optional SVG string for user avatar
             
         Returns:
             Updated User object
@@ -170,8 +172,80 @@ class UserService:
             user.class_level = class_level
         if subscription_type is not None:
             user.subscription_type = subscription_type
+        if avatar_svg is not None:
+            user.avatar_svg = avatar_svg
 
         user.updated_at = datetime.utcnow()
 
         return await db_update_user(self.db, user)
+
+    async def update_user_rating(
+        self,
+        user_id: UUID,
+        current_rating: int,
+        max_rating: Optional[int] = None,
+        title: Optional[ContestRank] = None,
+    ) -> User:
+        """
+        Update user's contest rating.
+        
+        Args:
+            user_id: User UUID
+            current_rating: New current rating
+            max_rating: Optional new max rating (auto-calculated if not provided)
+            title: Optional new title (auto-calculated based on rating if not provided)
+            
+        Returns:
+            Updated User object
+            
+        Raises:
+            NotFoundException: If user not found
+        """
+        user = await self.get_user_by_id(user_id)
+
+        user.current_rating = current_rating
+        
+        # Update max_rating if new rating is higher or if explicitly provided
+        if max_rating is not None:
+            user.max_rating = max_rating
+        elif current_rating > user.max_rating:
+            user.max_rating = current_rating
+        
+        # Update title based on max_rating if not explicitly provided
+        if title is not None:
+            user.title = title
+        else:
+            user.title = self._calculate_title(user.max_rating)
+
+        user.updated_at = datetime.utcnow()
+
+        return await db_update_user(self.db, user)
+
+    def _calculate_title(self, rating: int) -> ContestRank:
+        """
+        Calculate contest rank title based on rating.
+        
+        Rating thresholds (similar to Codeforces):
+        - Newbie: 0 - 1199
+        - Specialist: 1200 - 1399
+        - Expert: 1400 - 1599
+        - Candidate Master: 1600 - 1899
+        - Master: 1900 - 2099
+        - Grandmaster: 2100 - 2399
+        - Legendary Grandmaster: 2400+
+        """
+        if rating >= 2400:
+            return ContestRank.LEGENDARY_GRANDMASTER
+        elif rating >= 2100:
+            return ContestRank.GRANDMASTER
+        elif rating >= 1900:
+            return ContestRank.MASTER
+        elif rating >= 1600:
+            return ContestRank.CANDIDATE_MASTER
+        elif rating >= 1400:
+            return ContestRank.EXPERT
+        elif rating >= 1200:
+            return ContestRank.SPECIALIST
+        else:
+            return ContestRank.NEWBIE
 

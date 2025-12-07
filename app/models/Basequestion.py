@@ -77,10 +77,10 @@ class Topic(SQLModel, table= True):
     chapter: Optional[Chapter] = Relationship(back_populates="topics")
     questions: List["Question"] = Relationship(back_populates="topic")
 
-
+ 
 class Question(SQLModel, table=True):
     id: UUID = Field(default_factory=uuid4, primary_key=True)
-    
+   
     # Foreign Key
     topic_id: UUID = Field(foreign_key="topic.id")
     topic: Optional[Topic] = Relationship(back_populates="questions")

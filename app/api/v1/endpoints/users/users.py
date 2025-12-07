@@ -8,6 +8,7 @@ from fastapi import APIRouter, Depends, Query, status
 from app.api.v1.dependencies import CurrentUser, UserServiceDep
 from app.schemas.user import (
     UserProfileResponse,
+    UserUpdateRequest,
     # UserCreate,
 )
 from app.utils.exceptions import ForbiddenException
@@ -17,11 +18,29 @@ router = APIRouter(prefix="/users", tags=["Users"])
 
 @router.get("/me", response_model=UserProfileResponse)
 async def get_user_info(current_user: CurrentUser) -> UserProfileResponse:
-    print(current_user.name)
     """
     Get current authenticated user's profile.
     """
     return UserProfileResponse.from_orm(current_user)
+
+
+@router.patch("/me", response_model=UserProfileResponse)
+async def update_my_profile(
+    request: UserUpdateRequest,
+    current_user: CurrentUser,
+    user_service: UserServiceDep,
+) -> UserProfileResponse:
+    """
+    Update current authenticated user's profile.
+    Allows updating name, class_level, and avatar_svg.
+    """
+    user = await user_service.update_user(
+        user_id=current_user.id,
+        name=request.name,
+        class_level=request.class_level,
+        avatar_svg=request.avatar_svg,
+    )
+    return UserProfileResponse.from_orm(user)
 
 
 # @router.post("/", response_model=UserProfileResponse, status_code=status.HTTP_201_CREATED)
@@ -82,6 +101,66 @@ async def list_users(
     return [UserProfileResponse.from_orm(user) for user in users]
 
 
+# ==================== Rating Endpoints ====================
+
+@router.get("/me/rating", response_model=UserRatingResponse)
+async def get_my_rating(
+    current_user: CurrentUser,
+) -> UserRatingResponse:
+    """
+    Get current user's contest rating information.
+    """
+    return UserRatingResponse(
+        user_id=current_user.id,
+        current_rating=current_user.current_rating,
+        max_rating=current_user.max_rating,
+        title=current_user.title,
+    )
 
 
+@router.get("/{user_id}/rating", response_model=UserRatingResponse)
+async def get_user_rating(
+    user_id: UUID,
+    user_service: UserServiceDep,
+) -> UserRatingResponse:
+    """
+    Get a user's contest rating information by user ID.
+    Public endpoint - anyone can view ratings.
+    """
+    user = await user_service.get_user_by_id(user_id)
+    return UserRatingResponse(
+        user_id=user.id,
+        current_rating=user.current_rating,
+        max_rating=user.max_rating,
+        title=user.title,
+    )
+
+
+@router.patch("/{user_id}/rating", response_model=UserRatingResponse)
+async def update_user_rating(
+    user_id: UUID,
+    request: UserRatingUpdateRequest,
+    user_service: UserServiceDep,
+    current_user: CurrentUser,
+) -> UserRatingResponse:
+    """
+    Update a user's contest rating.
+    Admin only endpoint.
+    """
+    # Only admins can update ratings
+    if current_user.role.value != "ADMIN":
+        raise ForbiddenException("Only admins can update user ratings")
+    
+    user = await user_service.update_user_rating(
+        user_id=user_id,
+        current_rating=request.current_rating,
+        max_rating=request.max_rating,
+        title=request.title,
+    )
+    return UserRatingResponse(
+        user_id=user.id,
+        current_rating=user.current_rating,
+        max_rating=user.max_rating,
+        title=user.title,
+    )
 

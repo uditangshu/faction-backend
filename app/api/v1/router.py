@@ -9,6 +9,7 @@ from app.api.v1.endpoints.analysis import analysis
 from app.api.v1.endpoints.attempt import attempt
 from app.api.v1.endpoints.pyq import pyq, filtering
 from app.api.v1.endpoints.custom_test import custom_test
+from app.api.v1.endpoints.leaderboard import leaderboard
 
 api_router = APIRouter()
 
@@ -32,3 +33,6 @@ api_router.include_router(pyq.router)
 api_router.include_router(filtering.router)
 
 api_router.include_router(custom_test.router)
+
+# Leaderboard routes
+api_router.include_router(leaderboard.router)

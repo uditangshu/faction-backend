@@ -26,6 +26,7 @@ from app.services.attempt_service import AttemptService
 from app.services.pyq_service import PYQService
 from app.services.filtering_service import FilteringService
 from app.services.custom_test_service import CustomTestService
+from app.services.leaderboard_service import LeaderboardService
 
 # Database session dependency
 DBSession = Annotated[AsyncSession, Depends(get_db_session)]
@@ -155,6 +156,14 @@ async def get_custom_test_service(db: DBSession) -> CustomTestService:
 
 
 CustomTestServiceDep = Annotated[CustomTestService, Depends(get_custom_test_service)]
+
+
+async def get_leaderboard_service(db: DBSession) -> LeaderboardService:
+    """Get leaderboard service"""
+    return LeaderboardService(db)
+
+
+LeaderboardServiceDep = Annotated[LeaderboardService, Depends(get_leaderboard_service)]
 
 
 bearer_scheme = HTTPBearer()
