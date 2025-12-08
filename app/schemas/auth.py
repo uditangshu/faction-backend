@@ -47,7 +47,7 @@ class LoginRequest(BaseModel):
 
     phone_number: str = Field(..., description="Phone number with country code", min_length=10, max_length=15)
     password: str = Field(..., description="User password", min_length=8, max_length=100)
-    device_info: DeviceInfo = Field(..., description="Device information")
+    device_info: DeviceInfo | None = Field(None, description="Device information (optional, processed in background)")
 
 
 class VerifyOTPRequest(BaseModel):

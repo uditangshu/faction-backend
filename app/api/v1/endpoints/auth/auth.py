@@ -79,17 +79,20 @@ async def login(
     http_request: Request,
     auth_service: AuthServiceDep,
 ) -> dict:
-    """Login with phone number and password - returns tokens immediately"""
+    """Login with phone number and password - returns tokens immediately, processes device info in background"""
     ip_address = http_request.client.host if http_request.client else None
     user_agent = http_request.headers.get("user-agent")
+    
+    # Extract device info if provided (optional)
+    device_info = request.device_info
     
     result = await auth_service.login(
         phone_number=request.phone_number,
         password=request.password,
-        device_id=request.device_info.device_id,
-        device_type=request.device_info.device_type,
-        device_model=request.device_info.device_model,
-        os_version=request.device_info.os_version,
+        device_id=device_info.device_id if device_info else None,
+        device_type=device_info.device_type if device_info else None,
+        device_model=device_info.device_model if device_info else None,
+        os_version=device_info.os_version if device_info else None,
         ip_address=ip_address,
         user_agent=user_agent,
     )

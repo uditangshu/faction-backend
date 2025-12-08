@@ -174,14 +174,15 @@ class AuthService:
         self,
         phone_number: str,
         password: str,
-        device_id: str,
-        device_type: DeviceType,
+        device_id: str | None = None,
+        device_type: DeviceType | None = None,
         device_model: str | None = None,
         os_version: str | None = None,
         ip_address: str | None = None,
         user_agent: str | None = None,
     ) -> dict:
-        """Login with phone number and password - returns tokens immediately"""
+        """Login with phone number and password - returns tokens immediately, processes device info in background"""
+        # STEP 1: Validate credentials (fast path - no device info needed)
         is_valid, formatted_phone = validate_indian_phone(phone_number)
         if not is_valid:
             raise UnauthorizedException("Invalid phone number")
@@ -201,64 +202,26 @@ class AuthService:
         if not verify_password(password, user.password_hash):
             raise UnauthorizedException("Invalid phone number or password")
 
-        # Get old active session ID from Redis (no DB call)
-        old_session_id = await self.otp_service.redis.get_active_session(str(user.id))
-        
-        # Get old session details BEFORE invalidating (optimization: fetch before marking inactive)
-        # Only fetch from DB if old session exists (optimization: skip query if no old session)
-        old_push_token = None
-        old_device_id = None
-        is_same_device = False
-        
-        if old_session_id:
-            from app.models.session import UserSession
-            # Only fetch specific columns we need (optimization: don't fetch entire session object)
-            result = await self.db.execute(
-                select(UserSession.push_token, UserSession.device_id).where(UserSession.id == UUID(old_session_id))
-            )
-            row = result.first()
-            if row:
-                old_push_token = row[0]  # push_token
-                old_device_id = row[1]   # device_id
-                is_same_device = old_device_id == device_id
-
-        # Prepare Redis pipeline commands for batch execution
-        redis_commands = []
-        user_id_str = str(user.id)
-        
-        # NOTE: Push notification is sent asynchronously in background to avoid blocking login
-        if old_session_id and not is_same_device:
-            # Mark old session for immediate force logout (will be added to pipeline)
-            redis_commands.append(("setex", f"force_logout:{old_session_id}", 300, "true"))
-            
-            # Send push notification to OLD device to force logout (non-blocking)
-            if old_push_token:
-                # Fire and forget - don't wait for push notification to complete
-                asyncio.create_task(self._send_logout_notification_async(old_push_token, old_session_id))
-
-        # Create NEW session for the NEW device
+        # STEP 2: Create minimal session and return tokens immediately
+        # Device info processing happens in background if not provided
         session_id = uuid4()
         refresh_token = create_refresh_token({"sub": str(user.id), "session_id": str(session_id)})
         refresh_token_hash = sha256(refresh_token.encode()).hexdigest()
 
-        # Prepare all database writes for single transaction:
-        # 1. Invalidate old sessions (UPDATE)
-        # 2. Create new session (INSERT)
-        # 3. Update user.updated_at (UPDATE)
-        # All committed together in one transaction
-        
         # Invalidate old sessions (without commit - will commit with session creation)
         invalidated_count = await invalidate_old_sessions(self.db, user.id, commit=False)
         
         # Update user.updated_at
         user.updated_at = datetime.utcnow()
         
-        # Create new session inline (to control transaction)
+        # Create new session (with device info if provided, temporary UUID otherwise)
+        # If device_id not provided, use temporary UUID - will be updated in background
         from app.models.session import UserSession
+        temp_device_id = device_id or str(uuid4())  # Temporary UUID if device info not provided
         session = UserSession(
             user_id=user.id,
-            device_id=device_id,
-            device_type=device_type,
+            device_id=temp_device_id,
+            device_type=device_type or DeviceType.MOBILE,  # Default to mobile
             device_model=device_model,
             os_version=os_version,
             ip_address=ip_address,
@@ -273,16 +236,9 @@ class AuthService:
         await self.db.commit()
         await self.db.refresh(session)
 
-        # Store active session in Redis using pipeline (batches with force_logout if needed)
-        # This ensures the new device's session is now the active one
-        redis_commands.append(("setex", f"active_session:{user_id_str}", 86400 * 7, str(session.id)))
-        
-        # Execute all Redis operations in one pipeline batch
-        if redis_commands:
-            await self.otp_service.redis.execute_pipeline(redis_commands)
-        else:
-            # Fallback to single operation if no pipeline needed
-            await self.otp_service.redis.set_active_session(user_id_str, str(session.id))
+        # Store active session in Redis immediately
+        user_id_str = str(user.id)
+        await self.otp_service.redis.set_active_session(user_id_str, str(session.id))
 
         # Generate access token with session_id
         access_token = create_access_token({
@@ -290,6 +246,65 @@ class AuthService:
             "phone": user.phone_number,
             "session_id": str(session.id)
         })
+
+        # STEP 3: Process device info and old session logic in background (non-blocking)
+        if device_id:
+            # Only process old session logic if device_id is provided
+            asyncio.create_task(self._process_device_info_background(
+                user_id=user.id,
+                session_id=session.id,
+                device_id=device_id,
+            ))
+
+        return {
+            "access_token": access_token,
+            "refresh_token": refresh_token,
+            "token_type": "bearer",
+            "session_id": str(session.id),
+        }
+
+    async def _process_device_info_background(
+        self,
+        user_id: UUID,
+        session_id: UUID,
+        device_id: str,
+    ) -> None:
+        """Process device info and old session logic in background (non-blocking)"""
+        try:
+            # Get old active session ID from Redis
+            old_session_id = await self.otp_service.redis.get_active_session(str(user_id))
+            
+            # Get old session details if exists
+            old_push_token = None
+            old_device_id = None
+            is_same_device = False
+            
+            if old_session_id and str(old_session_id) != str(session_id):
+                from app.models.session import UserSession
+                result = await self.db.execute(
+                    select(UserSession.push_token, UserSession.device_id).where(UserSession.id == UUID(old_session_id))
+                )
+                row = result.first()
+                if row:
+                    old_push_token = row[0]
+                    old_device_id = row[1]
+                    is_same_device = old_device_id == device_id
+                    
+                    # Handle different device login
+                    if not is_same_device:
+                        # Mark old session for force logout
+                        await self.otp_service.redis.set_value(
+                            f"force_logout:{old_session_id}",
+                            "true",
+                            expire=300
+                        )
+                        
+                        # Send push notification to OLD device (non-blocking)
+                        if old_push_token:
+                            asyncio.create_task(self._send_logout_notification_async(old_push_token, str(old_session_id)))
+        except Exception as e:
+            print(f"❌ Error processing device info in background: {e}")
+            # Non-critical - login already succeeded
 
         return {
             "access_token": access_token,
