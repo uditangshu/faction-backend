@@ -60,9 +60,9 @@ class User(SQLModel, table=True):
     target_exams: list[str] = Field(sa_column=Column(JSON), default=[])
     avatar_svg: str | None = Field(default=None)
 
-    current_rating: int = Field(default=0)
-    max_rating: int = Field(default=0)
-    title: Optional[ContestRank] = Field(default=ContestRank.NEWBIE)
+    current_rating: int = Field(default=0, nullable=False)
+    max_rating: int = Field(default=0, nullable=False)
+    title: ContestRank | None = Field(default=ContestRank.NEWBIE)
 
     role: UserRole = Field(default=UserRole.STUDENT, index=True, 
         description="User's permission level within the application")

@@ -9,7 +9,8 @@ from app.api.v1.dependencies import CurrentUser, UserServiceDep
 from app.schemas.user import (
     UserProfileResponse,
     UserUpdateRequest,
-    # UserCreate,
+    UserRatingResponse,
+    UserRatingUpdateRequest
 )
 from app.utils.exceptions import ForbiddenException
 
