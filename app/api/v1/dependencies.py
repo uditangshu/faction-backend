@@ -193,21 +193,14 @@ async def get_current_user(
     creds: HTTPAuthorizationCredentials = Depends(bearer_scheme),
 ) -> User:
     """Get current authenticated user from JWT token with session validation"""
-    authorization = creds.credentials
-    print(f"🔐 get_current_user called - token: {authorization[:50] if authorization else 'None'}...")
+    # HTTPBearer already extracts the token from "Bearer <token>" format
+    # creds.credentials contains just the token string
+    token = creds.credentials
+    print(f"🔐 get_current_user called - token: {token[:50] if token else 'None'}...")
     
-    if not authorization:
+    if not token:
         print("❌ Missing authorization header")
         raise UnauthorizedException("Missing authorization header")
-
-    try:
-        scheme, token = authorization.split()
-        if scheme.lower() != "bearer":
-            print(f"❌ Invalid authentication scheme: {scheme}")
-            raise UnauthorizedException("Invalid authentication scheme")
-    except ValueError:
-        print("❌ Invalid authorization header format")
-        raise UnauthorizedException("Invalid authorization header format")
 
     payload = decode_token(token)
     if not payload:
@@ -233,8 +226,15 @@ async def get_current_user(
         print(f"❌ Invalid user ID format: {user_id_str}")
         raise UnauthorizedException("Invalid user ID in token")
 
-    # Check if this session has been force logged out (e.g., login from another device)
-    should_logout = await redis.should_force_logout(session_id)
+    # Check session validity using Redis pipeline (batches multiple operations)
+    pipeline_commands = [
+        ("exists", f"force_logout:{session_id}"),
+        ("get", f"active_session:{user_id_str}"),
+    ]
+    pipeline_results = await redis.execute_pipeline(pipeline_commands)
+    should_logout = pipeline_results[0] > 0 if pipeline_results[0] is not None else False
+    active_session = pipeline_results[1]
+    
     if should_logout:
         print(f"⚠️ Session {session_id} marked for force logout")
         # Clean up the force_logout flag
@@ -242,14 +242,15 @@ async def get_current_user(
         raise SessionExpiredException()
     
     # Check if session is still the active one
-    is_valid = await redis.is_session_valid(user_id_str, session_id)
+    if active_session is None:
+        is_valid = False
+    else:
+        is_valid = str(active_session) == str(session_id)
+    
     print(f"🔍 Session validation - is_valid: {is_valid}, user_id: {user_id_str}, session_id: {session_id}")
     
     if not is_valid:
-        # Debug logging
-        active_session = await redis.get_active_session(user_id_str)
         print(f"❌ Session validation failed - user_id: {user_id_str}, token_session_id: {session_id}, active_session_in_redis: {active_session}")
-        print(f"❌ Type check - token_session_id type: {type(session_id)}, active_session type: {type(active_session)}")
         raise SessionExpiredException()
 
     result = await db.execute(select(User).where(User.id == user_id))

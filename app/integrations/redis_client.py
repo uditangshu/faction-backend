@@ -103,3 +103,54 @@ class RedisService:
         """Check if session should be force logged out"""
         return await self.exists(f"force_logout:{session_id}")
 
+    async def execute_pipeline(self, commands: list[tuple]) -> list:
+        """
+        Execute multiple Redis commands in a pipeline for better performance.
+        
+        Args:
+            commands: List of tuples where each tuple is (command, *args)
+                     Example: [("get", "key1"), ("set", "key2", "value2"), ("setex", "key3", 3600, "value3")]
+        
+        Returns:
+            List of results in the same order as commands
+        """
+        pipe = self.client.pipeline()
+        for cmd in commands:
+            command = cmd[0].lower()
+            args = cmd[1:]
+            
+            if command == "get":
+                pipe.get(*args)
+            elif command == "set":
+                pipe.set(*args)
+            elif command == "setex":
+                pipe.setex(*args)
+            elif command == "exists":
+                pipe.exists(*args)
+            elif command == "delete":
+                pipe.delete(*args)
+            else:
+                # For other commands, use getattr to call the method dynamically
+                method = getattr(pipe, command, None)
+                if method:
+                    method(*args)
+                else:
+                    raise ValueError(f"Unsupported Redis command: {command}")
+        
+        results = await pipe.execute()
+        # Convert results to appropriate types
+        processed_results = []
+        for i, result in enumerate(results):
+            cmd = commands[i][0].lower()
+            if cmd == "get":
+                # Return as string or None
+                processed_results.append(str(result) if result else None)
+            elif cmd == "exists":
+                # Return boolean
+                processed_results.append(bool(result) if result else False)
+            else:
+                # Return as-is for other commands
+                processed_results.append(result)
+        
+        return processed_results
+

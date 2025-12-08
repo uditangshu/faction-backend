@@ -201,11 +201,11 @@ class AuthService:
             raise UnauthorizedException("Invalid phone number or password")
 
         # Get old active session before invalidating (for force logout and push notification)
-        # Optimize: Get old session info and check device in parallel with Redis lookup
         old_session_id = await self.otp_service.redis.get_active_session(str(user.id))
         print(f"🔍 Old active session ID: {old_session_id}")
         
         # Get old session details (push token and device_id) before invalidating
+        # Only fetch from DB if old session exists (optimization: skip query if no old session)
         old_push_token = None
         old_device_id = None
         is_same_device = False
@@ -223,15 +223,18 @@ class AuthService:
                 print(f"📱 Old session info - device_id: {old_device_id}, push_token: {old_push_token[:20] if old_push_token else 'None'}...")
                 print(f"🔍 Is same device? {is_same_device} (old: {old_device_id}, new: {device_id})")
         
-      
         invalidated_count = await invalidate_old_sessions(self.db, user.id)
         print(f"🔒 Invalidated {invalidated_count} old session(s)")
 
+        # Prepare Redis pipeline commands for batch execution
+        redis_commands = []
+        user_id_str = str(user.id)
+        
         # NOTE: Push notification is sent asynchronously in background to avoid blocking login
         if old_session_id and not is_same_device:
-            # Mark old session for immediate force logout
-            await self.otp_service.redis.set_force_logout(old_session_id)
-            print(f"🚪 Marked old session {old_session_id} for force logout (different device)")
+            # Mark old session for immediate force logout (will be added to pipeline)
+            redis_commands.append(("setex", f"force_logout:{old_session_id}", 300, "true"))
+            print(f"🚪 Will mark old session {old_session_id} for force logout (different device)")
             
             # Send push notification to OLD device to force logout (non-blocking)
             if old_push_token:
@@ -252,6 +255,9 @@ class AuthService:
         refresh_token = create_refresh_token({"sub": str(user.id), "session_id": str(session_id)})
         refresh_token_hash = sha256(refresh_token.encode()).hexdigest()
 
+        # Update user.updated_at before creating session (will be committed together)
+        user.updated_at = datetime.utcnow()
+
         session = await create_user_session(
             db=self.db,
             user_id=user.id,
@@ -264,24 +270,20 @@ class AuthService:
             refresh_token_hash=refresh_token_hash,
             expires_at=datetime.now() + timedelta(days=settings.REFRESH_TOKEN_EXPIRE_DAYS),
         )
+        # Note: create_user_session commits, which will also commit user.updated_at since they're in the same session
 
-        # Store active session in Redis (overwrites old session)
+        # Store active session in Redis using pipeline (batches with force_logout if needed)
         # This ensures the new device's session is now the active one
-        set_result = await self.otp_service.redis.set_active_session(str(user.id), str(session.id))
-        print(f"🔍 Redis set_active_session result: {set_result}")
+        redis_commands.append(("setex", f"active_session:{user_id_str}", 86400 * 7, str(session.id)))
         
-        import asyncio
-        await asyncio.sleep(0.1)
+        # Execute all Redis operations in one pipeline batch
+        if redis_commands:
+            await self.otp_service.redis.execute_pipeline(redis_commands)
+        else:
+            # Fallback to single operation if no pipeline needed
+            await self.otp_service.redis.set_active_session(user_id_str, str(session.id))
         
-        verified_session = await self.otp_service.redis.get_active_session(str(user.id))
         print(f"✅ New session {session.id} set as active (old session {old_session_id} is no longer active)")
-        print(f"🔍 Verification: Redis has session_id: {verified_session} (expected: {session.id})")
-        print(f"🔍 Type check - verified_session type: {type(verified_session)}, session.id type: {type(session.id)}")
-        if str(verified_session) != str(session.id):
-            print(f"⚠️ WARNING: Session ID mismatch! Redis: {verified_session}, Expected: {session.id}")
-
-        user.updated_at = datetime.utcnow()
-        await self.db.commit()
 
         # Generate access token with session_id
         access_token = create_access_token({

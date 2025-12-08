@@ -1,7 +1,7 @@
 """Authentication endpoints"""
 
 from typing import Annotated
-from fastapi import APIRouter, status, Request, Header
+from fastapi import APIRouter, status, Request
 from pydantic import BaseModel
 from app.api.v1.dependencies import AuthServiceDep, CurrentUserDep
 from app.schemas.auth import (
@@ -132,7 +132,7 @@ async def register_push_token(
 async def logout(
     current_user: CurrentUserDep,
     auth_service: AuthServiceDep,
-    authorization: Annotated[str | None, Header()] = None,
+    request: Request,
 ) -> dict:
     """
     Logout the current user.
@@ -140,46 +140,20 @@ async def logout(
     - Clears the push token (prevents logout notifications on re-login from same device)
     - Removes the active session from Redis
     """
-    # Extract session_id from token
+    # Extract session_id from JWT token in Authorization header
     session_id = None
+    authorization = request.headers.get("authorization")
     if authorization:
         try:
             from app.core.security import decode_token
-            scheme, token = authorization.split()
+            # HTTPBearer format: "Bearer <token>"
+            scheme, token = authorization.split(" ", 1)
             if scheme.lower() == "bearer":
                 payload = decode_token(token)
                 session_id = payload.get("session_id") if payload else None
         except Exception:
             pass
 
-    await auth_service.logout(str(current_user.id), session_id)
-    return {"success": True, "message": "Logged out successfully"}
-
-
-@router.post("/logout", status_code=status.HTTP_200_OK)
-async def logout(
-    current_user: CurrentUserDep,
-    auth_service: AuthServiceDep,
-    authorization: Annotated[str | None, Header()] = None,
-) -> dict:
-    """
-    Logout the current user.
-    - Invalidates the current session
-    - Clears the push token (prevents logout notifications on re-login from same device)
-    - Removes the active session from Redis
-    """
-    # Extract session_id from token
-    session_id = None
-    if authorization:
-        try:
-            from app.core.security import decode_token
-            scheme, token = authorization.split()
-            if scheme.lower() == "bearer":
-                payload = decode_token(token)
-                session_id = payload.get("session_id") if payload else None
-        except Exception:
-            pass
-    
     await auth_service.logout(str(current_user.id), session_id)
     return {"success": True, "message": "Logged out successfully"}
 
