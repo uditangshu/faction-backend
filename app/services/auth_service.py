@@ -223,14 +223,10 @@ class AuthService:
                 print(f"📱 Old session info - device_id: {old_device_id}, push_token: {old_push_token[:20] if old_push_token else 'None'}...")
                 print(f"🔍 Is same device? {is_same_device} (old: {old_device_id}, new: {device_id})")
         
-        # Invalidate all old sessions for this user (enforce single device)
-        # This happens BEFORE creating the new session to ensure old sessions are marked inactive
-        # Optimized: Now uses a single UPDATE query instead of fetch-then-update
+      
         invalidated_count = await invalidate_old_sessions(self.db, user.id)
         print(f"🔒 Invalidated {invalidated_count} old session(s)")
 
-        # Only send logout notification if it's a DIFFERENT device
-        # Don't send if user is logging back in on the same device after logout
         # NOTE: Push notification is sent asynchronously in background to avoid blocking login
         if old_session_id and not is_same_device:
             # Mark old session for immediate force logout
@@ -272,11 +268,15 @@ class AuthService:
         # Store active session in Redis (overwrites old session)
         # This ensures the new device's session is now the active one
         await self.otp_service.redis.set_active_session(str(user.id), str(session.id))
+        
+        # Verify the session was set correctly
+        verified_session = await self.otp_service.redis.get_active_session(str(user.id))
         print(f"✅ New session {session.id} set as active (old session {old_session_id} is no longer active)")
+        print(f"🔍 Verification: Redis has session_id: {verified_session} (expected: {session.id})")
+        if verified_session != str(session.id):
+            print(f"⚠️ WARNING: Session ID mismatch! Redis: {verified_session}, Expected: {session.id}")
 
-        # Update last login (batch with session creation commit if possible)
         user.updated_at = datetime.utcnow()
-        # Note: Session creation already commits, so we commit again for user update
         await self.db.commit()
 
         # Generate access token with session_id

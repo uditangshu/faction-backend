@@ -6,7 +6,6 @@ import redis.asyncio as aioredis
 
 from app.core.config import settings
 
-# Global Redis client
 redis_client: aioredis.Redis | None = None
 
 
@@ -69,11 +68,24 @@ class RedisService:
 
     async def set_active_session(self, user_id: str, session_id: str, expire: int = 86400 * 7) -> bool:
         """Set active session for user (7 days default)"""
-        return await self.set_value(f"active_session:{user_id}", session_id, expire)
+        # Store session_id as plain string (not JSON encoded) for consistency
+        key = f"active_session:{user_id}"
+        if expire:
+            return await self.client.setex(key, expire, str(session_id))
+        return await self.client.set(key, str(session_id))
 
     async def get_active_session(self, user_id: str) -> str | None:
         """Get active session ID for user"""
-        return await self.get_value(f"active_session:{user_id}")
+        # Session IDs are stored as plain strings, so get directly without JSON parsing
+        key = f"active_session:{user_id}"
+        value = await self.client.get(key)
+        if value is None:
+            return None
+        try:
+            parsed = json.loads(value)
+            return str(parsed) if parsed is not None else None
+        except json.JSONDecodeError:
+            return value
 
     async def invalidate_user_session(self, user_id: str) -> bool:
         """Invalidate all sessions for a user"""
@@ -82,7 +94,9 @@ class RedisService:
     async def is_session_valid(self, user_id: str, session_id: str) -> bool:
         """Check if session is the active one for this user"""
         active_session = await self.get_active_session(user_id)
-        return active_session == session_id
+        if active_session is None:
+            return False
+        return str(active_session) == str(session_id)
     
     async def set_force_logout(self, session_id: str, expire: int = 300) -> bool:
         """Mark a session for forced logout (5 min TTL)"""

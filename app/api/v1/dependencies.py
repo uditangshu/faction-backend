@@ -233,6 +233,9 @@ async def get_current_user(
     # Check if session is still the active one
     is_valid = await redis.is_session_valid(user_id_str, session_id)
     if not is_valid:
+        # Debug logging
+        active_session = await redis.get_active_session(user_id_str)
+        print(f"❌ Session validation failed - user_id: {user_id_str}, token_session_id: {session_id}, active_session_in_redis: {active_session}")
         raise SessionExpiredException()
 
     result = await db.execute(select(User).where(User.id == user_id))
