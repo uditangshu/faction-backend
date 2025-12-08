@@ -306,14 +306,6 @@ class AuthService:
             print(f"❌ Error processing device info in background: {e}")
             # Non-critical - login already succeeded
 
-        return {
-            "access_token": access_token,
-            "refresh_token": refresh_token,
-            "token_type": "bearer",
-            "session_id": str(session.id),
-            "user": user,
-        }
-
     async def _send_logout_notification_async(self, push_token: str, session_id: str) -> None:
         """Send logout notification asynchronously (fire and forget)"""
         try:
