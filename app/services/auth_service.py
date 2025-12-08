@@ -1,5 +1,6 @@
 """Authentication service"""
 
+import asyncio
 from datetime import datetime, timedelta
 from uuid import UUID, uuid4
 from hashlib import sha256
@@ -200,11 +201,10 @@ class AuthService:
         if not verify_password(password, user.password_hash):
             raise UnauthorizedException("Invalid phone number or password")
 
-        # Get old active session before invalidating (for force logout and push notification)
+        # Get old active session ID from Redis (no DB call)
         old_session_id = await self.otp_service.redis.get_active_session(str(user.id))
-        print(f"🔍 Old active session ID: {old_session_id}")
         
-        # Get old session details (push token and device_id) before invalidating
+        # Get old session details BEFORE invalidating (optimization: fetch before marking inactive)
         # Only fetch from DB if old session exists (optimization: skip query if no old session)
         old_push_token = None
         old_device_id = None
@@ -212,19 +212,15 @@ class AuthService:
         
         if old_session_id:
             from app.models.session import UserSession
+            # Only fetch specific columns we need (optimization: don't fetch entire session object)
             result = await self.db.execute(
-                select(UserSession).where(UserSession.id == UUID(old_session_id))
+                select(UserSession.push_token, UserSession.device_id).where(UserSession.id == UUID(old_session_id))
             )
-            old_session = result.scalar_one_or_none()
-            if old_session:
-                old_push_token = old_session.push_token
-                old_device_id = old_session.device_id
+            row = result.first()
+            if row:
+                old_push_token = row[0]  # push_token
+                old_device_id = row[1]   # device_id
                 is_same_device = old_device_id == device_id
-                print(f"📱 Old session info - device_id: {old_device_id}, push_token: {old_push_token[:20] if old_push_token else 'None'}...")
-                print(f"🔍 Is same device? {is_same_device} (old: {old_device_id}, new: {device_id})")
-        
-        invalidated_count = await invalidate_old_sessions(self.db, user.id)
-        print(f"🔒 Invalidated {invalidated_count} old session(s)")
 
         # Prepare Redis pipeline commands for batch execution
         redis_commands = []
@@ -234,32 +230,32 @@ class AuthService:
         if old_session_id and not is_same_device:
             # Mark old session for immediate force logout (will be added to pipeline)
             redis_commands.append(("setex", f"force_logout:{old_session_id}", 300, "true"))
-            print(f"🚪 Will mark old session {old_session_id} for force logout (different device)")
             
             # Send push notification to OLD device to force logout (non-blocking)
             if old_push_token:
-                print(f"📱 Scheduling logout notification to OLD device (token: {old_push_token[:20]}...)")
                 # Fire and forget - don't wait for push notification to complete
-                import asyncio
                 asyncio.create_task(self._send_logout_notification_async(old_push_token, old_session_id))
-            else:
-                print("⚠️ No push token found for old session")
-        elif is_same_device:
-            print(f"✅ Same device login detected - skipping logout notification")
-        else:
-            print("ℹ️ No old session found")
 
         # Create NEW session for the NEW device
         session_id = uuid4()
-        print(f"🆕 Creating new session for NEW device: {session_id}")
         refresh_token = create_refresh_token({"sub": str(user.id), "session_id": str(session_id)})
         refresh_token_hash = sha256(refresh_token.encode()).hexdigest()
 
-        # Update user.updated_at before creating session (will be committed together)
+        # Prepare all database writes for single transaction:
+        # 1. Invalidate old sessions (UPDATE)
+        # 2. Create new session (INSERT)
+        # 3. Update user.updated_at (UPDATE)
+        # All committed together in one transaction
+        
+        # Invalidate old sessions (without commit - will commit with session creation)
+        invalidated_count = await invalidate_old_sessions(self.db, user.id, commit=False)
+        
+        # Update user.updated_at
         user.updated_at = datetime.utcnow()
-
-        session = await create_user_session(
-            db=self.db,
+        
+        # Create new session inline (to control transaction)
+        from app.models.session import UserSession
+        session = UserSession(
             user_id=user.id,
             device_id=device_id,
             device_type=device_type,
@@ -269,8 +265,13 @@ class AuthService:
             user_agent=user_agent,
             refresh_token_hash=refresh_token_hash,
             expires_at=datetime.now() + timedelta(days=settings.REFRESH_TOKEN_EXPIRE_DAYS),
+            is_active=True,
         )
-        # Note: create_user_session commits, which will also commit user.updated_at since they're in the same session
+        self.db.add(session)
+        
+        # Single commit for: invalidate old sessions + create new session + update user
+        await self.db.commit()
+        await self.db.refresh(session)
 
         # Store active session in Redis using pipeline (batches with force_logout if needed)
         # This ensures the new device's session is now the active one
@@ -282,8 +283,6 @@ class AuthService:
         else:
             # Fallback to single operation if no pipeline needed
             await self.otp_service.redis.set_active_session(user_id_str, str(session.id))
-        
-        print(f"✅ New session {session.id} set as active (old session {old_session_id} is no longer active)")
 
         # Generate access token with session_id
         access_token = create_access_token({

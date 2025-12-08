@@ -104,16 +104,6 @@ class RedisService:
         return await self.exists(f"force_logout:{session_id}")
 
     async def execute_pipeline(self, commands: list[tuple]) -> list:
-        """
-        Execute multiple Redis commands in a pipeline for better performance.
-        
-        Args:
-            commands: List of tuples where each tuple is (command, *args)
-                     Example: [("get", "key1"), ("set", "key2", "value2"), ("setex", "key3", 3600, "value3")]
-        
-        Returns:
-            List of results in the same order as commands
-        """
         pipe = self.client.pipeline()
         for cmd in commands:
             command = cmd[0].lower()

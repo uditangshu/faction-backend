@@ -196,34 +196,26 @@ async def get_current_user(
     # HTTPBearer already extracts the token from "Bearer <token>" format
     # creds.credentials contains just the token string
     token = creds.credentials
-    print(f"🔐 get_current_user called - token: {token[:50] if token else 'None'}...")
     
     if not token:
-        print("❌ Missing authorization header")
         raise UnauthorizedException("Missing authorization header")
 
     payload = decode_token(token)
     if not payload:
-        print("❌ Token decode failed or token expired")
         raise UnauthorizedException("Invalid or expired token")
 
     user_id_str = payload.get("sub")
     session_id = payload.get("session_id")
     
-    print(f"🔍 Token decoded - user_id: {user_id_str}, session_id: {session_id}")
-    
     if not user_id_str:
-        print("❌ Missing user_id in token payload")
         raise UnauthorizedException("Invalid token payload")
     
     if not session_id:
-        print("❌ Missing session_id in token payload")
         raise UnauthorizedException("Invalid token: missing session ID")
 
     try:
         user_id = UUID(user_id_str)
     except ValueError:
-        print(f"❌ Invalid user ID format: {user_id_str}")
         raise UnauthorizedException("Invalid user ID in token")
 
     # Check session validity using Redis pipeline (batches multiple operations)
@@ -236,7 +228,6 @@ async def get_current_user(
     active_session = pipeline_results[1]
     
     if should_logout:
-        print(f"⚠️ Session {session_id} marked for force logout")
         # Clean up the force_logout flag
         await redis.delete_key(f"force_logout:{session_id}")
         raise SessionExpiredException()
@@ -247,10 +238,7 @@ async def get_current_user(
     else:
         is_valid = str(active_session) == str(session_id)
     
-    print(f"🔍 Session validation - is_valid: {is_valid}, user_id: {user_id_str}, session_id: {session_id}")
-    
     if not is_valid:
-        print(f"❌ Session validation failed - user_id: {user_id_str}, token_session_id: {session_id}, active_session_in_redis: {active_session}")
         raise SessionExpiredException()
 
     result = await db.execute(select(User).where(User.id == user_id))

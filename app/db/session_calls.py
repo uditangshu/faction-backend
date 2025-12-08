@@ -70,7 +70,7 @@ async def update_session_activity(db: AsyncSession, session_id: UUID) -> bool:
     return True
 
 
-async def invalidate_old_sessions(db: AsyncSession, user_id: UUID, exclude_session_id: UUID | None = None) -> int:
+async def invalidate_old_sessions(db: AsyncSession, user_id: UUID, exclude_session_id: UUID | None = None, commit: bool = True) -> int:
     """Mark old sessions as inactive for a user - optimized with single UPDATE query"""
     from sqlalchemy import update
     
@@ -86,7 +86,9 @@ async def invalidate_old_sessions(db: AsyncSession, user_id: UUID, exclude_sessi
         update_stmt = update_stmt.where(UserSession.id != exclude_session_id)
     
     result = await db.execute(update_stmt)
-    await db.commit()
+    
+    if commit:
+        await db.commit()
     
     # Return the number of rows affected
     return result.rowcount
