@@ -1,7 +1,8 @@
 """Streak and calendar schemas"""
 
-from typing import Dict, Any
-from pydantic import BaseModel
+from typing import Dict, Any, Optional, List
+from pydantic import BaseModel, Field
+from enum import Enum
 
 
 class StreakResponse(BaseModel):

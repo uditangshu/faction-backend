@@ -11,6 +11,7 @@ from app.models.pyq import PreviousYearProblems
 from app.models.custom_test import CustomTest, CustomTestAnalysis, CustomTestQuestion
 from app.models.contest import Contest, ContestSubmissionAnalytics, ContestLeaderboard, ContestQuestions 
 from app.models.youtube_video import YouTubeVideo
+from app.models.badge import Badge, UserBadge, BadgeCategory, BadgeType, BadgeRarity
 __all__ = [
     "User",
     "UserRole",
@@ -40,6 +41,11 @@ __all__ = [
     "ContestSubmissionAnalytics",
     "ContestQuestions",
     "ContestLeaderboard",
-    "YouTubeVideo"
+    "YouTubeVideo",
+    "Badge",
+    "UserBadge",
+    "BadgeCategory",
+    "BadgeType",
+    "BadgeRarity"
 ]
 
