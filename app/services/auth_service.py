@@ -267,13 +267,17 @@ class AuthService:
 
         # Store active session in Redis (overwrites old session)
         # This ensures the new device's session is now the active one
-        await self.otp_service.redis.set_active_session(str(user.id), str(session.id))
+        set_result = await self.otp_service.redis.set_active_session(str(user.id), str(session.id))
+        print(f"🔍 Redis set_active_session result: {set_result}")
         
-        # Verify the session was set correctly
+        import asyncio
+        await asyncio.sleep(0.1)
+        
         verified_session = await self.otp_service.redis.get_active_session(str(user.id))
         print(f"✅ New session {session.id} set as active (old session {old_session_id} is no longer active)")
         print(f"🔍 Verification: Redis has session_id: {verified_session} (expected: {session.id})")
-        if verified_session != str(session.id):
+        print(f"🔍 Type check - verified_session type: {type(verified_session)}, session.id type: {type(session.id)}")
+        if str(verified_session) != str(session.id):
             print(f"⚠️ WARNING: Session ID mismatch! Redis: {verified_session}, Expected: {session.id}")
 
         user.updated_at = datetime.utcnow()

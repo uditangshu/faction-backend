@@ -76,16 +76,13 @@ class RedisService:
 
     async def get_active_session(self, user_id: str) -> str | None:
         """Get active session ID for user"""
-        # Session IDs are stored as plain strings, so get directly without JSON parsing
+        # Session IDs are stored as plain strings, so get directly
         key = f"active_session:{user_id}"
         value = await self.client.get(key)
         if value is None:
             return None
-        try:
-            parsed = json.loads(value)
-            return str(parsed) if parsed is not None else None
-        except json.JSONDecodeError:
-            return value
+        # Return as string (Redis returns strings by default with decode_responses=True)
+        return str(value) if value else None
 
     async def invalidate_user_session(self, user_id: str) -> bool:
         """Invalidate all sessions for a user"""

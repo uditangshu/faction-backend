@@ -194,48 +194,62 @@ async def get_current_user(
 ) -> User:
     """Get current authenticated user from JWT token with session validation"""
     authorization = creds.credentials
-    print(authorization)
+    print(f"🔐 get_current_user called - token: {authorization[:50] if authorization else 'None'}...")
+    
     if not authorization:
+        print("❌ Missing authorization header")
         raise UnauthorizedException("Missing authorization header")
 
     try:
         scheme, token = authorization.split()
         if scheme.lower() != "bearer":
+            print(f"❌ Invalid authentication scheme: {scheme}")
             raise UnauthorizedException("Invalid authentication scheme")
     except ValueError:
+        print("❌ Invalid authorization header format")
         raise UnauthorizedException("Invalid authorization header format")
 
     payload = decode_token(token)
     if not payload:
+        print("❌ Token decode failed or token expired")
         raise UnauthorizedException("Invalid or expired token")
 
     user_id_str = payload.get("sub")
     session_id = payload.get("session_id")
     
+    print(f"🔍 Token decoded - user_id: {user_id_str}, session_id: {session_id}")
+    
     if not user_id_str:
+        print("❌ Missing user_id in token payload")
         raise UnauthorizedException("Invalid token payload")
     
     if not session_id:
+        print("❌ Missing session_id in token payload")
         raise UnauthorizedException("Invalid token: missing session ID")
 
     try:
         user_id = UUID(user_id_str)
     except ValueError:
+        print(f"❌ Invalid user ID format: {user_id_str}")
         raise UnauthorizedException("Invalid user ID in token")
 
     # Check if this session has been force logged out (e.g., login from another device)
     should_logout = await redis.should_force_logout(session_id)
     if should_logout:
+        print(f"⚠️ Session {session_id} marked for force logout")
         # Clean up the force_logout flag
         await redis.delete_key(f"force_logout:{session_id}")
         raise SessionExpiredException()
     
     # Check if session is still the active one
     is_valid = await redis.is_session_valid(user_id_str, session_id)
+    print(f"🔍 Session validation - is_valid: {is_valid}, user_id: {user_id_str}, session_id: {session_id}")
+    
     if not is_valid:
         # Debug logging
         active_session = await redis.get_active_session(user_id_str)
         print(f"❌ Session validation failed - user_id: {user_id_str}, token_session_id: {session_id}, active_session_in_redis: {active_session}")
+        print(f"❌ Type check - token_session_id type: {type(session_id)}, active_session type: {type(active_session)}")
         raise SessionExpiredException()
 
     result = await db.execute(select(User).where(User.id == user_id))
