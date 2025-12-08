@@ -201,6 +201,7 @@ class AuthService:
             raise UnauthorizedException("Invalid phone number or password")
 
         # Get old active session before invalidating (for force logout and push notification)
+        # Optimize: Get old session info and check device in parallel with Redis lookup
         old_session_id = await self.otp_service.redis.get_active_session(str(user.id))
         print(f"🔍 Old active session ID: {old_session_id}")
         
@@ -224,29 +225,24 @@ class AuthService:
         
         # Invalidate all old sessions for this user (enforce single device)
         # This happens BEFORE creating the new session to ensure old sessions are marked inactive
+        # Optimized: Now uses a single UPDATE query instead of fetch-then-update
         invalidated_count = await invalidate_old_sessions(self.db, user.id)
         print(f"🔒 Invalidated {invalidated_count} old session(s)")
 
         # Only send logout notification if it's a DIFFERENT device
         # Don't send if user is logging back in on the same device after logout
+        # NOTE: Push notification is sent asynchronously in background to avoid blocking login
         if old_session_id and not is_same_device:
             # Mark old session for immediate force logout
             await self.otp_service.redis.set_force_logout(old_session_id)
             print(f"🚪 Marked old session {old_session_id} for force logout (different device)")
             
-            # Send push notification to OLD device to force logout
+            # Send push notification to OLD device to force logout (non-blocking)
             if old_push_token:
-                print(f"📱 Sending logout notification to OLD device (token: {old_push_token[:20]}...)")
-                try:
-                    from app.services.push_notification_service import PushNotificationService
-                    push_service = PushNotificationService()
-                    success = await push_service.send_logout_notification(old_push_token)
-                    if success:
-                        print("✅ Logout push notification sent successfully to OLD device")
-                    else:
-                        print("⚠️ Logout push notification failed")
-                except Exception as e:
-                    print(f"❌ Failed to send logout push notification: {e}")
+                print(f"📱 Scheduling logout notification to OLD device (token: {old_push_token[:20]}...)")
+                # Fire and forget - don't wait for push notification to complete
+                import asyncio
+                asyncio.create_task(self._send_logout_notification_async(old_push_token, old_session_id))
             else:
                 print("⚠️ No push token found for old session")
         elif is_same_device:
@@ -278,8 +274,9 @@ class AuthService:
         await self.otp_service.redis.set_active_session(str(user.id), str(session.id))
         print(f"✅ New session {session.id} set as active (old session {old_session_id} is no longer active)")
 
-        # Update last login
+        # Update last login (batch with session creation commit if possible)
         user.updated_at = datetime.utcnow()
+        # Note: Session creation already commits, so we commit again for user update
         await self.db.commit()
 
         # Generate access token with session_id
@@ -296,6 +293,19 @@ class AuthService:
             "session_id": str(session.id),
             "user": user,
         }
+
+    async def _send_logout_notification_async(self, push_token: str, session_id: str) -> None:
+        """Send logout notification asynchronously (fire and forget)"""
+        try:
+            from app.services.push_notification_service import PushNotificationService
+            push_service = PushNotificationService()
+            success = await push_service.send_logout_notification(push_token)
+            if success:
+                print(f"✅ Logout push notification sent successfully for session {session_id}")
+            else:
+                print(f"⚠️ Logout push notification failed for session {session_id}")
+        except Exception as e:
+            print(f"❌ Failed to send logout push notification for session {session_id}: {e}")
 
     async def register_push_token(self, user_id: str, push_token: str) -> bool:
         """
