@@ -177,3 +177,15 @@ class AttemptService:
         count = result.scalar() or 0
         return count > 0
 
+    async def get_user_solved_count(
+    self,
+    user_id: UUID,
+    ) -> dict:
+        """Get total number of distinct questions solved by a user"""
+        result = await self.db.execute(
+            select(func.count(func.distinct(QuestionAttempt.question_id)))
+            .where(QuestionAttempt.user_id == user_id)
+        )
+        count = result.scalar() or 0
+        return {"user_id": str(user_id), "total_solved": count}
+

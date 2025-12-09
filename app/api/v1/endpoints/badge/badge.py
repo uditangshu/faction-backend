@@ -33,6 +33,8 @@ async def create_badge(
     request: BadgeCreateRequest,
 ) -> BadgeResponse:
     """Create a new badge"""
+
+    """Badge Category is of type """
     try:
         new_badge = await badge_service.create_badge(
             name=request.name,

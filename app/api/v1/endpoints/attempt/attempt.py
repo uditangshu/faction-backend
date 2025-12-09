@@ -5,7 +5,7 @@ from uuid import UUID
 from fastapi import APIRouter, Query
 from sqlalchemy import select, func
 
-from app.api.v1.dependencies import AttemptServiceDep, CurrentUser, DBSession
+from app.api.v1.dependencies import AttemptServiceDep, CurrentUser
 from app.models.attempt import QuestionAttempt
 from app.schemas.question import (
     AttemptCreateRequest,
@@ -100,15 +100,11 @@ async def get_my_stats(
 @router.get("/user/{user_id}/solved-count")
 async def get_user_solved_count(
     user_id: UUID,
-    db: DBSession,
+    attempt_service: AttemptServiceDep
 ) -> dict:
     """Get total number of distinct questions solved by a user"""
-    result = await db.execute(
-        select(func.count(func.distinct(QuestionAttempt.question_id)))
-        .where(QuestionAttempt.user_id == user_id)
-    )
-    count = result.scalar() or 0
-    return {"user_id": str(user_id), "total_solved": count}
+    result = await attempt_service.get_user_solved_count(user_id=user_id)
+    return result
 
 
 @router.get("/{attempt_id}", response_model=AttemptResponse)
