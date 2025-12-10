@@ -15,6 +15,8 @@ class YouTubeVideoBase(BaseModel):
     description: Optional[str] = Field(None, description="Video description")
     thumbnail_url: Optional[str] = Field(None, description="Video thumbnail URL")
     duration_seconds: Optional[int] = Field(None, ge=0, description="Video duration in seconds")
+    instructor_name: Optional[str] = Field(None, max_length=100, description="Instructor name")
+    instructor_institution: Optional[str] = Field(None, max_length=100, description="Instructor institution")
     order: int = Field(default=0, ge=0, description="Order/sequence within chapter")
 
 
@@ -44,6 +46,8 @@ class YouTubeVideoResponse(YouTubeVideoBase):
     id: UUID
     chapter_id: UUID
     subject_id: UUID
+    subject_name: Optional[str] = Field(None, description="Subject name (populated via join)")
+    chapter_name: Optional[str] = Field(None, description="Chapter name (populated via join)")
     is_active: bool
     views_count: int
     created_at: datetime

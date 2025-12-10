@@ -25,6 +25,10 @@ class YouTubeVideo(SQLModel, table=True):
     thumbnail_url: Optional[str] = Field(None, description="Video thumbnail URL")
     duration_seconds: Optional[int] = Field(None, ge=0, description="Video duration in seconds")
     
+    # Instructor Information
+    instructor_name: Optional[str] = Field(None, max_length=100, description="Instructor name")
+    instructor_institution: Optional[str] = Field(None, max_length=100, description="Instructor institution (e.g., IIT KGP)")
+    
     # Metadata
     order: int = Field(default=0, description="Order/sequence within chapter")
     is_active: bool = Field(default=True, index=True, description="Whether video is active")
