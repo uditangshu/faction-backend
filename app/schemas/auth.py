@@ -63,7 +63,7 @@ class TokenResponse(BaseModel):
     access_token: str
     refresh_token: str
     token_type: str = "bearer"
-    expires_in: int = 1800  # seconds (30 minutes)
+    expires_in: int = 90 * 24 * 60 * 60  # seconds (3 months = 7,776,000 seconds)
     session_id: str = Field(..., description="Active session ID")
 
 
