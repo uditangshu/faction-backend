@@ -69,7 +69,7 @@ async def verify_signup(
         "refresh_token": result["refresh_token"],
         "token_type": result["token_type"],
         "session_id": result["session_id"],
-        "expires_in": 1800,  # 30 minutes
+        "expires_in": 90 * 24 * 60 * 60,  # 3 months (7,776,000 seconds)
     }
 
 
@@ -102,7 +102,7 @@ async def login(
         "refresh_token": result["refresh_token"],
         "token_type": result["token_type"],
         "session_id": result["session_id"],
-        "expires_in": 1800,  # 30 minutes
+        "expires_in": 90 * 24 * 60 * 60,  # 3 months (7,776,000 seconds)
     }
 
 
