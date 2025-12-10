@@ -14,7 +14,7 @@ from app.exceptions.http_exceptions import NotFoundException, BadRequestExceptio
 router = APIRouter(prefix="/badges", tags=["Badges"])
 
 
-@router.get("/", response_model=BadgeListResponse)
+@router.get("", response_model=BadgeListResponse)
 async def get_all_badges(
     badge_service: BadgeServiceDep,
 ) -> BadgeListResponse:

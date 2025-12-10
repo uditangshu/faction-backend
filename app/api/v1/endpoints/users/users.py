@@ -13,6 +13,8 @@ from app.schemas.user import (
     UserRatingUpdateRequest
 )
 from app.utils.exceptions import ForbiddenException
+from app.models.user import ContestRank
+    
 
 router = APIRouter(prefix="/users", tags=["Users"])
 
@@ -111,11 +113,12 @@ async def get_my_rating(
     """
     Get current user's contest rating information.
     """
+
     return UserRatingResponse(
         user_id=current_user.id,
         current_rating=current_user.current_rating,
         max_rating=current_user.max_rating,
-        title=current_user.title,
+        title=current_user.title or ContestRank.NEWBIE,
     )
 
 

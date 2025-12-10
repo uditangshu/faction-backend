@@ -67,7 +67,7 @@ class UserRatingResponse(BaseModel):
     user_id: UUID
     current_rating: int
     max_rating: int
-    title: ContestRank
+    title: ContestRank = ContestRank.NEWBIE
 
     class Config:
         from_attributes = True

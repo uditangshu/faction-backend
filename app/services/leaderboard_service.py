@@ -12,11 +12,17 @@ from app.db.leaderboard_calls import (
     get_top_users_by_delta,
     get_user_with_most_questions_solved,
     get_top_users_by_questions_solved,
+    get_top_users_by_streak,
+    get_user_rank_by_rating,
+    get_user_rank_by_questions,
+    get_user_rank_by_streak,
 )
 from app.schemas.leaderboard import (
     BestPerformerResponse,
     BestPerformersListResponse,
     TopPerformersResponse,
+    UserRankResponse,
+    LeaderboardWithUserRankResponse,
 )
 from app.schemas.user import UserProfileResponse
 
@@ -130,5 +136,84 @@ class LeaderboardService:
             highest_rating=highest_rating,
             highest_delta=highest_delta,
             most_questions_solved=most_questions,
+        )
+
+    async def get_top_by_streak(self, limit: int = 10) -> BestPerformersListResponse:
+        """Get top N users by current study streak"""
+        results = await get_top_users_by_streak(self.db, limit)
+        
+        performers = [
+            BestPerformerResponse(
+                user=UserProfileResponse.model_validate(user),
+                metric_value=streak,
+                metric_type="streak",
+            )
+            for user, streak in results
+        ]
+        
+        return BestPerformersListResponse(
+            performers=performers,
+            total=len(performers),
+        )
+
+    async def get_user_rank(self, user_id: UUID, metric_type: str) -> Optional[UserRankResponse]:
+        """Get user's rank for a specific metric type"""
+        if metric_type == "rating":
+            result = await get_user_rank_by_rating(self.db, user_id)
+        elif metric_type == "questions":
+            result = await get_user_rank_by_questions(self.db, user_id)
+        elif metric_type == "streak":
+            result = await get_user_rank_by_streak(self.db, user_id)
+        else:
+            return None
+        
+        if not result:
+            return None
+        
+        rank, metric_value, total_users = result
+        percentile = ((total_users - rank) / total_users) * 100 if total_users > 0 else 0
+        
+        return UserRankResponse(
+            rank=rank,
+            metric_value=metric_value,
+            total_users=total_users,
+            percentile=round(percentile, 1),
+            metric_type=metric_type,
+        )
+
+    async def get_rating_leaderboard_with_rank(
+        self, user_id: UUID, limit: int = 10
+    ) -> LeaderboardWithUserRankResponse:
+        """Get rating leaderboard with user's own rank"""
+        leaderboard = await self.get_top_by_rating(limit)
+        user_rank = await self.get_user_rank(user_id, "rating")
+        
+        return LeaderboardWithUserRankResponse(
+            leaderboard=leaderboard,
+            user_rank=user_rank,
+        )
+
+    async def get_questions_leaderboard_with_rank(
+        self, user_id: UUID, limit: int = 10
+    ) -> LeaderboardWithUserRankResponse:
+        """Get questions leaderboard with user's own rank"""
+        leaderboard = await self.get_top_by_questions_solved(limit)
+        user_rank = await self.get_user_rank(user_id, "questions")
+        
+        return LeaderboardWithUserRankResponse(
+            leaderboard=leaderboard,
+            user_rank=user_rank,
+        )
+
+    async def get_streak_leaderboard_with_rank(
+        self, user_id: UUID, limit: int = 10
+    ) -> LeaderboardWithUserRankResponse:
+        """Get streak leaderboard with user's own rank"""
+        leaderboard = await self.get_top_by_streak(limit)
+        user_rank = await self.get_user_rank(user_id, "streak")
+        
+        return LeaderboardWithUserRankResponse(
+            leaderboard=leaderboard,
+            user_rank=user_rank,
         )
 
