@@ -26,6 +26,3 @@ phonenumbers==8.13.27
 python-dotenv==1.0.0
 httpx==0.26.0
 
-# Load Testing
-locust==2.20.0
-

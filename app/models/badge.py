@@ -15,6 +15,7 @@ class BadgeCategory(str, Enum):
     STREAK = "streak"
     PRACTICE_ARENA = "practice_arena"
 
+
 class Badge(SQLModel, table=True):
     """Badge model for practice arena and streak achievements"""
     
@@ -34,9 +35,10 @@ class Badge(SQLModel, table=True):
     # Requirements to earn the badge
     requirement_value: Optional[int] = Field(default=None, description="Required value to earn badge (e.g., 100 questions, 7 day streak)")
     requirement_description: str = Field(max_length=500)
-    
+
     # Metadata
     is_active: bool = Field(default=True, index=True)
     created_at: datetime = Field(default_factory=datetime.utcnow)
     updated_at: datetime = Field(default_factory=datetime.utcnow)
     
+
