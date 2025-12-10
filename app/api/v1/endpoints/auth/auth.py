@@ -20,6 +20,11 @@ class PushTokenRequest(BaseModel):
     """Request schema for registering push token"""
     push_token: str
 
+
+class RefreshTokenRequest(BaseModel):
+    """Request schema for refreshing access token"""
+    refresh_token: str
+
 router = APIRouter(prefix="/auth", tags=["Authentication"])
 
 
@@ -97,6 +102,22 @@ async def login(
         user_agent=user_agent,
     )
     
+    return {
+        "access_token": result["access_token"],
+        "refresh_token": result["refresh_token"],
+        "token_type": result["token_type"],
+        "session_id": result["session_id"],
+        "expires_in": 90 * 24 * 60 * 60,  # 3 months (7,776,000 seconds)
+    }
+
+
+@router.post("/refresh", response_model=TokenResponse, status_code=status.HTTP_200_OK)
+async def refresh_token(
+    request: RefreshTokenRequest,
+    auth_service: AuthServiceDep,
+) -> dict:
+    """Refresh access token using refresh token"""
+    result = await auth_service.refresh_access_token(request.refresh_token)
     return {
         "access_token": result["access_token"],
         "refresh_token": result["refresh_token"],

@@ -66,8 +66,8 @@ class RedisService:
         """Increment a counter in Redis"""
         return await self.client.incr(key)
 
-    async def set_active_session(self, user_id: str, session_id: str, expire: int = 86400 * 7) -> bool:
-        """Set active session for user (7 days default)"""
+    async def set_active_session(self, user_id: str, session_id: str, expire: int = 86400 * 365) -> bool:
+        """Set active session for user (1 year default)"""
         # Store session_id as plain string (not JSON encoded) for consistency
         key = f"active_session:{user_id}"
         if expire:
