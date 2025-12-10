@@ -58,9 +58,9 @@ async def get_videos_by_subject(
     db: AsyncSession,
     subject_id: UUID,
 ) -> List[Dict[str, Any]]:
-    """Get all videos for a subject with subject and chapter names"""
+    """Get all videos for a subject with subject and chapter info"""
     result = await db.execute(
-        select(YouTubeVideo, Subject.subject_type, Chapter.name)
+        select(YouTubeVideo, Subject, Chapter)
         .join(Subject, YouTubeVideo.subject_id == Subject.id)
         .join(Chapter, YouTubeVideo.chapter_id == Chapter.id)
         .where(
@@ -69,24 +69,22 @@ async def get_videos_by_subject(
         )
         .order_by(YouTubeVideo.order, YouTubeVideo.created_at)
     )
-    videos_with_names = []
-    for video, subject_type, chapter_name in result.all():
-        video_dict = {
-            **video.__dict__,
-            'subject_name': subject_type.value if subject_type else None,
-            'chapter_name': chapter_name
-        }
-        videos_with_names.append(video_dict)
-    return videos_with_names
+    videos_with_info = []
+    for video, subject, chapter in result.all():
+        video_dict = video.__dict__.copy()
+        video_dict['subject'] = {'id': subject.id, 'subject_type': subject.subject_type.value}
+        video_dict['chapter'] = {'id': chapter.id, 'name': chapter.name}
+        videos_with_info.append(video_dict)
+    return videos_with_info
 
 
 async def get_videos_by_chapter(
     db: AsyncSession,
     chapter_id: UUID,
 ) -> List[Dict[str, Any]]:
-    """Get all videos for a chapter with subject and chapter names"""
+    """Get all videos for a chapter with subject and chapter info"""
     result = await db.execute(
-        select(YouTubeVideo, Subject.subject_type, Chapter.name)
+        select(YouTubeVideo, Subject, Chapter)
         .join(Subject, YouTubeVideo.subject_id == Subject.id)
         .join(Chapter, YouTubeVideo.chapter_id == Chapter.id)
         .where(
@@ -95,23 +93,21 @@ async def get_videos_by_chapter(
         )
         .order_by(YouTubeVideo.order, YouTubeVideo.created_at)
     )
-    videos_with_names = []
-    for video, subject_type, chapter_name in result.all():
-        video_dict = {
-            **video.__dict__,
-            'subject_name': subject_type.value if subject_type else None,
-            'chapter_name': chapter_name
-        }
-        videos_with_names.append(video_dict)
-    return videos_with_names
+    videos_with_info = []
+    for video, subject, chapter in result.all():
+        video_dict = video.__dict__.copy()
+        video_dict['subject'] = {'id': subject.id, 'subject_type': subject.subject_type.value}
+        video_dict['chapter'] = {'id': chapter.id, 'name': chapter.name}
+        videos_with_info.append(video_dict)
+    return videos_with_info
 
 
 async def get_random_video(
     db: AsyncSession,
 ) -> Optional[Dict[str, Any]]:
-    """Get a random active video with subject and chapter names"""
+    """Get a random active video with subject and chapter info"""
     result = await db.execute(
-        select(YouTubeVideo, Subject.subject_type, Chapter.name)
+        select(YouTubeVideo, Subject, Chapter)
         .join(Subject, YouTubeVideo.subject_id == Subject.id)
         .join(Chapter, YouTubeVideo.chapter_id == Chapter.id)
         .where(YouTubeVideo.is_active == True)
@@ -120,12 +116,10 @@ async def get_random_video(
     if not videos_data:
         return None
     
-    video, subject_type, chapter_name = random.choice(videos_data)
-    video_dict = {
-        **video.__dict__,
-        'subject_name': subject_type.value if subject_type else None,
-        'chapter_name': chapter_name
-    }
+    video, subject, chapter = random.choice(videos_data)
+    video_dict = video.__dict__.copy()
+    video_dict['subject'] = {'id': subject.id, 'subject_type': subject.subject_type.value}
+    video_dict['chapter'] = {'id': chapter.id, 'name': chapter.name}
     return video_dict
 
 
