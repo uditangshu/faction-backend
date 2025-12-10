@@ -11,11 +11,15 @@ from app.db.youtube_video_calls import (
     get_videos_by_subject,
     get_videos_by_chapter,
     get_random_video,
+    get_youtube_video_by_id,
+    update_youtube_video,
+    get_latest_youtube_video,
 )
 from app.schemas.youtube_video import (
     YouTubeVideoCreateRequest,
     YouTubeVideoResponse,
     YouTubeVideoListResponse,
+    YouTubeVideoUpdateRequest,
 )
 from app.exceptions.http_exceptions import NotFoundException
 
@@ -40,6 +44,30 @@ async def create_video(
         duration_seconds=request.duration_seconds,
         order=request.order,
     )
+    return YouTubeVideoResponse.model_validate(video)
+
+
+@router.put("/{video_id}", response_model=YouTubeVideoResponse)
+async def update_video(
+    video_id: UUID,
+    request: YouTubeVideoUpdateRequest,
+    db: DBSession,
+) -> YouTubeVideoResponse:
+    """Update a YouTube video"""
+    video = await update_youtube_video(
+        db=db,
+        video_id=video_id,
+        title=request.title,
+        description=request.description,
+        thumbnail_url=request.thumbnail_url,
+        duration_seconds=request.duration_seconds,
+        order=request.order,
+        is_active=request.is_active,
+        chapter_id=request.chapter_id,
+        subject_id=request.subject_id,
+    )
+    if not video:
+        raise NotFoundException(f"Video with ID {video_id} not found")
     return YouTubeVideoResponse.model_validate(video)
 
 
@@ -79,6 +107,17 @@ async def get_videos(
         return YouTubeVideoListResponse(videos=[], total=0)
 
 
+@router.get("/latest", response_model=YouTubeVideoResponse)
+async def get_latest_video(
+    db: DBSession,
+) -> YouTubeVideoResponse:
+    """Get the latest YouTube video"""
+    video = await get_latest_youtube_video(db)
+    if not video:
+        raise NotFoundException("No videos available")
+    return YouTubeVideoResponse.model_validate(video)
+
+
 @router.get("/suggestion", response_model=YouTubeVideoResponse)
 async def get_suggestion(
     db: DBSession,
@@ -87,5 +126,17 @@ async def get_suggestion(
     video = await get_random_video(db)
     if not video:
         raise NotFoundException("No videos available")
+    return YouTubeVideoResponse.model_validate(video)
+
+
+@router.get("/{video_id}", response_model=YouTubeVideoResponse)
+async def get_video_with_id(
+    video_id: UUID,
+    db: DBSession,
+) -> YouTubeVideoResponse:
+    """Get a YouTube video by ID"""
+    video = await get_youtube_video_by_id(db, video_id)
+    if not video:
+        raise NotFoundException(f"Video with ID {video_id} not found")
     return YouTubeVideoResponse.model_validate(video)
 

@@ -207,7 +207,6 @@ async def get_nested_subjects(db: AsyncSession, sub_id: UUID) -> Optional[Subjec
         .where(Subject.id == sub_id)
         .options(
             selectinload(Subject.chapters)
-                .selectinload(Chapter.questions)
         )
     )
     return result.scalar_one_or_none()
