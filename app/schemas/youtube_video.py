@@ -40,32 +40,12 @@ class YouTubeVideoUpdateRequest(BaseModel):
     subject_id: Optional[UUID] = None
 
 
-class SubjectInfo(BaseModel):
-    """Subject information"""
-    id: UUID
-    subject_type: str
-    
-    class Config:
-        from_attributes = True
-
-
-class ChapterInfo(BaseModel):
-    """Chapter information"""
-    id: UUID
-    name: str
-    
-    class Config:
-        from_attributes = True
-
-
 class YouTubeVideoResponse(YouTubeVideoBase):
     """YouTube video response"""
     
     id: UUID
     chapter_id: UUID
     subject_id: UUID
-    subject: Optional[SubjectInfo] = None
-    chapter: Optional[ChapterInfo] = None
     is_active: bool
     views_count: int
     created_at: datetime
