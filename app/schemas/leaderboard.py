@@ -45,3 +45,10 @@ class LeaderboardWithUserRankResponse(BaseModel):
     leaderboard: BestPerformersListResponse
     user_rank: Optional[UserRankResponse] = None
 
+
+class StreakRankingResponse(BaseModel):
+    """Streak ranking response"""
+    
+    performers: list[BestPerformerResponse]
+    total: int
+

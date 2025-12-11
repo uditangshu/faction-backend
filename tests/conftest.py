@@ -8,7 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine, async_sess
 from sqlmodel import SQLModel
 
 from app.main import app
-from app.core.db import get_session
+from app.db.session import get_db_session as get_session
 from app.core.config import settings
 
 # Test database URL (use a separate test database)
