@@ -2,12 +2,13 @@
 
 from datetime import date, timedelta
 from uuid import UUID
-from typing import List, Optional
+from typing import List, Optional, Tuple
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, and_, func
+from sqlalchemy import select, and_, func, desc
 
 from app.models.streak import UserStudyStats, UserDailyStreak
 from app.models.attempt import QuestionAttempt
+from app.models.user import User
 
 
 async def get_user_stats(db: AsyncSession, user_id: UUID) -> Optional[UserStudyStats]:
@@ -110,4 +111,48 @@ async def count_correct_attempts(db: AsyncSession, user_id: UUID) -> int:
         )
     )
     return result.scalar() or 0
+
+
+async def get_streak_ranking(
+    db: AsyncSession,
+    skip: int = 0,
+    limit: int = 20,
+) -> Tuple[List[Tuple[User, int, int]], int]:
+    """Get streak ranking sorted by current streak descending with pagination"""
+    total_result = await db.execute(
+        select(func.count(UserStudyStats.id))
+        .join(User, UserStudyStats.user_id == User.id)
+        .where(User.is_active == True)
+    )
+    total = total_result.scalar() or 0
+    
+    result = await db.execute(
+        select(User, UserStudyStats.longest_study_streak, UserStudyStats.current_study_streak)
+        .join(UserStudyStats, User.id == UserStudyStats.user_id)
+        .where(User.is_active == True)
+        .order_by(desc(UserStudyStats.current_study_streak))
+        .offset(skip)
+        .limit(limit)
+    )
+    return [(row[0], row[1], row[2]) for row in result.all()], total
+
+
+async def get_user_with_longest_streak(db: AsyncSession) -> Optional[Tuple[User, int]]:
+    """
+    Get user with the longest study streak.
+    
+    Returns:
+        Tuple of (User, longest_streak) or None if no users found
+    """
+    result = await db.execute(
+        select(User, UserStudyStats.longest_study_streak)
+        .join(UserStudyStats, User.id == UserStudyStats.user_id)
+        .where(User.is_active == True)
+        .order_by(desc(UserStudyStats.longest_study_streak))
+        .limit(1)
+    )
+    row = result.first()
+    if row:
+        return (row[0], row[1])
+    return None
 

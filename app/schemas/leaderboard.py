@@ -29,19 +29,37 @@ class TopPerformersResponse(BaseModel):
     most_questions_solved: BestPerformerResponse | None = None
 
 
-class UserRankResponse(BaseModel):
-    """User's own rank in a leaderboard"""
+class ArenaRankingUserResponse(BaseModel):
+    """Arena ranking user response with solved count"""
     
-    rank: int
-    metric_value: int
-    total_users: int
-    percentile: float  # e.g., 60 means "better than 60% of peers"
-    metric_type: str
+    user_id: UUID
+    user_name: str
+    questions_solved: int
 
 
-class LeaderboardWithUserRankResponse(BaseModel):
-    """Full leaderboard with user's own rank"""
+class ArenaRankingResponse(BaseModel):
+    """Paginated arena ranking response"""
     
-    leaderboard: BestPerformersListResponse
-    user_rank: Optional[UserRankResponse] = None
+    users: list[ArenaRankingUserResponse]
+    total: int
+    skip: int
+    limit: int
+
+
+class StreakRankingUserResponse(BaseModel):
+    """Streak ranking user response with streak count"""
+    
+    user_id: UUID
+    user_name: str
+    longest_streak: int
+    current_streak: int
+
+
+class StreakRankingResponse(BaseModel):
+    """Paginated streak ranking response"""
+    
+    users: list[StreakRankingUserResponse]
+    total: int
+    skip: int
+    limit: int
 

@@ -12,18 +12,18 @@ from app.db.leaderboard_calls import (
     get_top_users_by_delta,
     get_user_with_most_questions_solved,
     get_top_users_by_questions_solved,
-    get_top_users_by_streak,
-    get_user_rank_by_rating,
-    get_user_rank_by_questions,
-    get_user_rank_by_streak,
+    get_arena_ranking_by_submissions,
 )
 from app.schemas.leaderboard import (
     BestPerformerResponse,
     BestPerformersListResponse,
     TopPerformersResponse,
-    UserRankResponse,
-    LeaderboardWithUserRankResponse,
+    ArenaRankingResponse,
+    ArenaRankingUserResponse,
+    StreakRankingResponse,
+    StreakRankingUserResponse,
 )
+from app.db.streak_calls import get_streak_ranking, get_user_with_longest_streak
 from app.schemas.user import UserProfileResponse
 
 
@@ -138,82 +138,94 @@ class LeaderboardService:
             most_questions_solved=most_questions,
         )
 
-    async def get_top_by_streak(self, limit: int = 10) -> BestPerformersListResponse:
-        """Get top N users by current study streak"""
-        results = await get_top_users_by_streak(self.db, limit)
+    async def get_arena_ranking(
+        self,
+        time_filter: str = "all_time",
+        skip: int = 0,
+        limit: int = 20,
+    ) -> ArenaRankingResponse:
+        """
+        Get arena ranking by maximum submissions solved with time filtering and pagination.
         
-        performers = [
-            BestPerformerResponse(
-                user=UserProfileResponse.model_validate(user),
-                metric_value=streak,
-                metric_type="streak",
+        Args:
+            time_filter: Time filter - "daily", "weekly", or "all_time"
+            skip: Number of records to skip for pagination
+            limit: Maximum number of records to return
+        
+        Returns:
+            ArenaRankingResponse with paginated users and their solved counts
+        """
+        results, total = await get_arena_ranking_by_submissions(
+            self.db,
+            time_filter=time_filter,
+            skip=skip,
+            limit=limit,
+        )
+        
+        users = [
+            ArenaRankingUserResponse(
+                user_id=user.id,
+                user_name=user.name,
+                questions_solved=count,
             )
-            for user, streak in results
+            for user, count in results
         ]
         
-        return BestPerformersListResponse(
-            performers=performers,
-            total=len(performers),
+        return ArenaRankingResponse(
+            users=users,
+            total=total,
+            skip=skip,
+            limit=limit,
         )
 
-    async def get_user_rank(self, user_id: UUID, metric_type: str) -> Optional[UserRankResponse]:
-        """Get user's rank for a specific metric type"""
-        if metric_type == "rating":
-            result = await get_user_rank_by_rating(self.db, user_id)
-        elif metric_type == "questions":
-            result = await get_user_rank_by_questions(self.db, user_id)
-        elif metric_type == "streak":
-            result = await get_user_rank_by_streak(self.db, user_id)
-        else:
-            return None
+    async def get_streak_ranking(
+        self,
+        skip: int = 0,
+        limit: int = 20,
+    ) -> StreakRankingResponse:
+        """
+        Get streak ranking sorted by longest streak with pagination.
         
+        Args:
+            skip: Number of records to skip for pagination
+            limit: Maximum number of records to return
+        
+        Returns:
+            StreakRankingResponse with paginated users and their streak counts
+        """
+        results, total = await get_streak_ranking(
+            self.db,
+            skip=skip,
+            limit=limit,
+        )
+        
+        users = [
+            StreakRankingUserResponse(
+                user_id=user.id,
+                user_name=user.name,
+                longest_streak=longest_streak,
+                current_streak=current_streak,
+            )
+            for user, longest_streak, current_streak in results
+        ]
+        
+        return StreakRankingResponse(
+            users=users,
+            total=total,
+            skip=skip,
+            limit=limit,
+        )
+
+    async def get_best_by_longest_streak(self) -> Optional[BestPerformerResponse]:
+        """Get user with longest study streak"""
+        result = await get_user_with_longest_streak(self.db)
         if not result:
             return None
         
-        rank, metric_value, total_users = result
-        percentile = ((total_users - rank) / total_users) * 100 if total_users > 0 else 0
-        
-        return UserRankResponse(
-            rank=rank,
-            metric_value=metric_value,
-            total_users=total_users,
-            percentile=round(percentile, 1),
-            metric_type=metric_type,
-        )
-
-    async def get_rating_leaderboard_with_rank(
-        self, user_id: UUID, limit: int = 10
-    ) -> LeaderboardWithUserRankResponse:
-        """Get rating leaderboard with user's own rank"""
-        leaderboard = await self.get_top_by_rating(limit)
-        user_rank = await self.get_user_rank(user_id, "rating")
-        
-        return LeaderboardWithUserRankResponse(
-            leaderboard=leaderboard,
-            user_rank=user_rank,
-        )
-
-    async def get_questions_leaderboard_with_rank(
-        self, user_id: UUID, limit: int = 10
-    ) -> LeaderboardWithUserRankResponse:
-        """Get questions leaderboard with user's own rank"""
-        leaderboard = await self.get_top_by_questions_solved(limit)
-        user_rank = await self.get_user_rank(user_id, "questions")
-        
-        return LeaderboardWithUserRankResponse(
-            leaderboard=leaderboard,
-            user_rank=user_rank,
-        )
-
-    async def get_streak_leaderboard_with_rank(
-        self, user_id: UUID, limit: int = 10
-    ) -> LeaderboardWithUserRankResponse:
-        """Get streak leaderboard with user's own rank"""
-        leaderboard = await self.get_top_by_streak(limit)
-        user_rank = await self.get_user_rank(user_id, "streak")
-        
-        return LeaderboardWithUserRankResponse(
-            leaderboard=leaderboard,
-            user_rank=user_rank,
+        user, longest_streak = result
+        return BestPerformerResponse(
+            user=UserProfileResponse.model_validate(user),
+            metric_value=longest_streak,
+            metric_type="longest_streak",
         )
 

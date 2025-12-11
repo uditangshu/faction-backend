@@ -387,9 +387,17 @@ class PYQListResponse(BaseModel):
 
 # ==================== QOTD Schemas ====================
 
+class QOTDQuestionResponse(QuestionDetailedResponse):
+    """QOTD question response with subject name"""
+    subject_name: str
+
+    class Config:
+        from_attributes = True
+
+
 class QOTDResponse(BaseModel):
     """Question of the Day response with 3 questions from different subjects"""
-    questions: List[QuestionDetailedResponse]
+    questions: List[QOTDQuestionResponse]
 
     class Config:
         from_attributes = True
