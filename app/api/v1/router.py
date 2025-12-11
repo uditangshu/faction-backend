@@ -9,7 +9,7 @@ from app.api.v1.endpoints.analysis import analysis
 from app.api.v1.endpoints.attempt import attempt
 from app.api.v1.endpoints.pyq import pyq, filtering
 from app.api.v1.endpoints.custom_test import custom_test
-from app.api.v1.endpoints.leaderboard import leaderboard, arena_ranking, streak_ranking
+from app.api.v1.endpoints.leaderboard import leaderboard, streak_ranking
 from app.api.v1.endpoints.contest import contest
 from app.api.v1.endpoints.youtube_video import youtube_video
 from app.api.v1.endpoints.badge import badge
@@ -39,7 +39,6 @@ api_router.include_router(custom_test.router)
 
 # Leaderboard routes
 api_router.include_router(leaderboard.router)
-api_router.include_router(arena_ranking.router)
 api_router.include_router(streak_ranking.router)
 
 # Contest routes

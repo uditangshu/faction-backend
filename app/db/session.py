@@ -23,7 +23,7 @@ engine = create_async_engine(
     pool_size=30,  # Increased since max_overflow is ignored in asyncpg session mode
     max_overflow=20,  # Kept for documentation, but not used in session mode
     connect_args={
-        "ssl": "require",  # SSL is required for Aiven
+        "ssl": "require",  # SSL is required for Aivennigga
         "server_settings": {"application_name": "faction_backend"}
     }
 )
