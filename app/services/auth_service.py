@@ -152,8 +152,12 @@ class AuthService:
             expires_at=datetime.utcnow() + timedelta(days=settings.REFRESH_TOKEN_EXPIRE_DAYS),
         )
 
-        # Store active session in Redis
-        await self.otp_service.redis.set_active_session(str(user.id), str(session.id))
+        # Store active session in Redis (1 year TTL matching refresh token)
+        await self.otp_service.redis.set_active_session(
+            str(user.id), 
+            str(session.id), 
+            expire=86400 * settings.SESSION_TTL_DAYS
+        )
 
         # Generate access token with session_id
         access_token = create_access_token({
@@ -236,9 +240,13 @@ class AuthService:
         await self.db.commit()
         await self.db.refresh(session)
 
-        # Store active session in Redis immediately
+        # Store active session in Redis immediately (1 year TTL matching refresh token)
         user_id_str = str(user.id)
-        await self.otp_service.redis.set_active_session(user_id_str, str(session.id))
+        await self.otp_service.redis.set_active_session(
+            user_id_str, 
+            str(session.id),
+            expire=86400 * settings.SESSION_TTL_DAYS
+        )
 
         # Generate access token with session_id
         access_token = create_access_token({
@@ -477,4 +485,86 @@ class AuthService:
 
         print(f"✅ Password reset successful for user {user.id}")
         return True
+
+    async def refresh_access_token(self, refresh_token: str) -> dict:
+        """Refresh access token using refresh token"""
+        from app.core.security import decode_token
+        from app.models.session import UserSession
+        
+        # Decode and validate refresh token
+        payload = decode_token(refresh_token)
+        if not payload:
+            raise UnauthorizedException("Invalid or expired refresh token")
+        
+        # Check token type
+        if payload.get("type") != "refresh":
+            raise UnauthorizedException("Invalid token type")
+        
+        # Get user_id and session_id from token
+        user_id_str = payload.get("sub")
+        session_id_str = payload.get("session_id")
+        
+        if not user_id_str or not session_id_str:
+            raise UnauthorizedException("Invalid token payload")
+        
+        try:
+            user_id = UUID(user_id_str)
+            session_id = UUID(session_id_str)
+        except ValueError:
+            raise UnauthorizedException("Invalid token format")
+        
+        # Get session from database
+        result = await self.db.execute(
+            select(UserSession).where(UserSession.id == session_id)
+        )
+        session = result.scalar_one_or_none()
+        
+        if not session:
+            raise UnauthorizedException("Session not found")
+        
+        if not session.is_active:
+            raise UnauthorizedException("Session is inactive")
+        
+        # Check if session belongs to the user
+        if session.user_id != user_id:
+            raise UnauthorizedException("Session does not belong to user")
+        
+        # Check if session has expired
+        if session.expires_at < datetime.utcnow():
+            raise UnauthorizedException("Session has expired")
+        
+        # Verify refresh token hash
+        refresh_token_hash = sha256(refresh_token.encode()).hexdigest()
+        if session.refresh_token_hash != refresh_token_hash:
+            raise UnauthorizedException("Invalid refresh token")
+        
+        # Verify session is still active in Redis
+        is_valid = await self.otp_service.redis.is_session_valid(user_id_str, session_id_str)
+        if not is_valid:
+            raise UnauthorizedException("Session is no longer valid")
+        
+        # Get user for token generation
+        user = await self.get_user_by_id(user_id)
+        if not user:
+            raise UnauthorizedException("User not found")
+        
+        if not user.is_active:
+            raise UnauthorizedException("Account is inactive")
+        
+        # Generate new access token with same session_id
+        access_token = create_access_token({
+            "sub": str(user.id),
+            "phone": user.phone_number,
+            "session_id": str(session.id)
+        })
+        
+        # Optionally rotate refresh token (for now, reuse the same one)
+        # To rotate: generate new refresh token, update hash in DB
+        
+        return {
+            "access_token": access_token,
+            "refresh_token": refresh_token,  # Reuse same refresh token
+            "token_type": "bearer",
+            "session_id": str(session.id),
+        }
 
