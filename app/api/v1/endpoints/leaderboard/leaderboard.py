@@ -98,3 +98,16 @@ async def get_top_by_questions_solved(
     """
     return await leaderboard_service.get_top_by_questions_solved(limit)
 
+
+@router.get("/best-streak", response_model=BestPerformerResponse)
+async def get_best_by_longest_streak(
+    leaderboard_service: LeaderboardServiceDep,
+) -> BestPerformerResponse:
+    """
+    Get user with the longest study streak.
+    """
+    result = await leaderboard_service.get_best_by_longest_streak()
+    if not result:
+        raise NotFoundException("No users found with study streaks")
+    return result
+

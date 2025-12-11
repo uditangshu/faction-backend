@@ -168,12 +168,12 @@ class QuestionService:
         await self.db.commit()
         return True
 
-    async def get_qotd_questions(self) -> List[Question]:
+    async def get_qotd_questions(self) -> List[Tuple[Question, str]]:
         """
         Get Question of the Day: 3 random questions from 3 different subjects.
         
         Returns:
-            List of 3 questions, each from a different subject
+            List of tuples (question, subject_name), each from a different subject
         """
         # Get all distinct subjects that have questions
         subject_query = (
@@ -194,21 +194,22 @@ class QuestionService:
         
         qotd_questions = []
         
-        # For each selected subject, get a random question
+        # For each selected subject, get a random question with subject name
         for subject_id in selected_subject_ids:
-            # Get all questions for this subject
+            # Get all questions for this subject with subject info
             question_query = (
-                select(Question)
+                select(Question, Subject.subject_type)
                 .join(Topic, Question.topic_id == Topic.id)
                 .join(Chapter, Topic.chapter_id == Chapter.id)
+                .join(Subject, Chapter.subject_id == Subject.id)
                 .where(Chapter.subject_id == subject_id)
             )
             result = await self.db.execute(question_query)
-            questions = list(result.scalars().all())
+            questions_with_subjects = list(result.all())
             
-            if questions:
+            if questions_with_subjects:
                 # Randomly select one question from this subject
-                random_question = random.choice(questions)
-                qotd_questions.append(random_question)
+                random_question, subject_type = random.choice(questions_with_subjects)
+                qotd_questions.append((random_question, subject_type.value))
         
         return qotd_questions

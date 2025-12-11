@@ -2,8 +2,9 @@
 
 from typing import Optional, List, Tuple
 from uuid import UUID
+from datetime import datetime, timedelta
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, func, desc
+from sqlalchemy import select, func, desc, and_
 
 from app.models.user import User
 from app.models.contest import ContestLeaderboard
@@ -170,4 +171,71 @@ async def get_top_users_by_questions_solved(
         .limit(limit)
     )
     return [(row[0], row[1]) for row in result.all()]
+
+
+async def get_arena_ranking_by_submissions(
+    db: AsyncSession,
+    time_filter: str = "all_time",
+    skip: int = 0,
+    limit: int = 20,
+) -> Tuple[List[Tuple[User, int]], int]:
+    """
+    Get arena ranking by maximum submissions solved with time filtering and pagination.
+    
+    Args:
+        db: Database session
+        time_filter: Time filter - "daily", "weekly", or "all_time"
+        skip: Number of records to skip for pagination
+        limit: Maximum number of records to return
+    
+    Returns:
+        Tuple of (List of tuples (User, question_count), total_count)
+    """
+    # Calculate time threshold based on filter
+    now = datetime.utcnow()
+    if time_filter == "daily":
+        threshold = now - timedelta(days=1)
+    elif time_filter == "weekly":
+        threshold = now - timedelta(weeks=1)
+    else:  # all_time
+        threshold = None
+    
+    # Build base query for counting distinct correct questions per user
+    base_query = (
+        select(
+            QuestionAttempt.user_id,
+            func.count(func.distinct(QuestionAttempt.question_id)).label("question_count")
+        )
+        .where(QuestionAttempt.is_correct == True)
+    )
+    
+    # Add time filter if not all_time
+    if threshold is not None:
+        base_query = base_query.where(QuestionAttempt.attempted_at >= threshold)
+    
+    # Group by user_id
+    base_query = base_query.group_by(QuestionAttempt.user_id)
+    
+    # Create subquery
+    subquery = base_query.subquery()
+    
+    # Count total users for pagination
+    count_query = (
+        select(func.count(subquery.c.user_id))
+        .select_from(subquery)
+    )
+    count_result = await db.execute(count_query)
+    total = count_result.scalar() or 0
+    
+    # Get paginated results
+    result = await db.execute(
+        select(User, subquery.c.question_count)
+        .join(subquery, User.id == subquery.c.user_id)
+        .where(User.is_active == True)
+        .order_by(desc(subquery.c.question_count))
+        .offset(skip)
+        .limit(limit)
+    )
+    
+    return [(row[0], row[1]) for row in result.all()], total
 

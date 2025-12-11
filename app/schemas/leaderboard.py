@@ -27,3 +27,38 @@ class TopPerformersResponse(BaseModel):
     highest_delta: BestPerformerResponse | None = None
     most_questions_solved: BestPerformerResponse | None = None
 
+
+class ArenaRankingUserResponse(BaseModel):
+    """Arena ranking user response with solved count"""
+    
+    user_id: UUID
+    user_name: str
+    questions_solved: int
+
+
+class ArenaRankingResponse(BaseModel):
+    """Paginated arena ranking response"""
+    
+    users: list[ArenaRankingUserResponse]
+    total: int
+    skip: int
+    limit: int
+
+
+class StreakRankingUserResponse(BaseModel):
+    """Streak ranking user response with streak count"""
+    
+    user_id: UUID
+    user_name: str
+    longest_streak: int
+    current_streak: int
+
+
+class StreakRankingResponse(BaseModel):
+    """Paginated streak ranking response"""
+    
+    users: list[StreakRankingUserResponse]
+    total: int
+    skip: int
+    limit: int
+
