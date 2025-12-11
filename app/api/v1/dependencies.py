@@ -138,7 +138,7 @@ async def get_custom_test_service(db: DBSession) -> CustomTestService:
 CustomTestServiceDep = Annotated[CustomTestService, Depends(get_custom_test_service)]
 
 
-async def get_leaderboard_service(db: DBSession, redis: RedisServiceDep) -> LeaderboardService:
+async def get_leaderboard_service(db: ReadOnlyDBSession, redis: RedisServiceDep) -> LeaderboardService:
     return LeaderboardService(db, redis)
 
 
