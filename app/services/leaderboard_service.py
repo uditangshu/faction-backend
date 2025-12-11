@@ -43,17 +43,14 @@ class LeaderboardService:
         if not self.redis:
             return None
         cached_data = await self.redis.get_value(key)
-        if cached_data:
-            try:
-                return json.loads(cached_data)
-            except (json.JSONDecodeError, TypeError):
-                return None
+        if isinstance(cached_data, dict):
+            return cached_data
         return None
 
     async def _set_cached(self, key: str, data: dict) -> None:
         """Cache data in Redis"""
         if self.redis:
-            await self.redis.set_value(key, json.dumps(data), expire=CACHE_TTL)
+            await self.redis.set_value(key, data, expire=CACHE_TTL)
 
     async def get_best_by_rating(self) -> Optional[BestPerformerResponse]:
         """Get user with highest maximum rating"""
