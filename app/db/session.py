@@ -37,11 +37,17 @@ async def get_db_session() -> AsyncGenerator[AsyncSession, None]:
         try:
             yield session
         except Exception:
-            await session.rollback()
+            try:
+                await session.rollback()
+            except Exception:
+                pass
             raise
         finally:
-            if session.in_transaction():
-                await session.rollback()
+            try:
+                if session.in_transaction():
+                    await session.rollback()
+            except Exception:
+                pass
 
 
 async def get_readonly_db_session() -> AsyncGenerator[AsyncSession, None]:
@@ -49,11 +55,17 @@ async def get_readonly_db_session() -> AsyncGenerator[AsyncSession, None]:
         try:
             yield session
         except Exception:
-            await session.rollback()
+            try:
+                await session.rollback()
+            except Exception:
+                pass
             raise
         finally:
-            if session.in_transaction():
-                await session.commit()
+            try:
+                if session.in_transaction():
+                    await session.rollback()
+            except Exception:
+                pass
 
 
 async def init_db() -> None:
