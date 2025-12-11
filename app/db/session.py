@@ -38,6 +38,9 @@ async def get_db_session() -> AsyncGenerator[AsyncSession, None]:
         except Exception:
             await session.rollback()
             raise
+        finally:
+            if session.in_transaction():
+                await session.rollback()
 
 
 async def get_readonly_db_session() -> AsyncGenerator[AsyncSession, None]:
