@@ -42,22 +42,32 @@ class LeaderboardService:
         """Get cached data from Redis"""
         if not self.redis:
             return None
-        cached_data = await self.redis.get_value(key)
-        if isinstance(cached_data, dict):
-            return cached_data
+        try:
+            cached_data = await self.redis.get_value(key)
+            if isinstance(cached_data, dict):
+                return cached_data
+        except Exception:
+            pass
         return None
 
     async def _set_cached(self, key: str, data: dict) -> None:
         """Cache data in Redis"""
-        if self.redis:
+        if not self.redis:
+            return
+        try:
             await self.redis.set_value(key, data, expire=CACHE_TTL)
+        except Exception:
+            pass
 
     async def get_best_by_rating(self) -> Optional[BestPerformerResponse]:
         """Get user with highest maximum rating"""
         cache_key = "leaderboard:best:rating"
         cached = await self._get_cached(cache_key)
         if cached:
-            return BestPerformerResponse(**cached)
+            try:
+                return BestPerformerResponse(**cached)
+            except Exception:
+                pass
 
         result = await get_user_with_max_rating(self.db)
         if not result:
@@ -77,7 +87,10 @@ class LeaderboardService:
         cache_key = f"leaderboard:top:rating:{limit}"
         cached = await self._get_cached(cache_key)
         if cached:
-            return BestPerformersListResponse(**cached)
+            try:
+                return BestPerformersListResponse(**cached)
+            except Exception:
+                pass
 
         results = await get_top_users_by_rating(self.db, limit)
         
@@ -102,7 +115,10 @@ class LeaderboardService:
         cache_key = "leaderboard:best:delta"
         cached = await self._get_cached(cache_key)
         if cached:
-            return BestPerformerResponse(**cached)
+            try:
+                return BestPerformerResponse(**cached)
+            except Exception:
+                pass
 
         result = await get_user_with_max_delta(self.db)
         if not result:
@@ -122,7 +138,10 @@ class LeaderboardService:
         cache_key = f"leaderboard:top:delta:{limit}"
         cached = await self._get_cached(cache_key)
         if cached:
-            return BestPerformersListResponse(**cached)
+            try:
+                return BestPerformersListResponse(**cached)
+            except Exception:
+                pass
 
         results = await get_top_users_by_delta(self.db, limit)
         
@@ -147,7 +166,10 @@ class LeaderboardService:
         cache_key = "leaderboard:best:questions"
         cached = await self._get_cached(cache_key)
         if cached:
-            return BestPerformerResponse(**cached)
+            try:
+                return BestPerformerResponse(**cached)
+            except Exception:
+                pass
 
         result = await get_user_with_most_questions_solved(self.db)
         if not result:
@@ -167,7 +189,10 @@ class LeaderboardService:
         cache_key = f"leaderboard:top:questions:{limit}"
         cached = await self._get_cached(cache_key)
         if cached:
-            return BestPerformersListResponse(**cached)
+            try:
+                return BestPerformersListResponse(**cached)
+            except Exception:
+                pass
 
         results = await get_top_users_by_questions_solved(self.db, limit)
         
@@ -192,7 +217,10 @@ class LeaderboardService:
         cache_key = "leaderboard:top:performers:all"
         cached = await self._get_cached(cache_key)
         if cached:
-            return TopPerformersResponse(**cached)
+            try:
+                return TopPerformersResponse(**cached)
+            except Exception:
+                pass
 
         highest_rating = await self.get_best_by_rating()
         highest_delta = await self.get_best_by_delta()
@@ -226,7 +254,10 @@ class LeaderboardService:
         cache_key = f"leaderboard:arena:{time_filter}:{skip}:{limit}"
         cached = await self._get_cached(cache_key)
         if cached:
-            return ArenaRankingResponse(**cached)
+            try:
+                return ArenaRankingResponse(**cached)
+            except Exception:
+                pass
 
         results, total = await get_arena_ranking_by_submissions(
             self.db,
@@ -271,7 +302,10 @@ class LeaderboardService:
         cache_key = f"leaderboard:streak:{skip}:{limit}"
         cached = await self._get_cached(cache_key)
         if cached:
-            return StreakRankingResponse(**cached)
+            try:
+                return StreakRankingResponse(**cached)
+            except Exception:
+                pass
 
         results, total = await get_streak_ranking(
             self.db,
@@ -303,7 +337,10 @@ class LeaderboardService:
         cache_key = "leaderboard:best:streak"
         cached = await self._get_cached(cache_key)
         if cached:
-            return BestPerformerResponse(**cached)
+            try:
+                return BestPerformerResponse(**cached)
+            except Exception:
+                pass
 
         result = await get_user_with_longest_streak(self.db)
         if not result:
