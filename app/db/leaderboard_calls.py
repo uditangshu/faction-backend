@@ -2,9 +2,8 @@
 
 from typing import Optional, List, Tuple
 from uuid import UUID
-from datetime import datetime, timedelta
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, func, desc, and_
+from sqlalchemy import select, func, desc
 
 from app.models.user import User
 from app.models.contest import ContestLeaderboard
@@ -174,69 +173,124 @@ async def get_top_users_by_questions_solved(
     return [(row[0], row[1]) for row in result.all()]
 
 
-async def get_arena_ranking_by_submissions(
+async def get_top_users_by_streak(
     db: AsyncSession,
-    time_filter: str = "all_time",
-    skip: int = 0,
-    limit: int = 20,
-) -> Tuple[List[Tuple[User, int]], int]:
+    limit: int = 10,
+) -> List[Tuple[User, int]]:
     """
-    Get arena ranking by maximum submissions solved with time filtering and pagination.
-    
-    Args:
-        db: Database session
-        time_filter: Time filter - "daily", "weekly", or "all_time"
-        skip: Number of records to skip for pagination
-        limit: Maximum number of records to return
+    Get top N users by current study streak.
     
     Returns:
-        Tuple of (List of tuples (User, question_count), total_count)
+        List of tuples (User, streak_days)
     """
-    # Calculate time threshold based on filter
-    now = datetime.utcnow()
-    if time_filter == "daily":
-        threshold = now - timedelta(days=1)
-    elif time_filter == "weekly":
-        threshold = now - timedelta(weeks=1)
-    else:  # all_time
-        threshold = None
-    
-    # Build base query for counting distinct correct questions per user
-    base_query = (
-        select(
-            QuestionAttempt.user_id,
-            func.count(func.distinct(QuestionAttempt.question_id)).label("question_count")
-        )
-        .where(QuestionAttempt.is_correct == True)
-    )
-    
-    # Add time filter if not all_time
-    if threshold is not None:
-        base_query = base_query.where(QuestionAttempt.attempted_at >= threshold)
-    
-    # Group by user_id
-    base_query = base_query.group_by(QuestionAttempt.user_id)
-    
-    # Create subquery
-    subquery = base_query.subquery()
-    
-    # Count total users for pagination
-    count_query = (
-        select(func.count(subquery.c.user_id))
-        .select_from(subquery)
-    )
-    count_result = await db.execute(count_query)
-    total = count_result.scalar() or 0
-    
-    # Get paginated results
     result = await db.execute(
-        select(User, subquery.c.question_count)
-        .join(subquery, User.id == subquery.c.user_id)
+        select(User, UserStudyStats.current_study_streak)
+        .join(UserStudyStats, User.id == UserStudyStats.user_id)
         .where(User.is_active == True)
-        .order_by(desc(subquery.c.question_count))
-        .offset(skip)
+        .order_by(desc(UserStudyStats.current_study_streak))
         .limit(limit)
     )
+    return [(row[0], row[1]) for row in result.all()]
+
+
+async def get_user_rank_by_rating(db: AsyncSession, user_id: UUID) -> Optional[Tuple[int, int, int]]:
+    """
+    Get user's rank by max rating.
     
-    return [(row[0], row[1]) for row in result.all()], total
+    Returns:
+        Tuple of (rank, user_rating, total_users) or None
+    """
+    # Get user's rating
+    user_result = await db.execute(
+        select(User.max_rating).where(User.id == user_id, User.is_active == True)
+    )
+    user_rating = user_result.scalar_one_or_none()
+    if user_rating is None:
+        return None
+    
+    # Count users with higher rating
+    higher_count = await db.execute(
+        select(func.count(User.id))
+        .where(User.is_active == True, User.max_rating > user_rating)
+    )
+    rank = higher_count.scalar() + 1
+    
+    # Get total users
+    total_result = await db.execute(
+        select(func.count(User.id)).where(User.is_active == True)
+    )
+    total_users = total_result.scalar()
+    
+    return (rank, user_rating, total_users)
+
+
+async def get_user_rank_by_questions(db: AsyncSession, user_id: UUID) -> Optional[Tuple[int, int, int]]:
+    """
+    Get user's rank by questions solved.
+    
+    Returns:
+        Tuple of (rank, questions_solved, total_users) or None
+    """
+    # Subquery for all users' question counts
+    subquery = (
+        select(
+            QuestionAttempt.user_id,
+            func.count(QuestionAttempt.id).label("question_count")
+        )
+        .where(QuestionAttempt.is_correct == True)
+        .group_by(QuestionAttempt.user_id)
+        .subquery()
+    )
+    
+    # Get user's question count
+    user_result = await db.execute(
+        select(subquery.c.question_count)
+        .where(subquery.c.user_id == user_id)
+    )
+    user_questions = user_result.scalar_one_or_none() or 0
+    
+    # Count users with more questions
+    higher_result = await db.execute(
+        select(func.count(subquery.c.user_id))
+        .where(subquery.c.question_count > user_questions)
+    )
+    rank = higher_result.scalar() + 1
+    
+    # Get total users who have solved at least one question
+    total_result = await db.execute(
+        select(func.count(subquery.c.user_id))
+    )
+    total_users = total_result.scalar() or 1
+    
+    return (rank, user_questions, total_users)
+
+
+async def get_user_rank_by_streak(db: AsyncSession, user_id: UUID) -> Optional[Tuple[int, int, int]]:
+    """
+    Get user's rank by current streak.
+    
+    Returns:
+        Tuple of (rank, streak_days, total_users) or None
+    """
+    # Get user's streak
+    user_result = await db.execute(
+        select(UserStudyStats.current_study_streak)
+        .where(UserStudyStats.user_id == user_id)
+    )
+    user_streak = user_result.scalar_one_or_none() or 0
+    
+    # Count users with higher streak
+    higher_result = await db.execute(
+        select(func.count(UserStudyStats.id))
+        .where(UserStudyStats.current_study_streak > user_streak)
+    )
+    rank = higher_result.scalar() + 1
+    
+    # Get total users with streaks
+    total_result = await db.execute(
+        select(func.count(UserStudyStats.id))
+    )
+    total_users = total_result.scalar() or 1
+    
+    return (rank, user_streak, total_users)
 

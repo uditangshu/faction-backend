@@ -20,8 +20,8 @@ engine = create_async_engine(
     echo=settings.DB_ECHO,
     future=True,
     pool_pre_ping=True,
-    pool_size=10,
-    max_overflow=20,
+    pool_size=30,  # Increased since max_overflow is ignored in asyncpg session mode
+    max_overflow=20,  # Kept for documentation, but not used in session mode
     connect_args={
         "ssl": "require",  # SSL is required for Aiven
         "server_settings": {"application_name": "faction_backend"}
@@ -39,14 +39,18 @@ AsyncSessionLocal = async_sessionmaker(
 
 
 async def get_db_session() -> AsyncGenerator[AsyncSession, None]:
-    """Dependency to get database session"""
     async with AsyncSessionLocal() as session:
         try:
             yield session
-        finally:
-            
-            await session.close()
-
+        except Exception as e:
+            try:
+                await session.rollback()
+                if settings.DEBUG:
+                    print(f"⚠️ Database session rolled back due to exception: {type(e).__name__}")
+            except Exception as rollback_error:
+                if settings.DEBUG:
+                    print(f"❌ Failed to rollback session: {rollback_error}")
+            raise
 
 async def init_db() -> None:
     """Initialize database tables (for development only)"""
