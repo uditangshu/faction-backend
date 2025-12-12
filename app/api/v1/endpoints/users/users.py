@@ -122,7 +122,7 @@ async def get_my_rating(
     Get current user's contest rating information.
     """
 
-    return UserRatingResponse.model_validate(current_user)
+    return UserRatingResponse.model_validate(
         user_id=current_user.id,
         current_rating=current_user.current_rating,
         max_rating=current_user.max_rating,
