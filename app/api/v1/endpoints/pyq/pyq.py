@@ -1,10 +1,11 @@
 """Previous Year Questions (PYQ) endpoints"""
 
-from typing import Optional
+from typing import Optional, List
 from uuid import UUID
 from fastapi import APIRouter, Query
+from pydantic import BaseModel
 
-from app.api.v1.dependencies import PYQServiceDep
+from app.api.v1.dependencies import PYQServiceDep, FilteringServiceDep
 from app.schemas.question import (
     PYQCreateRequest,
     PYQResponse,
@@ -15,6 +16,20 @@ from app.exceptions.http_exceptions import NotFoundException, BadRequestExceptio
 from app.models.Basequestion import TargetExam
 
 router = APIRouter(prefix="/pyq", tags=["Previous Year Questions"])
+
+
+class YearsResponse(BaseModel):
+    """Response model for distinct years"""
+    years: List[int]
+
+
+@router.get("/years", response_model=YearsResponse)
+async def get_all_years(
+    filtering_service: FilteringServiceDep,
+) -> YearsResponse:
+    """Get all distinct years present in PYQ database, sorted in descending order"""
+    years = await filtering_service.get_all_years()
+    return YearsResponse(years=years)
 
 
 @router.post("/", response_model=PYQResponse, status_code=201)

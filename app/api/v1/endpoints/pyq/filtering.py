@@ -25,6 +25,7 @@ async def get_filtered_pyqs(
     year_wise_sorting: Optional[YearWiseSorting] = Query(None, description="Sort by year (ascending/descending)"),
     last_practiced_first: bool = Query(False, description="Sort by last practiced date (most recent first)"),
     exam_filter: Optional[List[str]] = Query(None, description="Filter by exam name (comma-separated for multiple)"),
+    year_filter: Optional[List[int]] = Query(None, description="Filter by years (e.g., 2023,2022,2021)"),
     skip: int = Query(0, ge=0, description="Number of records to skip"),
     limit: int = Query(20, ge=1, le=100, description="Maximum number of records"),
 ) -> PYQFilteredListResponse:
@@ -37,6 +38,7 @@ async def get_filtered_pyqs(
     - year_wise_sorting: Sort by year (ascending/descending)
     - last_practiced_first: Sort by user's last practiced date
     - exam_filter: Filter by exam names (comma-separated, e.g., "JEE 2023,JEE 2022")
+    - year_filter: Filter by years (comma-separated, e.g., 2023,2022,2021)
     """
     try:
         # Parse exam filter if provided
@@ -48,6 +50,7 @@ async def get_filtered_pyqs(
             year_wise_sorting=year_wise_sorting,
             last_practiced_first=last_practiced_first,
             exam_filter=exam_filter,
+            year_filter=year_filter,
             skip=skip,
             limit=limit,
         )

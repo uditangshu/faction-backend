@@ -28,6 +28,7 @@ class FilteringService:
         year_wise_sorting: Optional[YearWiseSorting] = None,
         last_practiced_first: bool = False,
         exam_filter: Optional[List[str]] = None,
+        year_filter: Optional[List[int]] = None,
         skip: int = 0,
         limit: int = 20,
     ) -> Tuple[List[dict], int]:
@@ -41,6 +42,7 @@ class FilteringService:
             year_wise_sorting: Sort by year (ascending/descending)
             last_practiced_first: Sort by last practiced date
             exam_filter: Filter by exam names in exam_detail
+            year_filter: Filter by list of years
             skip: Pagination offset
             limit: Pagination limit
             
@@ -75,6 +77,11 @@ class FilteringService:
             for exam in exam_filter:
                 query = query.filter(cast(PreviousYearProblems.exam_detail, JSONB).contains([exam]))
                 count_query = count_query.filter(cast(PreviousYearProblems.exam_detail, JSONB).contains([exam]))
+
+        if year_filter:
+            # Filter by years - match if year is in the provided list
+            query = query.where(PreviousYearProblems.year.in_(year_filter))
+            count_query = count_query.where(PreviousYearProblems.year.in_(year_filter))
 
         # Get total count
         total_result = await self.db.execute(count_query)
@@ -218,4 +225,13 @@ class FilteringService:
             "correct_attempts": correct_attempts,
             "completion_percentage": round((practiced_pyqs / total_pyqs * 100) if total_pyqs > 0 else 0, 2),
         }
+
+    async def get_all_years(self) -> List[int]:
+        """Get all distinct years present in PYQ database, sorted in descending order"""
+        result = await self.db.execute(
+            select(func.distinct(PreviousYearProblems.year))
+            .order_by(desc(PreviousYearProblems.year))
+        )
+        years = [row[0] for row in result.all() if row[0] is not None]
+        return years
 
