@@ -3,7 +3,7 @@
 from uuid import UUID
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import delete
-
+from typing import List
 from app.models.attempt import QuestionAttempt
 
 async def create_attempt(
