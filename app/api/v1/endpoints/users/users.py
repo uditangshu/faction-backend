@@ -14,7 +14,7 @@ from app.schemas.user import (
 )
 from app.utils.exceptions import ForbiddenException
 from app.models.user import ContestRank
-    
+from app.db.session import ReadOnlyDBSession, DBSession
 
 router = APIRouter(prefix="/users", tags=["Users"])
 
