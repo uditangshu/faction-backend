@@ -10,7 +10,7 @@ async def create_attempt(
     db: AsyncSession,
     user_id: UUID,
     question_id: UUID,
-    user_answer: str,
+    user_answer: List[str],
     is_correct: bool,
     marks_obtained: int,
     time_taken: int,

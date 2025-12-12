@@ -14,6 +14,7 @@ class PreviousYearProblems(SQLModel, table=True):
     id: UUID = Field(default_factory=uuid4, primary_key=True)
     question_id: UUID = Field(foreign_key="question.id", index=True)
 
+    year: int = Field(default=2016)
     exam_detail: List[str] = Field(default=None,sa_column=Column(JSON))
     created_at: datetime = Field(default_factory=datetime.now)
 

@@ -22,7 +22,7 @@ async def get_user_info(current_user: CurrentUser) -> UserProfileResponse:
     """
     Get current authenticated user's profile.
     """
-    return UserProfileResponse.from_orm(current_user)
+    return UserProfileResponse.from_orm(current_user.model_dump())
 
 
 @router.patch("/me", response_model=UserProfileResponse)

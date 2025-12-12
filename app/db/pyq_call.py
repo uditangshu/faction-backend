@@ -1,4 +1,5 @@
 from uuid import UUID
+from typing import List
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import delete
 
@@ -6,12 +7,14 @@ from app.models.pyq import PreviousYearProblems
 
 async def create_pyq(db: AsyncSession,
                      question_id: UUID,
-                     exam_Detail: str                   
+                     year: int,
+                     exam_detail: List[str]                   
  )->PreviousYearProblems:
 
     pyq= PreviousYearProblems(
-        question_id,
-        exam_Detail,
+        question_id=question_id,
+        year=year,
+        exam_detail=exam_detail,
     )
     db.add(pyq)
     await db.commit()

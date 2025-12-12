@@ -20,6 +20,7 @@ class PYQQuestionResponse(BaseModel):
     """PYQ Question response with question details"""
     pyq_id: UUID
     question_id: UUID
+    year: int
     exam_detail: List[str]
     pyq_created_at: str
     

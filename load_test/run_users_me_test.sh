@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# wrk2 script for testing login API
+# wrk2 script for testing /users/me API
 # Make sure wrk2 is installed: https://github.com/giltene/wrk2
 
 # Configuration
@@ -9,7 +9,7 @@ THREADS="${THREADS:-12}"
 CONNECTIONS="${CONNECTIONS:-800}"  # Increased for better connection pool
 DURATION="${DURATION:-30s}"
 RATE="${RATE:-250}"  # Target 250+ RPS (adjust based on server capacity)
-SCRIPT="login_test.lua"
+SCRIPT="users_me_test.lua"
 TIMEOUT="${TIMEOUT:-30s}"  # Connection timeout
 
 # Colors for output
@@ -19,7 +19,7 @@ YELLOW='\033[1;33m'
 NC='\033[0m' # No Color
 
 echo -e "${GREEN}========================================${NC}"
-echo -e "${GREEN}  Login API Load Test (wrk2)${NC}"
+echo -e "${GREEN}  Users /me API Load Test (wrk2)${NC}"
 echo -e "${GREEN}========================================${NC}"
 echo ""
 echo "Configuration:"

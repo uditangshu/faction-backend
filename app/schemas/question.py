@@ -307,7 +307,7 @@ class AttemptCreateRequest(BaseModel):
     question_id: UUID
     user_answer: List[str]
     is_correct: bool
-    marks_obtained: int = Field(0, ge=0)
+    marks_obtained: int = Field(..., description="Marks obtained for the attempt")
     time_taken: int = Field(0, ge=0, description="Time taken in seconds")
     hint_used: bool = False
 
@@ -358,6 +358,7 @@ class AttemptStatsResponse(BaseModel):
 class PYQCreateRequest(BaseModel):
     """Request to create a PYQ entry"""
     question_id: UUID
+    year: int = Field(..., description="Year of the exam")
     exam_detail: List[str] = Field(..., description="List of exam details (e.g., ['JEE 2023', 'JEE 2022'])")
 
 
@@ -365,6 +366,7 @@ class PYQResponse(BaseModel):
     """PYQ response"""
     id: UUID
     question_id: UUID
+    year: int
     exam_detail: List[str]
     created_at: str
 
@@ -374,7 +376,8 @@ class PYQResponse(BaseModel):
 
 class PYQUpdateRequest(BaseModel):
     """Request to update a PYQ"""
-    exam_detail: List[str]
+    year: Optional[int] = None
+    exam_detail: Optional[List[str]] = None
 
 
 class PYQListResponse(BaseModel):

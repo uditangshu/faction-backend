@@ -31,11 +31,13 @@ async def create_pyq(
     try:
         pyq = await pyq_service.create_pyq(
             question_id=request.question_id,
+            year=request.year,
             exam_detail=request.exam_detail,
         )
         return PYQResponse(
             id=pyq.id,
             question_id=pyq.question_id,
+            year=pyq.year,
             exam_detail=pyq.exam_detail,
             created_at=str(pyq.created_at),
         )
@@ -65,6 +67,7 @@ async def get_all_pyqs(
             PYQResponse(
                 id=p.id,
                 question_id=p.question_id,
+                year=p.year,
                 exam_detail=p.exam_detail,
                 created_at=str(p.created_at),
             )
@@ -92,6 +95,7 @@ async def get_pyq(
     return PYQResponse(
         id=pyq.id,
         question_id=pyq.question_id,
+        year=pyq.year,
         exam_detail=pyq.exam_detail,
         created_at=str(pyq.created_at),
     )
@@ -110,6 +114,7 @@ async def get_pyq_by_question(
     return PYQResponse(
         id=pyq.id,
         question_id=pyq.question_id,
+        year=pyq.year,
         exam_detail=pyq.exam_detail,
         created_at=str(pyq.created_at),
     )
@@ -131,6 +136,7 @@ async def update_pyq(
     
     pyq = await pyq_service.update_pyq(
         pyq_id=pyq_id,
+        year=request.year,
         exam_detail=request.exam_detail,
     )
     
@@ -140,6 +146,7 @@ async def update_pyq(
     return PYQResponse(
         id=pyq.id,
         question_id=pyq.question_id,
+        year=pyq.year,
         exam_detail=pyq.exam_detail,
         created_at=str(pyq.created_at),
     )

@@ -1,65 +1,36 @@
--- wrk2 script for testing login API
+-- wrk2 script for testing /users/me API
 -- Optimized for 200+ RPS with connection reuse
--- Usage: wrk -t12 -c800 -d30s -R250 --timeout 30s --latency -s login_test.lua http://localhost:8000
+-- Usage: wrk -t12 -c800 -d30s -R250 --timeout 30s --latency -s users_me_test.lua http://localhost:8000
 -- Note: If socket errors persist, check system limits: ulimit -n (should be >= 10000)
 
--- Test credentials (modify these with actual test user credentials)
-local phone_number = "+918109285049"
-local password = "stringst"
-
--- Counter for unique device IDs
-local counter = 0
-
--- Pre-generate device IDs to reduce computation during request
-local device_id_pool = {}
-local pool_size = 1000
-for i = 1, pool_size do
-    local template = "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx"
-    local device_id = string.gsub(template, "[xy]", function(c)
-        local v = (c == "x") and math.random(0, 0xf) or math.random(8, 0xb)
-        return string.format("%x", v)
-    end)
-    device_id_pool[i] = device_id
-end
-
--- Generate unique device ID (uses pool for better performance)
-function generate_device_id()
-    counter = counter + 1
-    local index = ((counter - 1) % pool_size) + 1
-    return device_id_pool[index]
-end
-
--- Pre-generate request body template (outside function for better performance)
-local request_body_template = '{"phone_number":"%s","password":"%s","device_info":{"device_id":"%s","device_type":"mobile","device_model":"Test Device","os_version":"Android 13"}}'
+-- Access token for authentication
+local access_token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJiYWNiNGI3My1kOTM2LTQzYTctYTAzYy04MzIyMmZiZDMxNmIiLCJwaG9uZSI6Iis5MTgxMDkyODUwNDkiLCJzZXNzaW9uX2lkIjoiODg5OTNkMzAtOGIwYy00YjcyLTliNTYtNmU5N2Y1OTcxMzNlIiwiZXhwIjoxNzY1NTYxODc2LCJ0eXBlIjoiYWNjZXNzIn0.ikbApUeLox4RU2btqH5cpJntBRpVGbca38Kr57T-FEY"
 
 -- Request function - called for each request
 request = function()
-    -- Generate unique device ID for each request
-    local device_id = generate_device_id()
-    
-    -- Build JSON payload using pre-generated template
-    local body = string.format(request_body_template, phone_number, password, device_id)
-    
     -- Set headers with keep-alive for connection reuse
     local headers = {}
-    headers["Content-Type"] = "application/json"
+    headers["Authorization"] = "Bearer " .. access_token
     headers["Connection"] = "keep-alive"
     headers["User-Agent"] = "wrk2-load-test/1.0"
     
-    -- Return request
-    return wrk.format("POST", "/api/v1/auth/login", headers, body)
+    -- Return GET request to /api/v1/users/me
+    return wrk.format("GET", "/api/v1/users/me", headers)
 end
 
--- Response function removed - let wrk2 handle latency measurement automatically
--- If you need to validate responses, uncomment and use carefully:
+-- Response function - optional validation
+-- Uncomment if you want to validate responses
 -- response = function(status, headers, body)
---     -- Don't do anything that might interfere with latency measurement
+--     if status ~= 200 then
+--         -- Log non-200 responses (optional, can be removed for performance)
+--         -- print("Error: " .. status .. " - " .. body:sub(1, 100))
+--     end
 -- end
 
 -- Done function - called when test completes
 done = function(summary, latency, requests)
     io.write("------------------------------\n")
-    io.write("Login API Test Summary\n")
+    io.write("Users /me API Test Summary\n")
     io.write("------------------------------\n")
     io.write(string.format("Total Requests: %d\n", summary.requests))
     io.write(string.format("HTTP Errors: %d\n", summary.errors.status))

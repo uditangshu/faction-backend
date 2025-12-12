@@ -83,12 +83,12 @@ class FilteringService:
         # Apply sorting
         if year_wise_sorting:
             if year_wise_sorting == YearWiseSorting.ASCENDING:
-                query = query.order_by(asc(PreviousYearProblems.created_at))
+                query = query.order_by(asc(PreviousYearProblems.year))
             else:
-                query = query.order_by(desc(PreviousYearProblems.created_at))
+                query = query.order_by(desc(PreviousYearProblems.year))
         else:
-            # Default: newest first
-            query = query.order_by(desc(PreviousYearProblems.created_at))
+            # Default: newest first (by year descending, then by created_at)
+            query = query.order_by(desc(PreviousYearProblems.year), desc(PreviousYearProblems.created_at))
 
         # Apply pagination
         query = query.offset(skip).limit(limit)
@@ -102,6 +102,7 @@ class FilteringService:
             question_data = {
                 "pyq_id": pyq.id,
                 "question_id": question.id,
+                "year": pyq.year,
                 "exam_detail": pyq.exam_detail or [],
                 "pyq_created_at": str(pyq.created_at),
                 "question": question, 

@@ -547,6 +547,16 @@ def extract_exam_type(description: str) -> List[TargetExam]:
     return exam_types
 
 
+def extract_year(description: str) -> int:
+    """Extract year from description (e.g., 'JEE Adv 2016 Paper 1' -> 2016)"""
+    # Look for 4-digit year pattern (1900-2099)
+    year_match = re.search(r'\b(19|20)\d{2}\b', description)
+    if year_match:
+        return int(year_match.group())
+    # Default to 2016 if no year found
+    return 2016
+
+
 def extract_options_from_question(question_text: str) -> List[str]:
     """Extract MCQ/SCQ options from question text"""
     options = []
@@ -825,8 +835,10 @@ async def import_questions():
                     
                     # Create PYQ entry
                     exam_detail = [q_data["description"]]  # e.g., "JEE Adv 2016 Paper 1"
+                    year = extract_year(q_data["description"])
                     pyq = await pyq_service.create_pyq(
                         question_id=question.id,
+                        year=year,
                         exam_detail=exam_detail
                     )
                     

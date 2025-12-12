@@ -9,9 +9,8 @@ from app.models.user import User
 
 
 async def get_user_by_id(db: AsyncSession, user_id: UUID) -> Optional[User]:
-    """Get user by ID"""
-    result = await db.execute(select(User).where(User.id == user_id))
-    return result.scalar_one_or_none()
+    """Get user by ID - optimized using get() for primary key lookup"""
+    return await db.get(User, user_id)
 
 
 async def get_user_by_phone(db: AsyncSession, phone_number: str) -> Optional[User]:

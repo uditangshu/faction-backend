@@ -34,7 +34,7 @@ async def get_filtered_pyqs(
     Filters:
     - difficulty: Filter by difficulty level (EASY, MEDIUM, HARD, EXPERT, MASTER)
     - question_type: Filter by question type (INTEGER, MCQ, MATCH, SCQ)
-    - year_wise_sorting: Sort by PYQ creation date (ascending/descending)
+    - year_wise_sorting: Sort by year (ascending/descending)
     - last_practiced_first: Sort by user's last practiced date
     - exam_filter: Filter by exam names (comma-separated, e.g., "JEE 2023,JEE 2022")
     """

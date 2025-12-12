@@ -18,11 +18,13 @@ class PYQService:
     async def create_pyq(
         self,
         question_id: UUID,
+        year: int,
         exam_detail: List[str],
     ) -> PreviousYearProblems:
         """Create a new PYQ entry"""
         pyq = PreviousYearProblems(
             question_id=question_id,
+            year=year,
             exam_detail=exam_detail,
         )
         self.db.add(pyq)
@@ -96,6 +98,7 @@ class PYQService:
     async def update_pyq(
         self,
         pyq_id: UUID,
+        year: Optional[int] = None,
         exam_detail: Optional[List[str]] = None,
     ) -> Optional[PreviousYearProblems]:
         """Update a PYQ entry"""
@@ -103,6 +106,8 @@ class PYQService:
         if not pyq:
             return None
 
+        if year is not None:
+            pyq.year = year
         if exam_detail is not None:
             pyq.exam_detail = exam_detail
 

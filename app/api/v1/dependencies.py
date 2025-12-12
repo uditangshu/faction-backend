@@ -241,8 +241,9 @@ async def get_current_user(
     if not is_valid:
         raise SessionExpiredException()
 
-    result = await db.execute(select(User).where(User.id == user_id))
-    user = result.scalar_one_or_none()
+    # Optimized: Use get() for primary key lookup (fastest for PK)
+    # Then check is_active in application code (minimal overhead)
+    user = await db.get(User, user_id)
 
     if not user:
         raise UnauthorizedException("User not found")
