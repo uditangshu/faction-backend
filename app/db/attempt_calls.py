@@ -14,6 +14,7 @@ async def create_attempt(
     is_correct: bool,
     marks_obtained: int,
     time_taken: int,
+    hint_used: bool = False,
 ) -> QuestionAttempt:
     """Create a new question attempt"""
     attempt = QuestionAttempt(
@@ -23,6 +24,7 @@ async def create_attempt(
         is_correct=is_correct,
         marks_obtained=marks_obtained,
         time_taken=time_taken,
+        hint_used=hint_used,
     )
     db.add(attempt)
     await db.commit()
