@@ -4,7 +4,7 @@ from typing import List, Optional
 from uuid import UUID
 from fastapi import APIRouter, Query
 
-from app.api.v1.dependencies import ChapterServiceDep
+from app.api.v1.dependencies import ChapterServiceDep, DBSession, ReadOnlyDBSession
 from app.schemas.question import (
     ChapterCreateRequest,
     ChapterResponse,
@@ -18,11 +18,13 @@ router = APIRouter(prefix="/chapters", tags=["Chapters"])
 @router.post("/", response_model=ChapterResponse, status_code=201)
 async def create_chapter(
     chapter_service: ChapterServiceDep,
+    db: DBSession,
     request: ChapterCreateRequest,
 ) -> ChapterResponse:
     """Create a new chapter"""
     try:
         new_chapter = await chapter_service.create_chapter(
+            db,
             request.name,
             request.subject_id
         )
@@ -35,12 +37,13 @@ async def create_chapter(
 async def get_all_chapters(
     chapter_service: ChapterServiceDep,
     subject_id: Optional[UUID] = Query(None, description="Filter chapters by subject ID"),
+    db: ReadOnlyDBSession,
 ) -> ChapterListResponse:
     """Get all chapters, optionally filtered by subject ID"""
     if subject_id:
-        chapters = await chapter_service.get_chapters_by_subject(subject_id)
+        chapters = await chapter_service.get_chapters_by_subject(db, subject_id)
     else:
-        chapters = await chapter_service.get_all_chapters()
+        chapters = await chapter_service.get_all_chapters(db)
     
     return ChapterListResponse(
         chapters=[ChapterResponse.model_validate(c) for c in chapters],
@@ -52,9 +55,10 @@ async def get_all_chapters(
 async def get_chapter(
     chapter_service: ChapterServiceDep,
     chapter_id: UUID,
+    db: ReadOnlyDBSession,
 ) -> ChapterResponse:
     """Get a chapter by ID"""
-    result = await chapter_service.get_chapter_by_id(chapter_id)
+    result = await chapter_service.get_chapter_by_id(db, chapter_id)
     if not result:
         raise NotFoundException(f"Chapter with ID {chapter_id} not found")
     return ChapterResponse.model_validate(result)
@@ -64,9 +68,10 @@ async def get_chapter(
 @router.delete("/{chapter_id}", status_code=204)
 async def delete_chapter(
     chapter_service: ChapterServiceDep,
+    db: DBSession,
     chapter_id: UUID,
 ) -> None:
     """Delete a chapter by ID"""
-    deleted = await chapter_service.delete_chapter(chapter_id)
+    deleted = await chapter_service.delete_chapter(db, chapter_id)
     if not deleted:
         raise NotFoundException(f"Chapter with ID {chapter_id} not found")

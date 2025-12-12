@@ -24,13 +24,11 @@ from app.utils.phone import validate_indian_phone
 
 
 class UserService:
-    """Service for all User relating Operations"""
-
-    def __init__(self, db: AsyncSession,):
-        self.db = db
+    """Service for all User relating Operations - stateless, accepts db as method parameter"""
     
     async def create_user(
         self,
+        db: AsyncSession,
         phone_number: str,
         name: str,
         password: str,
@@ -38,31 +36,13 @@ class UserService:
         target_exams: List[TargetExam],
         role: UserRole = UserRole.STUDENT,
     ) -> User:
-        """
-        Create a new user with password hashing.
-        
-        Args:
-            phone_number: User's phone number
-            name: User's name
-            password: Plain text password (will be hashed)
-            class_level: User's class level
-            target_exams: List of target exams
-            role: User role (default: STUDENT)
-            
-        Returns:
-            Created User object
-            
-        Raises:
-            ConflictException: If phone number already exists
-            BadRequestException: If phone number is invalid
-        """
-        # Validate phone number
+
         is_valid, formatted_phone = validate_indian_phone(phone_number)
         if not is_valid:
             raise BadRequestException("Invalid phone number format")
 
         # Check if user already exists
-        existing_user = await db_get_user_by_phone(self.db, formatted_phone)
+        existing_user = await db_get_user_by_phone(db, formatted_phone)
         if existing_user:
             raise ConflictException("Phone number already registered")
 
@@ -84,13 +64,14 @@ class UserService:
             is_active=True,
         )
 
-        return await db_create_user(self.db, user)
+        return await db_create_user(db, user)
 
-    async def get_user_by_id(self, user_id: UUID) -> User:
+    async def get_user_by_id(self, db: AsyncSession, user_id: UUID) -> User:
         """
         Get user by ID.
         
         Args:
+            db: Database session
             user_id: User UUID
             
         Returns:
@@ -99,13 +80,14 @@ class UserService:
         Raises:
             NotFoundException: If user not found
         """
-        user = await db_get_user_by_id(self.db, user_id)
+        user = await db_get_user_by_id(db, user_id)
         if not user:
             raise NotFoundException("User not found")
         return user
 
     async def list_users(
         self,
+        db: AsyncSession,
         q: Optional[str] = None,
         skip: int = 0,
         limit: int = 50,
@@ -114,6 +96,7 @@ class UserService:
         List users with optional search and pagination.
         
         Args:
+            db: Database session
             q: Search query (searches in name and phone_number)
             skip: Number of records to skip
             limit: Maximum number of records to return
@@ -136,11 +119,12 @@ class UserService:
         # Apply pagination
         query = query.offset(skip).limit(limit).order_by(User.created_at.desc())
 
-        result = await self.db.execute(query)
+        result = await db.execute(query)
         return list(result.scalars().all())
 
     async def update_user(
         self,
+        db: AsyncSession,
         user_id: UUID,
         name: Optional[str] = None,
         class_level: Optional[ClassLevel] = None,
@@ -151,6 +135,7 @@ class UserService:
         Update user profile.
         
         Args:
+            db: Database session
             user_id: User UUID
             name: Optional new name
             class_level: Optional new class level
@@ -163,7 +148,7 @@ class UserService:
         Raises:
             NotFoundException: If user not found
         """
-        user = await self.get_user_by_id(user_id)
+        user = await self.get_user_by_id(db, user_id)
 
         # Update fields if provided
         if name is not None:
@@ -177,10 +162,11 @@ class UserService:
 
         user.updated_at = datetime.utcnow()
 
-        return await db_update_user(self.db, user)
+        return await db_update_user(db, user)
 
     async def update_user_rating(
         self,
+        db: AsyncSession,
         user_id: UUID,
         current_rating: int,
         max_rating: Optional[int] = None,
@@ -190,6 +176,7 @@ class UserService:
         Update user's contest rating.
         
         Args:
+            db: Database session
             user_id: User UUID
             current_rating: New current rating
             max_rating: Optional new max rating (auto-calculated if not provided)
@@ -201,7 +188,7 @@ class UserService:
         Raises:
             NotFoundException: If user not found
         """
-        user = await self.get_user_by_id(user_id)
+        user = await self.get_user_by_id(db, user_id)
 
         user.current_rating = current_rating
         
@@ -219,7 +206,7 @@ class UserService:
 
         user.updated_at = datetime.utcnow()
 
-        return await db_update_user(self.db, user)
+        return await db_update_user(db, user)
 
     def _calculate_title(self, rating: int) -> ContestRank:
         """
@@ -248,4 +235,3 @@ class UserService:
             return ContestRank.SPECIALIST
         else:
             return ContestRank.NEWBIE
-

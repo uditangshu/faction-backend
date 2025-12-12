@@ -10,42 +10,39 @@ from app.db.question_calls import create_subject, delete_subject, get_nested_sub
 
 
 class SubjectService:
-    """Service for managing subjects"""
+    """Service for managing subjects - stateless, accepts db as method parameter"""
 
-    def __init__(self, db: AsyncSession):
-        self.db = db
-
-    async def create_subject(self, subject_type: Subject_Type, class_id: UUID) -> Subject:
+    async def create_subject(self, db: AsyncSession, subject_type: Subject_Type, class_id: UUID) -> Subject:
         """Create a new subject"""
-        return await create_subject(self.db, subject_type, class_id)
+        return await create_subject(db, subject_type, class_id)
 
-    async def get_subject_by_id(self, subject_id: UUID) -> Optional[Subject]:
+    async def get_subject_by_id(self, db: AsyncSession, subject_id: UUID) -> Optional[Subject]:
         """Get a single subject by ID"""
         query = select(Subject).where(Subject.id == subject_id)
-        result = await self.db.execute(query)
+        result = await db.execute(query)
         return result.scalar_one_or_none()
 
-    async def get_all_subjects(self) -> List[Subject]:
+    async def get_all_subjects(self, db: AsyncSession) -> List[Subject]:
         """Get all subjects"""
         query = select(Subject)
-        result = await self.db.execute(query)
+        result = await db.execute(query)
         return list(result.scalars().all())
 
-    async def get_subjects_by_class(self, class_id: UUID) -> List[Subject]:
+    async def get_subjects_by_class(self, db: AsyncSession, class_id: UUID) -> List[Subject]:
         """Get all subjects for a specific class"""
         query = select(Subject).where(Subject.class_id == class_id)
-        result = await self.db.execute(query)
+        result = await db.execute(query)
         return list(result.scalars().all())
 
-    async def get_subject_with_chapters(self, subject_id: UUID) -> Optional[Subject]:
+    async def get_subject_with_chapters(self, db: AsyncSession, subject_id: UUID) -> Optional[Subject]:
         """Get subject with all nested chapters and questions"""
-        return await get_nested_subjects(self.db, subject_id)
+        return await get_nested_subjects(db, subject_id)
 
-    async def delete_subject(self, subject_id: UUID) -> bool:
+    async def delete_subject(self, db: AsyncSession, subject_id: UUID) -> bool:
         """Delete a subject by ID"""
-        existing = await self.get_subject_by_id(subject_id)
+        existing = await self.get_subject_by_id(db, subject_id)
         if not existing:
             return False
-        await delete_subject(self.db, subject_id)
-        await self.db.commit()
+        await delete_subject(db, subject_id)
+        await db.commit()
         return True

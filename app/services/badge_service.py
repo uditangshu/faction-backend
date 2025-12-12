@@ -10,27 +10,25 @@ from app.models.badge import Badge, BadgeCategory
 
 
 class BadgeService:
-    """Service for badge operations"""
+    """Service for badge operations - stateless, accepts db as method parameter"""
 
-    def __init__(self, db: AsyncSession):
-        self.db = db
-
-    async def get_all_badges(self) -> List[Badge]:
+    async def get_all_badges(self, db: AsyncSession) -> List[Badge]:
         """Get all badges"""
-        result = await self.db.execute(
+        result = await db.execute(
             select(Badge).order_by(Badge.created_at.desc())
         )
         return list(result.scalars().all())
 
-    async def get_badge_by_id(self, badge_id: UUID) -> Optional[Badge]:
+    async def get_badge_by_id(self, db: AsyncSession, badge_id: UUID) -> Optional[Badge]:
         """Get badge by ID"""
-        result = await self.db.execute(
+        result = await db.execute(
             select(Badge).where(Badge.id == badge_id)
         )
         return result.scalar_one_or_none()
 
     async def create_badge(
         self,
+        db: AsyncSession,
         name: str,
         description: str,
         category: BadgeCategory,
@@ -51,19 +49,18 @@ class BadgeService:
             requirement_description=requirement_description,
             is_active=is_active,
         )
-        self.db.add(badge)
-        await self.db.commit()
-        await self.db.refresh(badge)
+        db.add(badge)
+        await db.commit()
+        await db.refresh(badge)
         return badge
 
-    async def delete_badge(self, badge_id: UUID) -> bool:
+    async def delete_badge(self, db: AsyncSession, badge_id: UUID) -> bool:
         """Delete a badge by ID"""
-        badge = await self.get_badge_by_id(badge_id)
+        badge = await self.get_badge_by_id(db, badge_id)
         if not badge:
             return False
         
         stmt = delete(Badge).where(Badge.id == badge_id)
-        await self.db.execute(stmt)
-        await self.db.commit()
+        await db.execute(stmt)
+        await db.commit()
         return True
-

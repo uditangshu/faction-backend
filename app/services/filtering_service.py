@@ -15,13 +15,11 @@ from app.schemas.filters import YearWiseSorting
 
 
 class FilteringService:
-    """Service for filtering PYQ questions"""
-
-    def __init__(self, db: AsyncSession):
-        self.db = db
+    """Service for filtering PYQ questions - stateless, accepts db as method parameter"""
 
     async def get_filtered_pyqs(
         self,
+        db: AsyncSession,
         user_id: Optional[UUID] = None,
         difficulty: Optional[DifficultyLevel] = None,
         question_type: Optional[QuestionType] = None,
@@ -35,6 +33,7 @@ class FilteringService:
         Get filtered PYQ questions with various filters.
         
         Args:
+            db: Database session
             user_id: User ID for last_practiced filtering
             difficulty: Filter by difficulty level
             question_type: Filter by question type
@@ -77,7 +76,7 @@ class FilteringService:
                 count_query = count_query.filter(cast(PreviousYearProblems.exam_detail, JSONB).contains([exam]))
 
         # Get total count
-        total_result = await self.db.execute(count_query)
+        total_result = await db.execute(count_query)
         total = total_result.scalar() or 0
 
         # Apply sorting
@@ -93,7 +92,7 @@ class FilteringService:
         # Apply pagination
         query = query.offset(skip).limit(limit)
         
-        result = await self.db.execute(query)
+        result = await db.execute(query)
         rows = result.all()
 
         # Build response with last practiced info if user_id is provided
@@ -110,7 +109,7 @@ class FilteringService:
             
             # Get last practiced date if user_id is provided
             if user_id:
-                attempt_result = await self.db.execute(
+                attempt_result = await db.execute(
                     select(QuestionAttempt.attempted_at)
                     .where(
                         QuestionAttempt.user_id == user_id,
@@ -145,12 +144,14 @@ class FilteringService:
 
     async def get_pyqs_by_difficulty(
         self,
+        db: AsyncSession,
         difficulty: DifficultyLevel,
         skip: int = 0,
         limit: int = 20,
     ) -> Tuple[List[dict], int]:
         """Get PYQs filtered by difficulty level"""
         return await self.get_filtered_pyqs(
+            db,
             difficulty=difficulty,
             skip=skip,
             limit=limit,
@@ -158,12 +159,14 @@ class FilteringService:
 
     async def get_pyqs_by_question_type(
         self,
+        db: AsyncSession,
         question_type: QuestionType,
         skip: int = 0,
         limit: int = 20,
     ) -> Tuple[List[dict], int]:
         """Get PYQs filtered by question type"""
         return await self.get_filtered_pyqs(
+            db,
             question_type=question_type,
             skip=skip,
             limit=limit,
@@ -171,28 +174,30 @@ class FilteringService:
 
     async def get_user_practiced_pyqs(
         self,
+        db: AsyncSession,
         user_id: UUID,
         skip: int = 0,
         limit: int = 20,
     ) -> Tuple[List[dict], int]:
         """Get PYQs that user has practiced, sorted by last practiced"""
         return await self.get_filtered_pyqs(
+            db,
             user_id=user_id,
             last_practiced_first=True,
             skip=skip,
             limit=limit,
         )
 
-    async def get_pyq_stats(self, user_id: UUID) -> dict:
+    async def get_pyq_stats(self, db: AsyncSession, user_id: UUID) -> dict:
         """Get PYQ statistics for a user"""
         # Total PYQs
-        total_result = await self.db.execute(
+        total_result = await db.execute(
             select(func.count(PreviousYearProblems.id))
         )
         total_pyqs = total_result.scalar() or 0
 
         # Practiced PYQs by user
-        practiced_result = await self.db.execute(
+        practiced_result = await db.execute(
             select(func.count(func.distinct(QuestionAttempt.question_id)))
             .join(PreviousYearProblems, QuestionAttempt.question_id == PreviousYearProblems.question_id)
             .where(QuestionAttempt.user_id == user_id)
@@ -200,7 +205,7 @@ class FilteringService:
         practiced_pyqs = practiced_result.scalar() or 0
 
         # Correct attempts on PYQs
-        correct_result = await self.db.execute(
+        correct_result = await db.execute(
             select(func.count(QuestionAttempt.id))
             .join(PreviousYearProblems, QuestionAttempt.question_id == PreviousYearProblems.question_id)
             .where(
@@ -217,4 +222,3 @@ class FilteringService:
             "correct_attempts": correct_attempts,
             "completion_percentage": round((practiced_pyqs / total_pyqs * 100) if total_pyqs > 0 else 0, 2),
         }
-

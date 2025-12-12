@@ -5,7 +5,7 @@ from uuid import UUID
 from fastapi import APIRouter, Query
 from sqlalchemy import select, func
 
-from app.api.v1.dependencies import AttemptServiceDep, CurrentUser
+from app.api.v1.dependencies import AttemptServiceDep, CurrentUser, DBSession, ReadOnlyDBSession
 from app.models.attempt import QuestionAttempt
 from app.schemas.question import (
     AttemptCreateRequest,
@@ -22,12 +22,14 @@ router = APIRouter(prefix="/attempts", tags=["Attempts"])
 @router.post("/", response_model=AttemptResponse, status_code=201)
 async def create_attempt(
     attempt_service: AttemptServiceDep,
+    db: DBSession,
     current_user: CurrentUser,
     request: AttemptCreateRequest,
 ) -> AttemptResponse:
     """Record a new question attempt"""
     try:
         attempt = await attempt_service.create_attempt(
+            db,
             user_id=current_user.id,
             question_id=request.question_id,
             user_answer=request.user_answer,
@@ -55,12 +57,14 @@ async def create_attempt(
 @router.get("/", response_model=AttemptListResponse)
 async def get_my_attempts(
     attempt_service: AttemptServiceDep,
+    db: ReadOnlyDBSession,
     current_user: CurrentUser,
     skip: int = Query(0, ge=0, description="Number of records to skip"),
     limit: int = Query(20, ge=1, le=100, description="Maximum number of records"),
 ) -> AttemptListResponse:
     """Get all attempts for the current user with pagination"""
     attempts, total = await attempt_service.get_user_attempts(
+        db,
         user_id=current_user.id,
         skip=skip,
         limit=limit,
@@ -90,31 +94,34 @@ async def get_my_attempts(
 @router.get("/stats", response_model=AttemptStatsResponse)
 async def get_my_stats(
     attempt_service: AttemptServiceDep,
+    db: ReadOnlyDBSession,
     current_user: CurrentUser,
 ) -> AttemptStatsResponse:
     """Get attempt statistics for the current user"""
-    stats = await attempt_service.get_user_stats(current_user.id)
+    stats = await attempt_service.get_user_stats(db, current_user.id)
     return AttemptStatsResponse(**stats)
 
 
 @router.get("/user/{user_id}/solved-count")
 async def get_user_solved_count(
     user_id: UUID,
-    attempt_service: AttemptServiceDep
+    attempt_service: AttemptServiceDep,
+    db: ReadOnlyDBSession,
 ) -> dict:
     """Get total number of distinct questions solved by a user"""
-    result = await attempt_service.get_user_solved_count(user_id=user_id)
+    result = await attempt_service.get_user_solved_count(db, user_id)
     return result
 
 
 @router.get("/{attempt_id}", response_model=AttemptResponse)
 async def get_attempt(
     attempt_service: AttemptServiceDep,
+    db: ReadOnlyDBSession,
     current_user: CurrentUser,
     attempt_id: UUID,
 ) -> AttemptResponse:
     """Get a specific attempt by ID"""
-    attempt = await attempt_service.get_attempt_by_id(attempt_id)
+    attempt = await attempt_service.get_attempt_by_id(db, attempt_id)
     if not attempt:
         raise NotFoundException(f"Attempt with ID {attempt_id} not found")
     
@@ -139,11 +146,13 @@ async def get_attempt(
 @router.get("/question/{question_id}", response_model=AttemptResponse)
 async def get_attempt_for_question(
     attempt_service: AttemptServiceDep,
+    db: ReadOnlyDBSession,
     current_user: CurrentUser,
     question_id: UUID,
 ) -> AttemptResponse:
     """Get the latest attempt for a specific question"""
     attempt = await attempt_service.get_latest_attempt(
+        db,
         user_id=current_user.id,
         question_id=question_id,
     )
@@ -167,11 +176,13 @@ async def get_attempt_for_question(
 @router.get("/question/{question_id}/status")
 async def check_attempt_status(
     attempt_service: AttemptServiceDep,
+    db: ReadOnlyDBSession,
     current_user: CurrentUser,
     question_id: UUID,
 ) -> dict:
     """Check if the current user has attempted a specific question"""
     has_attempted = await attempt_service.has_attempted(
+        db,
         user_id=current_user.id,
         question_id=question_id,
     )
@@ -181,13 +192,14 @@ async def check_attempt_status(
 @router.patch("/{attempt_id}", response_model=AttemptResponse)
 async def update_attempt(
     attempt_service: AttemptServiceDep,
+    db: DBSession,  
     current_user: CurrentUser,
     attempt_id: UUID,
     request: AttemptUpdateRequest,
 ) -> AttemptResponse:
     """Update an attempt (mark explanation as viewed, etc.)"""
     # First check if attempt exists and belongs to user
-    existing = await attempt_service.get_attempt_by_id(attempt_id)
+    existing = await attempt_service.get_attempt_by_id(db, attempt_id)
     if not existing:
         raise NotFoundException(f"Attempt with ID {attempt_id} not found")
     
@@ -195,6 +207,7 @@ async def update_attempt(
         raise NotFoundException(f"Attempt with ID {attempt_id} not found")
     
     attempt = await attempt_service.update_attempt(
+        db,
         attempt_id=attempt_id,
         explanation_viewed=request.explanation_viewed,
         hint_used=request.hint_used,
@@ -220,19 +233,20 @@ async def update_attempt(
 @router.delete("/{attempt_id}", status_code=204)
 async def delete_attempt(
     attempt_service: AttemptServiceDep,
+    db: DBSession,
     current_user: CurrentUser,
     attempt_id: UUID,
 ) -> None:
     """Delete an attempt by ID"""
     # First check if attempt exists and belongs to user
-    existing = await attempt_service.get_attempt_by_id(attempt_id)
+    existing = await attempt_service.get_attempt_by_id(db, attempt_id)
     if not existing:
         raise NotFoundException(f"Attempt with ID {attempt_id} not found")
     
     if existing.user_id != current_user.id:
         raise NotFoundException(f"Attempt with ID {attempt_id} not found")
     
-    deleted = await attempt_service.delete_attempt(attempt_id)
+    deleted = await attempt_service.delete_attempt(db, attempt_id)
     if not deleted:
         raise NotFoundException(f"Attempt with ID {attempt_id} not found")
 

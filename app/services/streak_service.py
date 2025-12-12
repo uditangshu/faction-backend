@@ -11,39 +11,37 @@ from app.models.attempt import QuestionAttempt
 
 
 class StreakService:
-    """Service for streak calculations and calendar generation"""
+    """Service for streak calculations and calendar generation - stateless, accepts db as method parameter"""
 
-    def __init__(self, db: AsyncSession):
-        self.db = db
-
-    async def get_or_create_user_stats(self, user_id: UUID) -> UserStudyStats:
+    async def get_or_create_user_stats(self, db: AsyncSession, user_id: UUID) -> UserStudyStats:
         """Get or create user study stats"""
-        result = await self.db.execute(select(UserStudyStats).where(UserStudyStats.user_id == user_id))
+        result = await db.execute(select(UserStudyStats).where(UserStudyStats.user_id == user_id))
         stats = result.scalar_one_or_none()
 
         if not stats:
             stats = UserStudyStats(user_id=user_id)
-            self.db.add(stats)
-            await self.db.commit()
-            await self.db.refresh(stats)
+            db.add(stats)
+            await db.commit()
+            await db.refresh(stats)
 
         return stats
 
-    async def update_streak_on_correct_answer(self, user_id: UUID) -> UserStudyStats:
+    async def update_streak_on_correct_answer(self, db: AsyncSession, user_id: UUID) -> UserStudyStats:
         """
         Update user streak after a correct answer.
 
         Args:
+            db: Database session
             user_id: User UUID
 
         Returns:
             Updated UserStudyStats
         """
-        stats = await self.get_or_create_user_stats(user_id)
+        stats = await self.get_or_create_user_stats(db, user_id)
         today = date.today()
 
         # Get or create today's streak record
-        result = await self.db.execute(
+        result = await db.execute(
             select(UserDailyStreak).where(
                 and_(UserDailyStreak.user_id == user_id, UserDailyStreak.streak_date == today)
             )
@@ -59,7 +57,7 @@ class StreakService:
                 last_solve_time=datetime.utcnow(),
                 streak_maintained=True,
             )
-            self.db.add(daily_streak)
+            db.add(daily_streak)
 
             # Update streak count
             if stats.last_study_date == today - timedelta(days=1):
@@ -86,31 +84,32 @@ class StreakService:
         # Recalculate accuracy
         # Note: This is called only when answer is correct, so we can optimize
         # by incrementing a counter instead of counting all attempts every time
-        correct_attempts = await self._count_correct_attempts(user_id)
+        correct_attempts = await self._count_correct_attempts(db, user_id)
         if stats.total_attempts > 0:
             stats.accuracy_rate = (correct_attempts / stats.total_attempts) * 100
 
         stats.updated_at = datetime.utcnow()
 
-        await self.db.commit()
-        await self.db.refresh(stats)
+        await db.commit()
+        await db.refresh(stats)
 
         return stats
 
-    async def _count_correct_attempts(self, user_id: UUID) -> int:
+    async def _count_correct_attempts(self, db: AsyncSession, user_id: UUID) -> int:
         """Count total correct attempts for a user"""
-        result = await self.db.execute(
+        result = await db.execute(
             select(func.count(QuestionAttempt.id)).where(
                 and_(QuestionAttempt.user_id == user_id, QuestionAttempt.is_correct == True)
             )
         )
         return result.scalar() or 0
 
-    async def get_study_calendar(self, user_id: UUID, days: int = 365) -> Dict[str, Any]:
+    async def get_study_calendar(self, db: AsyncSession, user_id: UUID, days: int = 365) -> Dict[str, Any]:
         """
         Generate GitHub-style study calendar.
 
         Args:
+            db: Database session
             user_id: User UUID
             days: Number of days to include (default 365)
 
@@ -121,7 +120,7 @@ class StreakService:
         start_date = end_date - timedelta(days=days - 1)
 
         # Get daily streaks for the period
-        result = await self.db.execute(
+        result = await db.execute(
             select(UserDailyStreak)
             .where(
                 and_(
@@ -181,17 +180,18 @@ class StreakService:
             },
         }
 
-    async def get_user_streak_info(self, user_id: UUID) -> Dict[str, Any]:
+    async def get_user_streak_info(self, db: AsyncSession, user_id: UUID) -> Dict[str, Any]:
         """
         Get user's current streak information.
 
         Args:
+            db: Database session
             user_id: User UUID
 
         Returns:
             Dict with streak information
         """
-        stats = await self.get_or_create_user_stats(user_id)
+        stats = await self.get_or_create_user_stats(db, user_id)
 
         return {
             "current_streak": stats.current_study_streak,
@@ -211,4 +211,3 @@ class StreakService:
             if current_streak < milestone:
                 return milestone
         return current_streak + 100  # After 365, increment by 100
-

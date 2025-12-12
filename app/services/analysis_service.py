@@ -9,13 +9,11 @@ from app.models.analysis import BookMarkedQuestion
 
 
 class AnalysisService:
-    """Service for bookmark and analysis operations"""
-
-    def __init__(self, db: AsyncSession):
-        self.db = db
+    """Service for bookmark and analysis operations - stateless, accepts db as method parameter"""
 
     async def create_bookmark(
         self,
+        db: AsyncSession,
         user_id: UUID,
         question_id: UUID,
     ) -> BookMarkedQuestion:
@@ -24,21 +22,21 @@ class AnalysisService:
             user_id=user_id,
             question_id=question_id,
         )
-        self.db.add(bookmark)
-        await self.db.commit()
-        await self.db.refresh(bookmark)
+        db.add(bookmark)
+        await db.commit()
+        await db.refresh(bookmark)
         return bookmark
 
-    async def get_bookmark_by_id(self, bookmark_id: UUID) -> Optional[BookMarkedQuestion]:
+    async def get_bookmark_by_id(self, db: AsyncSession, bookmark_id: UUID) -> Optional[BookMarkedQuestion]:
         """Get a bookmark by ID"""
-        result = await self.db.execute(
+        result = await db.execute(
             select(BookMarkedQuestion).where(BookMarkedQuestion.id == bookmark_id)
         )
         return result.scalar_one_or_none()
 
-    async def get_user_bookmarks(self, user_id: UUID) -> List[BookMarkedQuestion]:
+    async def get_user_bookmarks(self, db: AsyncSession, user_id: UUID) -> List[BookMarkedQuestion]:
         """Get all bookmarks for a user"""
-        result = await self.db.execute(
+        result = await db.execute(
             select(BookMarkedQuestion)
             .where(BookMarkedQuestion.user_id == user_id)
             .order_by(BookMarkedQuestion.created_at.desc())
@@ -47,11 +45,12 @@ class AnalysisService:
 
     async def get_bookmark_by_user_and_question(
         self,
+        db: AsyncSession,
         user_id: UUID,
         question_id: UUID,
     ) -> Optional[BookMarkedQuestion]:
         """Check if a user has bookmarked a specific question"""
-        result = await self.db.execute(
+        result = await db.execute(
             select(BookMarkedQuestion).where(
                 BookMarkedQuestion.user_id == user_id,
                 BookMarkedQuestion.question_id == question_id,
@@ -59,24 +58,25 @@ class AnalysisService:
         )
         return result.scalar_one_or_none()
 
-    async def delete_bookmark(self, bookmark_id: UUID) -> bool:
+    async def delete_bookmark(self, db: AsyncSession, bookmark_id: UUID) -> bool:
         """Delete a bookmark by ID"""
-        bookmark = await self.get_bookmark_by_id(bookmark_id)
+        bookmark = await self.get_bookmark_by_id(db, bookmark_id)
         if not bookmark:
             return False
         
         stmt = delete(BookMarkedQuestion).where(BookMarkedQuestion.id == bookmark_id)
-        await self.db.execute(stmt)
-        await self.db.commit()
+        await db.execute(stmt)
+        await db.commit()
         return True
 
     async def delete_bookmark_by_user_and_question(
         self,
+        db: AsyncSession,
         user_id: UUID,
         question_id: UUID,
     ) -> bool:
         """Delete a bookmark by user and question ID (toggle off)"""
-        bookmark = await self.get_bookmark_by_user_and_question(user_id, question_id)
+        bookmark = await self.get_bookmark_by_user_and_question(db, user_id, question_id)
         if not bookmark:
             return False
         
@@ -84,12 +84,13 @@ class AnalysisService:
             BookMarkedQuestion.user_id == user_id,
             BookMarkedQuestion.question_id == question_id,
         )
-        await self.db.execute(stmt)
-        await self.db.commit()
+        await db.execute(stmt)
+        await db.commit()
         return True
 
     async def toggle_bookmark(
         self,
+        db: AsyncSession,
         user_id: UUID,
         question_id: UUID,
     ) -> tuple[bool, Optional[BookMarkedQuestion]]:
@@ -97,17 +98,16 @@ class AnalysisService:
         Toggle bookmark status for a question.
         Returns (is_bookmarked, bookmark_object)
         """
-        existing = await self.get_bookmark_by_user_and_question(user_id, question_id)
+        existing = await self.get_bookmark_by_user_and_question(db, user_id, question_id)
         
         if existing:
-            await self.delete_bookmark(existing.id)
+            await self.delete_bookmark(db, existing.id)
             return False, None
         else:
-            bookmark = await self.create_bookmark(user_id, question_id)
+            bookmark = await self.create_bookmark(db, user_id, question_id)
             return True, bookmark
 
-    async def is_bookmarked(self, user_id: UUID, question_id: UUID) -> bool:
+    async def is_bookmarked(self, db: AsyncSession, user_id: UUID, question_id: UUID) -> bool:
         """Check if a question is bookmarked by a user"""
-        bookmark = await self.get_bookmark_by_user_and_question(user_id, question_id)
+        bookmark = await self.get_bookmark_by_user_and_question(db, user_id, question_id)
         return bookmark is not None
-

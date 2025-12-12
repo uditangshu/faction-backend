@@ -32,10 +32,9 @@ CACHE_TTL = 300
 
 
 class LeaderboardService:
-    """Service for leaderboard and best performers operations"""
+    """Service for leaderboard and best performers operations - stateless, accepts db as method parameter"""
 
-    def __init__(self, db: AsyncSession, redis: Optional[RedisService] = None):
-        self.db = db
+    def __init__(self, redis: Optional[RedisService] = None):
         self.redis = redis
 
     async def _get_cached(self, key: str) -> Optional[dict]:
@@ -59,7 +58,7 @@ class LeaderboardService:
         except Exception:
             pass
 
-    async def get_best_by_rating(self) -> Optional[BestPerformerResponse]:
+    async def get_best_by_rating(self, db: AsyncSession) -> Optional[BestPerformerResponse]:
         """Get user with highest maximum rating"""
         cache_key = "leaderboard:best:rating"
         cached = await self._get_cached(cache_key)
@@ -69,7 +68,7 @@ class LeaderboardService:
             except Exception:
                 pass
 
-        result = await get_user_with_max_rating(self.db)
+        result = await get_user_with_max_rating(db)
         if not result:
             return None
         
@@ -82,7 +81,7 @@ class LeaderboardService:
         await self._set_cached(cache_key, response.model_dump())
         return response
 
-    async def get_top_by_rating(self, limit: int = 10) -> BestPerformersListResponse:
+    async def get_top_by_rating(self, db: AsyncSession, limit: int = 10) -> BestPerformersListResponse:
         """Get top N users by maximum rating"""
         cache_key = f"leaderboard:top:rating:{limit}"
         cached = await self._get_cached(cache_key)
@@ -92,7 +91,7 @@ class LeaderboardService:
             except Exception:
                 pass
 
-        results = await get_top_users_by_rating(self.db, limit)
+        results = await get_top_users_by_rating(db, limit)
         
         performers = [
             BestPerformerResponse(
@@ -110,7 +109,7 @@ class LeaderboardService:
         await self._set_cached(cache_key, response.model_dump())
         return response
 
-    async def get_best_by_delta(self) -> Optional[BestPerformerResponse]:
+    async def get_best_by_delta(self, db: AsyncSession) -> Optional[BestPerformerResponse]:
         """Get user with highest rating delta from contests"""
         cache_key = "leaderboard:best:delta"
         cached = await self._get_cached(cache_key)
@@ -120,7 +119,7 @@ class LeaderboardService:
             except Exception:
                 pass
 
-        result = await get_user_with_max_delta(self.db)
+        result = await get_user_with_max_delta(db)
         if not result:
             return None
         
@@ -133,7 +132,7 @@ class LeaderboardService:
         await self._set_cached(cache_key, response.model_dump())
         return response
 
-    async def get_top_by_delta(self, limit: int = 10) -> BestPerformersListResponse:
+    async def get_top_by_delta(self, db: AsyncSession, limit: int = 10) -> BestPerformersListResponse:
         """Get top N users by maximum rating delta"""
         cache_key = f"leaderboard:top:delta:{limit}"
         cached = await self._get_cached(cache_key)
@@ -143,7 +142,7 @@ class LeaderboardService:
             except Exception:
                 pass
 
-        results = await get_top_users_by_delta(self.db, limit)
+        results = await get_top_users_by_delta(db, limit)
         
         performers = [
             BestPerformerResponse(
@@ -161,7 +160,7 @@ class LeaderboardService:
         await self._set_cached(cache_key, response.model_dump())
         return response
 
-    async def get_best_by_questions_solved(self) -> Optional[BestPerformerResponse]:
+    async def get_best_by_questions_solved(self, db: AsyncSession) -> Optional[BestPerformerResponse]:
         """Get user with most correct questions solved"""
         cache_key = "leaderboard:best:questions"
         cached = await self._get_cached(cache_key)
@@ -171,7 +170,7 @@ class LeaderboardService:
             except Exception:
                 pass
 
-        result = await get_user_with_most_questions_solved(self.db)
+        result = await get_user_with_most_questions_solved(db)
         if not result:
             return None
         
@@ -184,7 +183,7 @@ class LeaderboardService:
         await self._set_cached(cache_key, response.model_dump())
         return response
 
-    async def get_top_by_questions_solved(self, limit: int = 10) -> BestPerformersListResponse:
+    async def get_top_by_questions_solved(self, db: AsyncSession, limit: int = 10) -> BestPerformersListResponse:
         """Get top N users by number of correct questions solved"""
         cache_key = f"leaderboard:top:questions:{limit}"
         cached = await self._get_cached(cache_key)
@@ -194,7 +193,7 @@ class LeaderboardService:
             except Exception:
                 pass
 
-        results = await get_top_users_by_questions_solved(self.db, limit)
+        results = await get_top_users_by_questions_solved(db, limit)
         
         performers = [
             BestPerformerResponse(
@@ -212,7 +211,7 @@ class LeaderboardService:
         await self._set_cached(cache_key, response.model_dump())
         return response
 
-    async def get_top_performers_all_categories(self) -> TopPerformersResponse:
+    async def get_top_performers_all_categories(self, db: AsyncSession) -> TopPerformersResponse:
         """Get best performers in all categories"""
         cache_key = "leaderboard:top:performers:all"
         cached = await self._get_cached(cache_key)
@@ -222,9 +221,9 @@ class LeaderboardService:
             except Exception:
                 pass
 
-        highest_rating = await self.get_best_by_rating()
-        highest_delta = await self.get_best_by_delta()
-        most_questions = await self.get_best_by_questions_solved()
+        highest_rating = await self.get_best_by_rating(db)
+        highest_delta = await self.get_best_by_delta(db)
+        most_questions = await self.get_best_by_questions_solved(db)
         
         response = TopPerformersResponse(
             highest_rating=highest_rating,
@@ -236,6 +235,7 @@ class LeaderboardService:
 
     async def get_arena_ranking(
         self,
+        db: AsyncSession,
         time_filter: str = "all_time",
         skip: int = 0,
         limit: int = 20,
@@ -244,6 +244,7 @@ class LeaderboardService:
         Get arena ranking by maximum submissions solved with time filtering and pagination.
         
         Args:
+            db: Database session
             time_filter: Time filter - "daily", "weekly", or "all_time"
             skip: Number of records to skip for pagination
             limit: Maximum number of records to return
@@ -260,7 +261,7 @@ class LeaderboardService:
                 pass
 
         results, total = await get_arena_ranking_by_submissions(
-            self.db,
+            db,
             time_filter=time_filter,
             skip=skip,
             limit=limit,
@@ -286,6 +287,7 @@ class LeaderboardService:
 
     async def get_streak_ranking(
         self,
+        db: AsyncSession,
         skip: int = 0,
         limit: int = 20,
     ) -> StreakRankingResponse:
@@ -293,6 +295,7 @@ class LeaderboardService:
         Get streak ranking sorted by longest streak with pagination.
         
         Args:
+            db: Database session
             skip: Number of records to skip for pagination
             limit: Maximum number of records to return
         
@@ -308,7 +311,7 @@ class LeaderboardService:
                 pass
 
         results, total = await get_streak_ranking(
-            self.db,
+            db,
             skip=skip,
             limit=limit,
         )
@@ -332,7 +335,7 @@ class LeaderboardService:
         await self._set_cached(cache_key, response.model_dump())
         return response
 
-    async def get_best_by_longest_streak(self) -> Optional[BestPerformerResponse]:
+    async def get_best_by_longest_streak(self, db: AsyncSession) -> Optional[BestPerformerResponse]:
         """Get user with longest study streak"""
         cache_key = "leaderboard:best:streak"
         cached = await self._get_cached(cache_key)
@@ -342,7 +345,7 @@ class LeaderboardService:
             except Exception:
                 pass
 
-        result = await get_user_with_longest_streak(self.db)
+        result = await get_user_with_longest_streak(db)
         if not result:
             return None
         

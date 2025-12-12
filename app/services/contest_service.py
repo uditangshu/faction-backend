@@ -12,13 +12,11 @@ from app.models.Basequestion import Question
 
 
 class ContestService:
-    """Service for contest operations"""
-
-    def __init__(self, db: AsyncSession):
-        self.db = db
+    """Service for contest operations - stateless, accepts db as method parameter"""
 
     async def create_contest(
         self,
+        db: AsyncSession,
         total_time: int,
         status: ContestStatus,
         starts_at: datetime,
@@ -32,9 +30,9 @@ class ContestService:
             starts_at=starts_at,
             ends_at=ends_at,
         )
-        self.db.add(contest)
-        await self.db.commit()
-        await self.db.refresh(contest)
+        db.add(contest)
+        await db.commit()
+        await db.refresh(contest)
         
         # Create ContestQuestions entries to link questions to the contest
         for question_id in question_ids:
@@ -42,20 +40,21 @@ class ContestService:
                 contest_id=contest.id,
                 question_id=question_id,
             )
-            self.db.add(contest_question)
+            db.add(contest_question)
         
-        await self.db.commit()
+        await db.commit()
         return contest
 
-    async def get_contest_by_id(self, contest_id: UUID) -> Optional[Contest]:
+    async def get_contest_by_id(self, db: AsyncSession, contest_id: UUID) -> Optional[Contest]:
         """Get contest by ID"""
-        result = await self.db.execute(
+        result = await db.execute(
             select(Contest).where(Contest.id == contest_id)
         )
         return result.scalar_one_or_none()
 
     async def update_contest(
         self,
+        db: AsyncSession,
         contest_id: UUID,
         total_time: Optional[int] = None,
         status: Optional[ContestStatus] = None,
@@ -63,7 +62,7 @@ class ContestService:
         ends_at: Optional[datetime] = None,
     ) -> Optional[Contest]:
         """Update an existing contest"""
-        contest = await self.get_contest_by_id(contest_id)
+        contest = await self.get_contest_by_id(db, contest_id)
         if not contest:
             return None
 
@@ -76,31 +75,31 @@ class ContestService:
         if ends_at is not None:
             contest.ends_at = ends_at
 
-        self.db.add(contest)
-        await self.db.commit()
-        await self.db.refresh(contest)
+        db.add(contest)
+        await db.commit()
+        await db.refresh(contest)
         return contest
 
-    async def delete_contest(self, contest_id: UUID) -> bool:
+    async def delete_contest(self, db: AsyncSession, contest_id: UUID) -> bool:
         """Delete a contest by ID"""
-        contest = await self.get_contest_by_id(contest_id)
+        contest = await self.get_contest_by_id(db, contest_id)
         if not contest:
             return False
         
         stmt = delete(Contest).where(Contest.id == contest_id)
-        await self.db.execute(stmt)
-        await self.db.commit()
+        await db.execute(stmt)
+        await db.commit()
         return True
 
-    async def get_contest_with_questions(self, contest_id: UUID) -> Optional[Tuple[Contest, List[Question]]]:
+    async def get_contest_with_questions(self, db: AsyncSession, contest_id: UUID) -> Optional[Tuple[Contest, List[Question]]]:
         """Get contest by ID with all linked questions"""
         # Get the contest
-        contest = await self.get_contest_by_id(contest_id)
+        contest = await self.get_contest_by_id(db, contest_id)
         if not contest:
             return None
         
         # Get all questions linked to this contest
-        result = await self.db.execute(
+        result = await db.execute(
             select(Question)
             .join(ContestQuestions, ContestQuestions.question_id == Question.id)
             .where(ContestQuestions.contest_id == contest_id)
@@ -108,4 +107,3 @@ class ContestService:
         questions = list(result.scalars().all())
         
         return contest, questions
-

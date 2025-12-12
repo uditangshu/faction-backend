@@ -4,7 +4,7 @@ from typing import Optional
 from uuid import UUID
 from fastapi import APIRouter, Query
 
-from app.api.v1.dependencies import TopicServiceDep
+from app.api.v1.dependencies import TopicServiceDep, DBSession, ReadOnlyDBSession
 from app.schemas.question import (
     TopicCreateRequest,
     TopicResponse,
@@ -19,11 +19,13 @@ router = APIRouter(prefix="/topics", tags=["Topics"])
 @router.post("/", response_model=TopicResponse, status_code=201)
 async def create_topic(
     topic_service: TopicServiceDep,
+    db: DBSession,
     request: TopicCreateRequest,
 ) -> TopicResponse:
     """Create a new topic"""
     try:
         new_topic = await topic_service.create_topic(
+            db,
             name=request.name,
             chapter_id=request.chapter_id,
         )
@@ -36,12 +38,13 @@ async def create_topic(
 async def get_all_topics(
     topic_service: TopicServiceDep,
     chapter_id: Optional[UUID] = Query(None, description="Filter topics by chapter ID"),
+    db: ReadOnlyDBSession,
 ) -> TopicListResponse:
     """Get all topics, optionally filtered by chapter ID"""
     if chapter_id:
-        topics = await topic_service.get_topics_by_chapter(chapter_id)
+        topics = await topic_service.get_topics_by_chapter(db, chapter_id)
     else:
-        topics = await topic_service.get_all_topics()
+        topics = await topic_service.get_all_topics(db)
     
     return TopicListResponse(
         topics=[TopicResponse.model_validate(t) for t in topics],
@@ -53,9 +56,10 @@ async def get_all_topics(
 async def get_topic(
     topic_service: TopicServiceDep,
     topic_id: UUID,
+    db: ReadOnlyDBSession,
 ) -> TopicResponse:
     """Get a topic by ID"""
-    result = await topic_service.get_topic_by_id(topic_id)
+    result = await topic_service.get_topic_by_id(db, topic_id)
     if not result:
         raise NotFoundException(f"Topic with ID {topic_id} not found")
     return TopicResponse.model_validate(result)
@@ -65,9 +69,10 @@ async def get_topic(
 async def get_topic_with_questions(
     topic_service: TopicServiceDep,
     topic_id: UUID,
+    db: ReadOnlyDBSession,
 ) -> TopicWithQuestionsResponse:
     """Get a topic with all its questions"""
-    result = await topic_service.get_topic_with_questions(topic_id)
+    result = await topic_service.get_topic_with_questions(db, topic_id)
     if not result:
         raise NotFoundException(f"Topic with ID {topic_id} not found")
     return TopicWithQuestionsResponse.model_validate(result)
@@ -77,10 +82,12 @@ async def get_topic_with_questions(
 async def update_topic(
     topic_service: TopicServiceDep,
     topic_id: UUID,
+    db: DBSession,
     request: TopicCreateRequest,
 ) -> TopicResponse:
     """Update a topic"""
     updated_topic = await topic_service.update_topic(
+        db,
         topic_id=topic_id,
         name=request.name,
         chapter_id=request.chapter_id,
@@ -94,9 +101,10 @@ async def update_topic(
 async def delete_topic(
     topic_service: TopicServiceDep,
     topic_id: UUID,
+    db: DBSession,
 ) -> None:
     """Delete a topic by ID"""
-    deleted = await topic_service.delete_topic(topic_id)
+    deleted = await topic_service.delete_topic(db, topic_id)
     if not deleted:
         raise NotFoundException(f"Topic with ID {topic_id} not found")
 

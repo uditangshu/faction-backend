@@ -4,7 +4,7 @@ from typing import List
 from uuid import UUID
 from fastapi import APIRouter
 
-from app.api.v1.dependencies import ClassServiceDep
+from app.api.v1.dependencies import ClassServiceDep, DBSession, ReadOnlyDBSession
 from app.models.Basequestion import Class_level
 from app.schemas.question import (
     ClassCreateRequest,
@@ -20,12 +20,13 @@ router = APIRouter(prefix="/class", tags=["Classes"])
 @router.post("/", response_model=ClassResponse, status_code=201)
 async def create_class(
     class_service: ClassServiceDep,
+    db: DBSession,
     request: ClassCreateRequest,
 ) -> ClassResponse:
     """Create a new class"""
     try:
         print(request.class_level)
-        new_class = await class_service.create_class(request.class_level)
+        new_class = await class_service.create_class(db, request.class_level)
         return ClassResponse.model_validate(new_class)
     except Exception as e:
         raise BadRequestException(f"Failed to create class: {str(e)}")
@@ -34,9 +35,10 @@ async def create_class(
 @router.get("/", response_model=ClassListResponse)
 async def get_all_classes(
     class_service: ClassServiceDep,
+    db: ReadOnlyDBSession,
 ) -> ClassListResponse:
     """Get all classes"""
-    classes = await class_service.get_all_classes()
+    classes = await class_service.get_all_classes(db)
     return ClassListResponse(
         classes=[ClassResponse.model_validate(c) for c in classes],
         total=len(classes)
@@ -46,10 +48,11 @@ async def get_all_classes(
 @router.get("/{class_id}", response_model=ClassResponse)
 async def get_class(
     class_service: ClassServiceDep,
+    db: ReadOnlyDBSession,
     class_id: UUID,
 ) -> ClassResponse:
     """Get a class by ID"""
-    result = await class_service.get_class_by_id(class_id)
+    result = await class_service.get_class_by_id(db, class_id)
     if not result:
         raise NotFoundException(f"Class with ID {class_id} not found")
     return ClassResponse.model_validate(result)
@@ -58,10 +61,11 @@ async def get_class(
 @router.get("/{class_id}/subjects", response_model=ClassWithSubjectsResponse)
 async def get_class_with_subjects(
     class_service: ClassServiceDep,
+    db: ReadOnlyDBSession,
     class_id: UUID,
 ) -> ClassWithSubjectsResponse:
     """Get a class with all its subjects, chapters, and questions"""
-    result = await class_service.get_class_with_subjects(class_id)
+    result = await class_service.get_class_with_subjects(db, class_id)
     if not result:
         raise NotFoundException(f"Class with ID {class_id} not found")
     return ClassWithSubjectsResponse.model_validate(result)
@@ -70,9 +74,10 @@ async def get_class_with_subjects(
 @router.delete("/{class_id}", status_code=204)
 async def delete_class(
     class_service: ClassServiceDep,
+    db: DBSession,
     class_id: UUID,
 ) -> None:
     """Delete a class by ID"""
-    deleted = await class_service.delete_class(class_id)
+    deleted = await class_service.delete_class(db, class_id)
     if not deleted:
         raise NotFoundException(f"Class with ID {class_id} not found")

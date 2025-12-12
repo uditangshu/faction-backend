@@ -4,7 +4,7 @@ from typing import Optional
 from uuid import UUID
 from fastapi import APIRouter, Query
 
-from app.api.v1.dependencies import QuestionServiceDep
+from app.api.v1.dependencies import QuestionServiceDep, DBSession, ReadOnlyDBSession
 from app.schemas.question import (
     QuestionCreateRequest,
     QuestionUpdateRequest,
@@ -22,12 +22,14 @@ router = APIRouter(prefix="/questions", tags=["Questions"])
 @router.post("/", response_model=QuestionDetailedResponse, status_code=201)
 async def create_question(
     question_service: QuestionServiceDep,
+    db: DBSession,
     request: QuestionCreateRequest,
 ) -> QuestionDetailedResponse:
     """Create a new question"""
     try:
         print(request)
         new_question = await question_service.create_question(
+            db,
             topic_id=request.topic_id,
             type=request.type,
             difficulty=request.difficulty,
@@ -50,6 +52,7 @@ async def create_question(
 @router.get("/", response_model=QuestionPaginatedResponse)
 async def get_questions(
     question_service: QuestionServiceDep,
+    db: ReadOnlyDBSession,
     topic_id: Optional[UUID] = Query(None, description="Filter by topic ID"),
     chapter_id: Optional[UUID] = Query(None, description="Filter by chapter ID"),
     subject_id: Optional[UUID] = Query(None, description="Filter by subject ID"),
@@ -59,6 +62,7 @@ async def get_questions(
 ) -> QuestionPaginatedResponse:
     """Get all questions with optional filters and pagination"""
     questions, total = await question_service.get_questions(
+        db,
         topic_id=topic_id,
         chapter_id=chapter_id,
         subject_id=subject_id,
@@ -78,9 +82,10 @@ async def get_questions(
 @router.get("/qotd", response_model=QOTDResponse)
 async def get_qotd(
     question_service: QuestionServiceDep,
+    db: ReadOnlyDBSession,
 ) -> QOTDResponse:
     """Get Question of the Day: 3 random questions from 3 different subjects"""
-    questions_with_subjects = await question_service.get_qotd_questions()
+    questions_with_subjects = await question_service.get_qotd_questions(db)
     questions = [
         QOTDQuestionResponse(
             **QuestionDetailedResponse.model_validate(question).model_dump(),
@@ -94,10 +99,11 @@ async def get_qotd(
 @router.get("/{question_id}", response_model=QuestionDetailedResponse)
 async def get_question(
     question_service: QuestionServiceDep,
+    db: ReadOnlyDBSession,
     question_id: UUID,
 ) -> QuestionDetailedResponse:
     """Get a question by ID"""
-    question = await question_service.get_question_by_id(question_id)
+    question = await question_service.get_question_by_id(db, question_id)
     if not question:
         raise NotFoundException(f"Question with ID {question_id} not found")
     return QuestionDetailedResponse.model_validate(question)
@@ -106,11 +112,13 @@ async def get_question(
 @router.put("/{question_id}", response_model=QuestionDetailedResponse)
 async def update_question(
     question_service: QuestionServiceDep,
+    db: DBSession,
     question_id: UUID,
     request: QuestionUpdateRequest,
 ) -> QuestionDetailedResponse:
     """Update an existing question"""
     updated_question = await question_service.update_question(
+        db,
         question_id=question_id,
         topic_id=request.topic_id,
         type=request.type,
@@ -136,9 +144,10 @@ async def update_question(
 @router.delete("/{question_id}", status_code=204)
 async def delete_question(
     question_service: QuestionServiceDep,
+    db: DBSession,
     question_id: UUID,
 ) -> None:
     """Delete a question by ID"""
-    deleted = await question_service.delete_question(question_id)
+    deleted = await question_service.delete_question(db, question_id)
     if not deleted:
         raise NotFoundException(f"Question with ID {question_id} not found")

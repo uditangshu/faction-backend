@@ -1,7 +1,8 @@
 """Study streak and calendar endpoints"""
 
 from fastapi import APIRouter, Query
-from app.api.v1.dependencies import CurrentUser, StreakServiceDep
+from app.api.v1.dependencies import CurrentUser, StreakServiceDep, ReadOnlyDBSession
+from app.db.session import DBSession
 from app.schemas.streak import StreakResponse, CalendarResponse
 from app.schemas.general import Successful_Query
 
@@ -11,19 +12,21 @@ router = APIRouter(prefix="/streaks", tags=["Streaks"])
 async def get_my_streak(
     streak_service: StreakServiceDep,
     current_user: CurrentUser,
+    db: ReadOnlyDBSession,
 ) -> StreakResponse:
     """
     Get current user's streak information.
     
     Returns current streak, longest streak, and related statistics.
     """
-    streak_info = await streak_service.get_user_streak_info(current_user.id)
+    streak_info = await streak_service.get_user_streak_info(db, current_user.id)
     return StreakResponse(**streak_info)
 
 @router.get("/me/calendar", response_model=CalendarResponse)
 async def get_my_calendar(
     streak_service: StreakServiceDep,
     current_user: CurrentUser,
+    db: ReadOnlyDBSession,
     days: int = Query(365, ge=30, le=730, description="Number of days to include"),
 ) -> CalendarResponse:
     """
@@ -34,7 +37,7 @@ async def get_my_calendar(
     Query parameters:
     - days: Number of days to include (default: 365, max: 730)
     """
-    calendar_data = await streak_service.get_study_calendar(current_user.id, days=days)
+    calendar_data = await streak_service.get_study_calendar(db, current_user.id, days=days)
     return CalendarResponse(**calendar_data)
 
 
@@ -42,12 +45,13 @@ async def get_my_calendar(
 async def create_study_entry(
     streakService: StreakServiceDep,
     current_user: CurrentUser,
+    db: DBSession,
 ) -> Successful_Query:
     """
     This api will create a new study stats entry for any
     question is solved
     """
-    result = await streakService.get_or_create_user_stats(current_user.id)
+    result = await streakService.get_or_create_user_stats(db, current_user.id)
     return Successful_Query(
         msg= "Successfully updated the streak",
         id= result.id,
@@ -58,8 +62,9 @@ async def create_study_entry(
 async def update_study_stats(
     streakService: StreakServiceDep,
     current_user: CurrentUser,
+    db: DBSession,
 ) -> Successful_Query:
-    result = await streakService.update_streak_on_correct_answer(current_user.id)
+    result = await streakService.update_streak_on_correct_answer(db, current_user.id)
     return Successful_Query(
         msg= "Successfully updated the streak",
         id= result.id,

@@ -11,13 +11,11 @@ from app.models.user import TargetExam
 
 
 class QuestionService:
-    """Service for question operations"""
-
-    def __init__(self, db: AsyncSession):
-        self.db = db
+    """Service for question operations - stateless, accepts db as method parameter"""
 
     async def create_question(
         self,
+        db: AsyncSession,
         topic_id: UUID,
         type: QuestionType,
         difficulty: DifficultyLevel,
@@ -49,13 +47,14 @@ class QuestionService:
             scq_correct_options=scq_correct_options,
             questions_solved=0,
         )
-        self.db.add(question)
-        await self.db.commit()
-        await self.db.refresh(question)
+        db.add(question)
+        await db.commit()
+        await db.refresh(question)
         return question
 
     async def get_questions(
         self,
+        db: AsyncSession,
         topic_id: Optional[UUID] = None,
         chapter_id: Optional[UUID] = None,
         subject_id: Optional[UUID] = None,
@@ -86,24 +85,25 @@ class QuestionService:
             count_query = count_query.where(Question.difficulty == difficulty_level)
 
         # Get total count
-        total_result = await self.db.execute(count_query)
+        total_result = await db.execute(count_query)
         total = total_result.scalar() or 0
 
         # Apply pagination
         query = query.offset(skip).limit(limit)
-        result = await self.db.execute(query)
+        result = await db.execute(query)
         
         return list(result.scalars().all()), total
 
-    async def get_question_by_id(self, question_id: UUID) -> Optional[Question]:
+    async def get_question_by_id(self, db: AsyncSession, question_id: UUID) -> Optional[Question]:
         """Get question by ID"""
-        result = await self.db.execute(
+        result = await db.execute(
             select(Question).where(Question.id == question_id)
         )
         return result.scalar_one_or_none()
 
     async def update_question(
         self,
+        db: AsyncSession,
         question_id: UUID,
         topic_id: Optional[UUID] = None,
         type: Optional[QuestionType] = None,
@@ -120,7 +120,7 @@ class QuestionService:
         scq_correct_options: Optional[List[int]] = None,
     ) -> Optional[Question]:
         """Update an existing question"""
-        question = await self.get_question_by_id(question_id)
+        question = await self.get_question_by_id(db, question_id)
         if not question:
             return None
 
@@ -152,23 +152,23 @@ class QuestionService:
         if scq_correct_options is not None:
             question.scq_correct_options = scq_correct_options
 
-        self.db.add(question)
-        await self.db.commit()
-        await self.db.refresh(question)
+        db.add(question)
+        await db.commit()
+        await db.refresh(question)
         return question
 
-    async def delete_question(self, question_id: UUID) -> bool:
+    async def delete_question(self, db: AsyncSession, question_id: UUID) -> bool:
         """Delete a question by ID"""
-        question = await self.get_question_by_id(question_id)
+        question = await self.get_question_by_id(db, question_id)
         if not question:
             return False
         
         stmt = delete(Question).where(Question.id == question_id)
-        await self.db.execute(stmt)
-        await self.db.commit()
+        await db.execute(stmt)
+        await db.commit()
         return True
 
-    async def get_qotd_questions(self) -> List[Tuple[Question, str]]:
+    async def get_qotd_questions(self, db: AsyncSession) -> List[Tuple[Question, str]]:
         """
         Get Question of the Day: 3 random questions from 3 different subjects.
         
@@ -182,7 +182,7 @@ class QuestionService:
             .join(Question, Question.topic_id == Topic.id)
             .distinct()
         )
-        subject_result = await self.db.execute(subject_query)
+        subject_result = await db.execute(subject_query)
         subject_ids = [row[0] for row in subject_result.all() if row[0] is not None]
         
         if len(subject_ids) == 0:
@@ -204,7 +204,7 @@ class QuestionService:
                 .join(Subject, Chapter.subject_id == Subject.id)
                 .where(Chapter.subject_id == subject_id)
             )
-            result = await self.db.execute(question_query)
+            result = await db.execute(question_query)
             questions_with_subjects = list(result.all())
             
             if questions_with_subjects:

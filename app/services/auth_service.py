@@ -25,24 +25,24 @@ from app.utils.phone import validate_indian_phone
 
 
 class AuthService:
-    """Service for authentication operations"""
+    """Service for authentication operations - stateless, accepts db as method parameter"""
 
-    def __init__(self, db: AsyncSession, otp_service: OTPService):
-        self.db = db
+    def __init__(self, otp_service: OTPService):
         self.otp_service = otp_service
 
-    async def get_user_by_phone(self, phone_number: str) -> User | None:
+    async def get_user_by_phone(self, db: AsyncSession, phone_number: str) -> User | None:
         """Get user by phone number"""
-        result = await self.db.execute(select(User).where(User.phone_number == phone_number))
+        result = await db.execute(select(User).where(User.phone_number == phone_number))
         return result.scalar_one_or_none()
 
-    async def get_user_by_id(self, user_id: UUID) -> User | None:
+    async def get_user_by_id(self, db: AsyncSession, user_id: UUID) -> User | None:
         """Get user by ID"""
-        result = await self.db.execute(select(User).where(User.id == user_id))
+        result = await db.execute(select(User).where(User.id == user_id))
         return result.scalar_one_or_none()
 
     async def initiate_signup(
         self,
+        db: AsyncSession,
         phone_number: str,
         name: str,
         class_level: ClassLevel,
@@ -59,7 +59,7 @@ class AuthService:
             raise UnauthorizedException("Invalid phone number")
 
         # Check if user already exists
-        existing_user = await self.get_user_by_phone(formatted_phone)
+        existing_user = await self.get_user_by_phone(db, formatted_phone)
         if existing_user:
             raise PhoneAlreadyExistsException()
 
@@ -101,7 +101,7 @@ class AuthService:
                 raise SMSDeliveryException()
             return temp_token, otp
 
-    async def verify_signup(self, temp_token: str, otp: str, ip_address: str | None = None, user_agent: str | None = None) -> dict:
+    async def verify_signup(self, db: AsyncSession, temp_token: str, otp: str, ip_address: str | None = None, user_agent: str | None = None) -> dict:
         signup_data = await self.otp_service.redis.get_value(f"signup_data:{temp_token}")
         if not signup_data:
             raise UnauthorizedException("Signup session expired")
@@ -127,9 +127,9 @@ class AuthService:
             role=signup_data["role"],
         )
 
-        self.db.add(user)
-        await self.db.commit()
-        await self.db.refresh(user)
+        db.add(user)
+        await db.commit()
+        await db.refresh(user)
 
         # Delete signup data
         await self.otp_service.redis.delete_key(f"signup_data:{temp_token}")
@@ -140,7 +140,7 @@ class AuthService:
         refresh_token_hash = sha256(refresh_token.encode()).hexdigest()
 
         session = await create_user_session(
-            db=self.db,
+            db=db,
             user_id=user.id,
             device_id=signup_data["device_id"],
             device_type=DeviceType(signup_data["device_type"]),
@@ -176,6 +176,7 @@ class AuthService:
 
     async def login(
         self,
+        db: AsyncSession,
         phone_number: str,
         password: str,
         device_id: str | None = None,
@@ -192,7 +193,7 @@ class AuthService:
             raise UnauthorizedException("Invalid phone number")
 
         # Get user
-        user = await self.get_user_by_phone(formatted_phone)
+        user = await self.get_user_by_phone(db, formatted_phone)
         if not user:
             raise UserNotFoundException("User not found. Please sign up to create an account")
 
@@ -213,7 +214,7 @@ class AuthService:
         refresh_token_hash = sha256(refresh_token.encode()).hexdigest()
 
         # Invalidate old sessions (without commit - will commit with session creation)
-        invalidated_count = await invalidate_old_sessions(self.db, user.id, commit=False)
+        invalidated_count = await invalidate_old_sessions(db, user.id, commit=False)
         
         # Update user.updated_at
         user.updated_at = datetime.utcnow()
@@ -234,11 +235,11 @@ class AuthService:
             expires_at=datetime.now() + timedelta(days=settings.REFRESH_TOKEN_EXPIRE_DAYS),
             is_active=True,
         )
-        self.db.add(session)
+        db.add(session)
         
         # Single commit for: invalidate old sessions + create new session + update user
-        await self.db.commit()
-        await self.db.refresh(session)
+        await db.commit()
+        await db.refresh(session)
 
         # Store active session in Redis immediately (1 year TTL matching refresh token)
         user_id_str = str(user.id)
@@ -256,6 +257,7 @@ class AuthService:
         })
 
         # STEP 3: Process device info and old session logic in background (non-blocking)
+        # Note: Background task must create its own session - cannot use request session
         if device_id:
             # Only process old session logic if device_id is provided
             asyncio.create_task(self._process_device_info_background(
@@ -277,42 +279,49 @@ class AuthService:
         session_id: UUID,
         device_id: str,
     ) -> None:
-        """Process device info and old session logic in background (non-blocking)"""
-        try:
-            # Get old active session ID from Redis
-            old_session_id = await self.otp_service.redis.get_active_session(str(user_id))
-            
-            # Get old session details if exists
-            old_push_token = None
-            old_device_id = None
-            is_same_device = False
-            
-            if old_session_id and str(old_session_id) != str(session_id):
-                from app.models.session import UserSession
-                result = await self.db.execute(
-                    select(UserSession.push_token, UserSession.device_id).where(UserSession.id == UUID(old_session_id))
-                )
-                row = result.first()
-                if row:
-                    old_push_token = row[0]
-                    old_device_id = row[1]
-                    is_same_device = old_device_id == device_id
-                    
-                    # Handle different device login
-                    if not is_same_device:
-                        # Mark old session for force logout
-                        await self.otp_service.redis.set_value(
-                            f"force_logout:{old_session_id}",
-                            "true",
-                            expire=300
-                        )
+        """Process device info and old session logic in background (non-blocking)
+        
+        NOTE: This method creates its own database session since it runs in background
+        and cannot use the request session which is already closed.
+        """
+        from app.db.session import AsyncSessionLocal
+        from app.models.session import UserSession
+        
+        async with AsyncSessionLocal() as db:
+            try:
+                # Get old active session ID from Redis
+                old_session_id = await self.otp_service.redis.get_active_session(str(user_id))
+                
+                # Get old session details if exists
+                old_push_token = None
+                old_device_id = None
+                is_same_device = False
+                
+                if old_session_id and str(old_session_id) != str(session_id):
+                    result = await db.execute(
+                        select(UserSession.push_token, UserSession.device_id).where(UserSession.id == UUID(old_session_id))
+                    )
+                    row = result.first()
+                    if row:
+                        old_push_token = row[0]
+                        old_device_id = row[1]
+                        is_same_device = old_device_id == device_id
                         
-                        # Send push notification to OLD device (non-blocking)
-                        if old_push_token:
-                            asyncio.create_task(self._send_logout_notification_async(old_push_token, str(old_session_id)))
-        except Exception as e:
-            print(f"❌ Error processing device info in background: {e}")
-            # Non-critical - login already succeeded
+                        # Handle different device login
+                        if not is_same_device:
+                            # Mark old session for force logout
+                            await self.otp_service.redis.set_value(
+                                f"force_logout:{old_session_id}",
+                                "true",
+                                expire=300
+                            )
+                            
+                            # Send push notification to OLD device (non-blocking)
+                            if old_push_token:
+                                asyncio.create_task(self._send_logout_notification_async(old_push_token, str(old_session_id)))
+            except Exception as e:
+                print(f"❌ Error processing device info in background: {e}")
+                # Non-critical - login already succeeded
 
     async def _send_logout_notification_async(self, push_token: str, session_id: str) -> None:
         """Send logout notification asynchronously (fire and forget)"""
@@ -327,7 +336,7 @@ class AuthService:
         except Exception as e:
             print(f"❌ Failed to send logout push notification for session {session_id}: {e}")
 
-    async def register_push_token(self, user_id: str, push_token: str) -> bool:
+    async def register_push_token(self, db: AsyncSession, user_id: str, push_token: str) -> bool:
         """
         Register push notification token for the current active session.
         This ensures the push token is only registered to the NEW device's session,
@@ -347,7 +356,7 @@ class AuthService:
             
             # Verify the session exists and is active
             from app.models.session import UserSession
-            result = await self.db.execute(
+            result = await db.execute(
                 select(UserSession).where(UserSession.id == UUID(active_session_id))
             )
             session = result.scalar_one_or_none()
@@ -368,8 +377,8 @@ class AuthService:
                 .where(UserSession.id == UUID(active_session_id))
                 .values(push_token=push_token)
             )
-            await self.db.execute(stmt)
-            await self.db.commit()
+            await db.execute(stmt)
+            await db.commit()
             
             print(f"✅ Push token registered successfully for NEW device's session {active_session_id}")
             print(f"✅ This push token will receive notifications for future logins from other devices")
@@ -380,7 +389,7 @@ class AuthService:
             print(traceback.format_exc())
             return False
 
-    async def logout(self, user_id: str, session_id: str | None = None) -> bool:
+    async def logout(self, db: AsyncSession, user_id: str, session_id: str | None = None) -> bool:
         
         try:
             print(f"🔓 Logging out user {user_id}, session {session_id}")
@@ -396,8 +405,8 @@ class AuthService:
                     .where(UserSession.id == UUID(session_id))
                     .values(push_token=None, is_active=False)
                 )
-                await self.db.execute(stmt)
-                await self.db.commit()
+                await db.execute(stmt)
+                await db.commit()
                 print(f"✅ Session {session_id} push token cleared and marked inactive")
             
             # Invalidate the active session in Redis
@@ -411,14 +420,14 @@ class AuthService:
             print(traceback.format_exc())
             return False
 
-    async def initiate_forgot_password(self, phone_number: str) -> tuple[str, str]:
+    async def initiate_forgot_password(self, db: AsyncSession, phone_number: str) -> tuple[str, str]:
         """Initiate forgot password flow - send OTP to user's phone"""
         is_valid, formatted_phone = validate_indian_phone(phone_number)
         if not is_valid:
             raise UnauthorizedException("Invalid phone number")
 
         # Check if user exists
-        user = await self.get_user_by_phone(formatted_phone)
+        user = await self.get_user_by_phone(db, formatted_phone)
         if not user:
             raise NotFoundException("Phone number not registered")
 
@@ -449,7 +458,7 @@ class AuthService:
                 raise SMSDeliveryException()
             return temp_token, otp
 
-    async def reset_password(self, temp_token: str, otp: str, new_password: str) -> bool:
+    async def reset_password(self, db: AsyncSession, temp_token: str, otp: str, new_password: str) -> bool:
         """Reset user password after OTP verification"""
         reset_data = await self.otp_service.redis.get_value(f"reset_password:{temp_token}")
         if not reset_data:
@@ -467,26 +476,26 @@ class AuthService:
             await self.otp_service.verify_otp(temp_token, otp)
 
         # Get user
-        user = await self.get_user_by_phone(phone_number)
+        user = await self.get_user_by_phone(db, phone_number)
         if not user:
             raise NotFoundException("User not found")
 
         # Hash and update password
         user.password_hash = hash_password(new_password)
         user.updated_at = datetime.utcnow()
-        await self.db.commit()
+        await db.commit()
 
         # Clean up temp data
         await self.otp_service.redis.delete_key(f"reset_password:{temp_token}")
 
         # Invalidate all user sessions (force re-login on all devices)
-        await invalidate_old_sessions(self.db, user.id)
+        await invalidate_old_sessions(db, user.id)
         await self.otp_service.redis.invalidate_user_session(str(user.id))
 
         print(f"✅ Password reset successful for user {user.id}")
         return True
 
-    async def refresh_access_token(self, refresh_token: str) -> dict:
+    async def refresh_access_token(self, db: AsyncSession, refresh_token: str) -> dict:
         """Refresh access token using refresh token"""
         from app.core.security import decode_token
         from app.models.session import UserSession
@@ -514,7 +523,7 @@ class AuthService:
             raise UnauthorizedException("Invalid token format")
         
         # Get session from database
-        result = await self.db.execute(
+        result = await db.execute(
             select(UserSession).where(UserSession.id == session_id)
         )
         session = result.scalar_one_or_none()
@@ -544,7 +553,7 @@ class AuthService:
             raise UnauthorizedException("Session is no longer valid")
         
         # Get user for token generation
-        user = await self.get_user_by_id(user_id)
+        user = await self.get_user_by_id(db, user_id)
         if not user:
             raise UnauthorizedException("User not found")
         
@@ -567,4 +576,3 @@ class AuthService:
             "token_type": "bearer",
             "session_id": str(session.id),
         }
-

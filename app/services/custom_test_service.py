@@ -2,7 +2,7 @@
 
 from uuid import UUID
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select,cast,exists,not_,func
+from sqlalchemy import select, cast, exists, not_, func
 from sqlalchemy.dialects.postgresql import JSONB
 from typing import List, Optional, Tuple
 
@@ -33,15 +33,11 @@ from app.models.Basequestion import TargetExam, Topic, QuestionType, Subject, Qu
 from app.models.pyq import PreviousYearProblems
 
 class CustomTestService:
-    """Service for custom test operations"""
-
-    def __init__(self, db: AsyncSession):
-        self.db = db
-
-    # ==================== Custom Test Methods ====================
+    """Service for custom test operations - stateless, accepts db as method parameter"""
 
     async def create_test(
         self,
+        db: AsyncSession,
         user_id: UUID,
         exam_type: TargetExam,
         chapters: List[UUID],
@@ -52,37 +48,33 @@ class CustomTestService:
     ) -> CustomTest:
         """Create a new custom test with questions"""
         # Validate that all chapters and subjects exist
-        
         for chapter_id in chapters:
-            result = await self.db.execute(
-                select(Chapter).where(Chapter.id==chapter_id)
+            result = await db.execute(
+                select(Chapter).where(Chapter.id == chapter_id)
             )
             if not result.scalar_one_or_none():
-                    raise ValueError(f"Chapter with ID {chapter_id} not found")
+                raise ValueError(f"Chapter with ID {chapter_id} not found")
 
-        #filter out all the required problems with tags
-        #pass the question ids to the create_custom_test
-
+        # Filter out all the required problems with tags
         query = (
-        select(Question, QuestionAttempt)
-        .join(Topic, Question.topic_id == Topic.id)
-        .join(Chapter, Topic.chapter_id == Chapter.id)
-        .where(Chapter.id.in_(chapters))
-        .where(cast(Question.exam_type, JSONB).contains([exam_type]))
+            select(Question, QuestionAttempt)
+            .join(Topic, Question.topic_id == Topic.id)
+            .join(Chapter, Topic.chapter_id == Chapter.id)
+            .where(Chapter.id.in_(chapters))
+            .where(cast(Question.exam_type, JSONB).contains([exam_type]))
         )
 
-        if question_status==QuestionStatus.INCORRECT:
-            query=query.join(QuestionAttempt, QuestionAttempt.question_id==Question.id
+        if question_status == QuestionStatus.INCORRECT:
+            query = query.join(QuestionAttempt, QuestionAttempt.question_id == Question.id
             ).where(QuestionAttempt.is_correct == False)
-        elif question_status==QuestionStatus.SOLVED:
-            query=query.join(QuestionAttempt, QuestionAttempt.question_id==Question.id
+        elif question_status == QuestionStatus.SOLVED:
+            query = query.join(QuestionAttempt, QuestionAttempt.question_id == Question.id
             ).where(QuestionAttempt.is_correct == True)
-        elif question_status==QuestionStatus.UNSOLVED:
-            query=query.outerjoin(QuestionAttempt, QuestionAttempt.question_id!=Question.id
-                            ).where(QuestionAttempt.id.is_(None))
+        elif question_status == QuestionStatus.UNSOLVED:
+            query = query.outerjoin(QuestionAttempt, QuestionAttempt.question_id != Question.id
+            ).where(QuestionAttempt.id.is_(None))
         
-        #filtering Based over pyq or not
-
+        # Filtering based over pyq or not
         if question_type == QuestionAppearance.PYQs:
             query = query.where(
                 exists().where(PreviousYearProblems.question_id == Question.id)
@@ -92,41 +84,41 @@ class CustomTestService:
                 not_(exists().where(PreviousYearProblems.question_id == Question.id))
             )
 
-        result = await self.db.execute(query)
+        result = await db.execute(query)
         questions = result.scalars().all()
 
-        question_ids = []
         question_ids = [q.id for q in questions][:number_of_question]
 
         return await create_custom_test(
-            self.db,
+            db,
             user_id=user_id,
             question_ids=question_ids,
             time_assigned=time_duration,
             status=AttemptStatus.not_started,
         )
 
-    async def get_test_by_id(self, test_id: UUID) -> Optional[CustomTest]:
+    async def get_test_by_id(self, db: AsyncSession, test_id: UUID) -> Optional[CustomTest]:
         """Get a custom test by ID"""
-        return await get_custom_test_by_id(self.db, test_id)
+        return await get_custom_test_by_id(db, test_id)
 
-    async def get_test_with_questions(self, test_id: UUID) -> Optional[CustomTest]:
+    async def get_test_with_questions(self, db: AsyncSession, test_id: UUID) -> Optional[CustomTest]:
         """Get a custom test with all its questions"""
-        return await get_custom_test_with_questions(self.db, test_id)
+        return await get_custom_test_with_questions(db, test_id)
 
     async def get_user_tests(
         self,
+        db: AsyncSession,
         user_id: UUID,
         status: Optional[AttemptStatus] = None,
         skip: int = 0,
         limit: int = 20,
     ) -> Tuple[List[CustomTest], int]:
         """Get all custom tests for a user with pagination"""
-        return await get_user_custom_tests(self.db, user_id, status, skip, limit)
+        return await get_user_custom_tests(db, user_id, status, skip, limit)
 
-    async def start_test(self, test_id: UUID, user_id: UUID) -> Optional[CustomTest]:
+    async def start_test(self, db: AsyncSession, test_id: UUID, user_id: UUID) -> Optional[CustomTest]:
         """Start a custom test (change status to active)"""
-        test = await self.get_test_by_id(test_id)
+        test = await self.get_test_by_id(db, test_id)
         if not test:
             return None
         
@@ -138,16 +130,17 @@ class CustomTestService:
         if test.status != AttemptStatus.not_started:
             raise ValueError(f"Test cannot be started. Current status: {test.status}")
         
-        return await update_custom_test_status(self.db, test_id, AttemptStatus.active)
+        return await update_custom_test_status(db, test_id, AttemptStatus.active)
 
     async def update_test_status(
         self,
+        db: AsyncSession,
         test_id: UUID,
         user_id: UUID,
         status: AttemptStatus,
     ) -> Optional[CustomTest]:
         """Update the status of a custom test"""
-        test = await self.get_test_by_id(test_id)
+        test = await self.get_test_by_id(db, test_id)
         if not test:
             return None
         
@@ -155,11 +148,11 @@ class CustomTestService:
         if test.user_id != user_id:
             return None
         
-        return await update_custom_test_status(self.db, test_id, status)
+        return await update_custom_test_status(db, test_id, status)
 
-    async def delete_test(self, test_id: UUID, user_id: UUID) -> bool:
+    async def delete_test(self, db: AsyncSession, test_id: UUID, user_id: UUID) -> bool:
         """Delete a custom test"""
-        test = await self.get_test_by_id(test_id)
+        test = await self.get_test_by_id(db, test_id)
         if not test:
             return False
         
@@ -167,22 +160,23 @@ class CustomTestService:
         if test.user_id != user_id:
             return False
         
-        return await delete_custom_test(self.db, test_id)
+        return await delete_custom_test(db, test_id)
 
-    async def get_test_question_count(self, test_id: UUID) -> int:
+    async def get_test_question_count(self, db: AsyncSession, test_id: UUID) -> int:
         """Get the number of questions in a test"""
-        result = await self.db.execute(
+        result = await db.execute(
             select(func.count(CustomTestQuestion.id))
             .where(CustomTestQuestion.test_id == test_id)
         )
         return result.scalar() or 0
 
-    async def get_test_questions(self, test_id: UUID) -> List[Question]:
+    async def get_test_questions(self, db: AsyncSession, test_id: UUID) -> List[Question]:
         """Get all questions for a test"""
-        return await get_test_questions(self.db, test_id)
+        return await get_test_questions(db, test_id)
 
     async def get_test_attempts(
         self,
+        db: AsyncSession,
         test_id: UUID,
         user_id: UUID,
     ) -> Tuple[List[QuestionAttempt], dict]:
@@ -191,7 +185,7 @@ class CustomTestService:
         Returns tuple of (attempts list, summary stats)
         """
         # First verify the test exists and belongs to user
-        test = await self.get_test_by_id(test_id)
+        test = await self.get_test_by_id(db, test_id)
         if not test:
             raise ValueError("Test not found")
         
@@ -199,7 +193,7 @@ class CustomTestService:
             raise ValueError("You don't have permission to view this test")
         
         # Get all question IDs for this test
-        question_ids_result = await self.db.execute(
+        question_ids_result = await db.execute(
             select(CustomTestQuestion.question_id)
             .where(CustomTestQuestion.test_id == test_id)
         )
@@ -215,7 +209,7 @@ class CustomTestService:
             }
         
         # Get all attempts for these questions by this user
-        result = await self.db.execute(
+        result = await db.execute(
             select(QuestionAttempt)
             .where(
                 QuestionAttempt.user_id == user_id,
@@ -245,6 +239,7 @@ class CustomTestService:
 
     async def submit_test(
         self,
+        db: AsyncSession,
         test_id: UUID,
         user_id: UUID,
         answers: List[QuestionAnswerSubmit],
@@ -252,7 +247,7 @@ class CustomTestService:
     ) -> Tuple[CustomTestAnalysis, List[QuestionResultResponse]]:
         """Submit a custom test and calculate results"""
         # Get the test
-        test = await self.get_test_with_questions(test_id)
+        test = await self.get_test_with_questions(db, test_id)
         if not test:
             raise ValueError("Test not found")
         
@@ -265,12 +260,11 @@ class CustomTestService:
             raise ValueError("Test has already been submitted")
         
         # Get all questions for this test
-        questions = await self.get_test_questions(test_id)
+        questions = await self.get_test_questions(db, test_id)
         question_map = {q.id: q for q in questions}
         
         # Create a map of submitted answers
         answer_map = {a.question_id: a for a in answers}
-        
     
         # Calculate results
         results: List[QuestionResultResponse] = []
@@ -280,8 +274,8 @@ class CustomTestService:
         incorrect_count = 0
         unattempted_count = 0
         
-        #save attempt
-        attempts: List[QuestionAttempt]= []
+        # Save attempt
+        attempts: List[QuestionAttempt] = []
         
         for question in questions:
             total_marks += question.marks
@@ -301,7 +295,6 @@ class CustomTestService:
                     marks_obtained=0,
                     marks_possible=question.marks,
                 ))
-                
             else:
                 # Check if answer is correct
                 is_correct = self._check_answer(question, answer.user_answer)
@@ -332,19 +325,18 @@ class CustomTestService:
                     hint_used=False
                 ))
 
-        self.db.add_all(attempts)
-        await self.db.commit()
+        db.add_all(attempts)
+        await db.commit()
 
         for attempt in attempts:
-            await self.db.refresh(attempt)
-
+            await db.refresh(attempt)
         
         # Mark test as finished
-        await update_custom_test_status(self.db, test_id, AttemptStatus.finished)
+        await update_custom_test_status(db, test_id, AttemptStatus.finished)
         
         # Create analysis
         analysis = await create_custom_test_analysis(
-            self.db,
+            db,
             user_id=user_id,
             custom_test_id=test_id,
             marks_obtained=marks_obtained,
@@ -418,14 +410,13 @@ class CustomTestService:
 
     # ==================== Analysis Methods ====================
 
-    async def get_analysis_by_id(self, analysis_id: UUID) -> Optional[CustomTestAnalysis]:
+    async def get_analysis_by_id(self, db: AsyncSession, analysis_id: UUID) -> Optional[CustomTestAnalysis]:
         """Get a custom test analysis by ID"""
-        return await get_analysis_by_id(self.db, analysis_id)
+        return await get_analysis_by_id(db, analysis_id)
 
-
-    async def delete_analysis(self, analysis_id: UUID, user_id: UUID) -> bool:
+    async def delete_analysis(self, db: AsyncSession, analysis_id: UUID, user_id: UUID) -> bool:
         """Delete a custom test analysis"""
-        analysis = await self.get_analysis_by_id(analysis_id)
+        analysis = await self.get_analysis_by_id(db, analysis_id)
         if not analysis:
             return False
         
@@ -433,11 +424,10 @@ class CustomTestService:
         if analysis.user_id != user_id:
             return False
         
-        return await delete_analysis(self.db, analysis_id)
+        return await delete_analysis(db, analysis_id)
 
     # ==================== Statistics ====================
 
-    async def get_user_stats(self, user_id: UUID) -> dict:
+    async def get_user_stats(self, db: AsyncSession, user_id: UUID) -> dict:
         """Get custom test statistics for a user"""
-        return await get_user_test_stats(self.db, user_id)
-
+        return await get_user_test_stats(db, user_id)

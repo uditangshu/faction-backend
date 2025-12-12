@@ -9,12 +9,11 @@ from app.models.Basequestion import Question
 
 
 class QOTDService:
-    """Service for question operations"""
-    def __init__(self, db: AsyncSession):
-        self.db = db
-
+    """Service for question operations - stateless, accepts db as method parameter"""
+    
     async def get_questions(
         self,
+        db: AsyncSession,
         subject_id: Optional[UUID] = None,
         topic_id: Optional[UUID] = None,
         difficulty_level: Optional[int] = None,
@@ -25,6 +24,7 @@ class QOTDService:
         Get list of questions with filters.
 
         Args:
+            db: Database session
             subject_id: Filter by subject
             topic_id: Filter by topic
             difficulty_level: Filter by difficulty (1-5)
@@ -45,7 +45,5 @@ class QOTDService:
 
         query = query.offset(skip).limit(limit)
 
-        result = await self.db.execute(query)
+        result = await db.execute(query)
         return list(result.scalars().all())
-    
-    

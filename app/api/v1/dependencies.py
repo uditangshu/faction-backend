@@ -47,113 +47,113 @@ async def get_otp_service(redis_service: RedisServiceDep) -> OTPService:
 OTPServiceDep = Annotated[OTPService, Depends(get_otp_service)]
 
 
-async def get_auth_service(db: DBSession, otp_service: OTPServiceDep) -> AuthService:
-    return AuthService(db, otp_service)
+async def get_auth_service(otp_service: OTPServiceDep) -> AuthService:
+    return AuthService(otp_service)
 
 
 AuthServiceDep = Annotated[AuthService, Depends(get_auth_service)]
 
 
-async def get_question_service(db: DBSession) -> QuestionService:
-    return QuestionService(db)
+async def get_question_service() -> QuestionService:
+    return QuestionService()
 
 
 QuestionServiceDep = Annotated[QuestionService, Depends(get_question_service)]
 
 
-async def get_streak_service(db: DBSession) -> StreakService:
-    return StreakService(db)
+async def get_streak_service() -> StreakService:
+    return StreakService()
 
 
 StreakServiceDep = Annotated[StreakService, Depends(get_streak_service)]
 
 
-async def get_user_service(db: DBSession) -> UserService: 
-    return UserService(db)
+async def get_user_service() -> UserService: 
+    return UserService()
 
 
 UserServiceDep = Annotated[UserService, Depends(get_user_service)]
 
 
-async def get_class_service(db: DBSession) -> ClassService:
-    return ClassService(db)
+async def get_class_service() -> ClassService:
+    return ClassService()
 
 
 ClassServiceDep = Annotated[ClassService, Depends(get_class_service)]
 
 
-async def get_subject_service(db: DBSession) -> SubjectService:
-    return SubjectService(db)
+async def get_subject_service() -> SubjectService:
+    return SubjectService()
 
 
 SubjectServiceDep = Annotated[SubjectService, Depends(get_subject_service)]
 
 
-async def get_chapter_service(db: DBSession) -> ChapterService:
-    return ChapterService(db)
+async def get_chapter_service() -> ChapterService:
+    return ChapterService()
 
 
 ChapterServiceDep = Annotated[ChapterService, Depends(get_chapter_service)]
 
 
-async def get_topic_service(db: DBSession) -> TopicService:
-    return TopicService(db)
+async def get_topic_service() -> TopicService:
+    return TopicService()
 
 
 TopicServiceDep = Annotated[TopicService, Depends(get_topic_service)]
 
 
-async def get_analysis_service(db: DBSession) -> AnalysisService:
-    return AnalysisService(db)
+async def get_analysis_service() -> AnalysisService:
+    return AnalysisService()
 
 
 AnalysisServiceDep = Annotated[AnalysisService, Depends(get_analysis_service)]
 
 
-async def get_attempt_service(db: DBSession) -> AttemptService:
-    return AttemptService(db)
+async def get_attempt_service() -> AttemptService:
+    return AttemptService()
 
 
 AttemptServiceDep = Annotated[AttemptService, Depends(get_attempt_service)]
 
 
-async def get_pyq_service(db: DBSession) -> PYQService:
-    return PYQService(db)
+async def get_pyq_service() -> PYQService:
+    return PYQService()
 
 
 PYQServiceDep = Annotated[PYQService, Depends(get_pyq_service)]
 
 
-async def get_filtering_service(db: DBSession) -> FilteringService:
-    return FilteringService(db)
+async def get_filtering_service() -> FilteringService:
+    return FilteringService()
 
 
 FilteringServiceDep = Annotated[FilteringService, Depends(get_filtering_service)]
 
 
-async def get_custom_test_service(db: DBSession) -> CustomTestService:
-    return CustomTestService(db)
+async def get_custom_test_service() -> CustomTestService:
+    return CustomTestService()
 
 
 CustomTestServiceDep = Annotated[CustomTestService, Depends(get_custom_test_service)]
 
 
-async def get_leaderboard_service(db: ReadOnlyDBSession, redis: RedisServiceDep) -> LeaderboardService:
-    return LeaderboardService(db, redis)
+async def get_leaderboard_service(redis: RedisServiceDep) -> LeaderboardService:
+    return LeaderboardService(redis)
 
 
 LeaderboardServiceDep = Annotated[LeaderboardService, Depends(get_leaderboard_service)]
 
 
-async def get_contest_service(db: DBSession) -> ContestService:
-    return ContestService(db)
+async def get_contest_service() -> ContestService:
+    return ContestService()
 
 
 ContestServiceDep = Annotated[ContestService, Depends(get_contest_service)]
 
 
-async def get_badge_service(db: DBSession) -> BadgeService:
-    return BadgeService(db)
+async def get_badge_service() -> BadgeService:
+    return BadgeService()
 
 
 BadgeServiceDep = Annotated[BadgeService, Depends(get_badge_service)]
