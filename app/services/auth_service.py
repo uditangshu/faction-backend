@@ -212,6 +212,11 @@ class AuthService:
         refresh_token = create_refresh_token({"sub": str(user.id), "session_id": str(session_id)})
         refresh_token_hash = sha256(refresh_token.encode()).hexdigest()
 
+        # Get old session ID from Redis BEFORE invalidating/updating
+        # This is needed for logout notification to the old device
+        user_id_str = str(user.id)
+        old_session_id = await self.otp_service.redis.get_active_session(user_id_str)
+        
         # Invalidate old sessions (without commit - will commit with session creation)
         invalidated_count = await invalidate_old_sessions(self.db, user.id, commit=False)
         
@@ -256,12 +261,13 @@ class AuthService:
         })
 
         # STEP 3: Process device info and old session logic in background (non-blocking)
-        if device_id:
-            # Only process old session logic if device_id is provided
+        if device_id and old_session_id:
+            # Only process old session logic if device_id and old_session_id are provided
             asyncio.create_task(self._process_device_info_background(
                 user_id=user.id,
                 session_id=session.id,
                 device_id=device_id,
+                old_session_id=old_session_id,
             ))
 
         return {
@@ -276,12 +282,10 @@ class AuthService:
         user_id: UUID,
         session_id: UUID,
         device_id: str,
+        old_session_id: str,
     ) -> None:
         """Process device info and old session logic in background (non-blocking)"""
         try:
-            # Get old active session ID from Redis
-            old_session_id = await self.otp_service.redis.get_active_session(str(user_id))
-            
             # Get old session details if exists
             old_push_token = None
             old_device_id = None
@@ -298,8 +302,11 @@ class AuthService:
                     old_device_id = row[1]
                     is_same_device = old_device_id == device_id
                     
+                    print(f"🔍 Old session check: old_device={old_device_id}, new_device={device_id}, same={is_same_device}")
+                    
                     # Handle different device login
                     if not is_same_device:
+                        print(f"🚪 Different device detected! Sending logout notification...")
                         # Mark old session for force logout
                         await self.otp_service.redis.set_value(
                             f"force_logout:{old_session_id}",
@@ -309,9 +316,20 @@ class AuthService:
                         
                         # Send push notification to OLD device (non-blocking)
                         if old_push_token:
+                            print(f"📱 Old device has push token, sending notification...")
                             asyncio.create_task(self._send_logout_notification_async(old_push_token, str(old_session_id)))
+                        else:
+                            print(f"⚠️ Old device has no push token - cannot send logout notification")
+                    else:
+                        print(f"✅ Same device login - no logout notification needed")
+                else:
+                    print(f"⚠️ Old session {old_session_id} not found in database")
+            else:
+                print(f"ℹ️ No old session to process (first login or same session)")
         except Exception as e:
             print(f"❌ Error processing device info in background: {e}")
+            import traceback
+            print(traceback.format_exc())
             # Non-critical - login already succeeded
 
     async def _send_logout_notification_async(self, push_token: str, session_id: str) -> None:
@@ -538,10 +556,21 @@ class AuthService:
         if session.refresh_token_hash != refresh_token_hash:
             raise UnauthorizedException("Invalid refresh token")
         
-        # Verify session is still active in Redis
-        is_valid = await self.otp_service.redis.is_session_valid(user_id_str, session_id_str)
-        if not is_valid:
-            raise UnauthorizedException("Session is no longer valid")
+        # Check if session is still active in Redis (non-blocking, Redis is optimization)
+        # Database is the source of truth - if DB says active, allow refresh
+        try:
+            is_valid = await self.otp_service.redis.is_session_valid(user_id_str, session_id_str)
+            if not is_valid:
+                # Re-sync Redis with DB state (session is active in DB but not in Redis)
+                print(f"⚠️ Session {session_id_str} not in Redis but active in DB - re-syncing")
+                await self.otp_service.redis.set_active_session(
+                    user_id_str, 
+                    session_id_str,
+                    expire=86400 * settings.SESSION_TTL_DAYS
+                )
+        except Exception as redis_error:
+            # Redis is down or unavailable - proceed with DB-only validation
+            print(f"⚠️ Redis session check failed: {redis_error} - proceeding with DB validation")
         
         # Get user for token generation
         user = await self.get_user_by_id(user_id)
