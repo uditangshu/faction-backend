@@ -64,33 +64,34 @@ class PushNotificationService:
                     result = response.json()
                     print(f"📥 Expo API response body: {result}")
                     
-                    # Check if notification was accepted
+                    # Parse Expo response - can be {'data': {...}} or {'data': [{...}]}
                     if isinstance(result, dict) and result.get("data"):
                         data = result["data"]
-                        if isinstance(data, list) and len(data) > 0:
-                            status = data[0].get("status")
-                            details = data[0].get("details", {})
+                        
+                        # Handle both single object and array response
+                        if isinstance(data, list):
+                            data = data[0] if len(data) > 0 else {}
+                        
+                        status = data.get("status")
+                        
+                        if status == "ok":
+                            print(f"✅ Push notification ACCEPTED by Expo")
+                            return True
+                        elif status == "error":
+                            error_msg = data.get('message', 'Unknown error')
+                            error_details = data.get('details', {})
+                            print(f"❌ Push notification REJECTED: {error_msg}")
                             
-                            if status == "ok":
-                                print(f"✅ Push notification ACCEPTED by Expo")
-                                return True
-                            elif status == "error":
-                                error_msg = data[0].get('message', 'Unknown error')
-                                error_details = data[0].get('details', {})
-                                print(f"❌ Push notification REJECTED by Expo: {error_msg}")
-                                print(f"   Error details: {error_details}")
-                                
-                                # Common errors:
-                                if "DeviceNotRegistered" in str(error_details):
-                                    print(f"   ⚠️ Device token is no longer valid (app uninstalled or token expired)")
-                                elif "InvalidCredentials" in str(error_details):
-                                    print(f"   ⚠️ Push credentials are invalid")
-                                
-                                return False
+                            if "InvalidCredentials" in str(error_details):
+                                print(f"   ⚠️ FCM credentials not configured in Expo!")
+                            elif "DeviceNotRegistered" in str(error_details):
+                                print(f"   ⚠️ Device token expired or app uninstalled")
+                            
+                            return False
+                    
                     return True
                 else:
                     print(f"❌ Expo API HTTP error: {response.status_code}")
-                    print(f"   Response: {response.text}")
                     return False
                     
         except httpx.TimeoutException as e:
