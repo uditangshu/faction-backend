@@ -207,6 +207,7 @@ class AuthService:
         # Get old session data BEFORE changes - needed for logout notification (yadav)
         old_session_id = await self.otp_service.redis.get_active_session(user_id_str)
         old_push_token, old_device_id = None, None
+        print(f"🔍 Old session from Redis: {old_session_id}")
         if old_session_id:
             result = await self.db.execute(
                 select(UserSession.push_token, UserSession.device_id).where(UserSession.id == UUID(old_session_id))
@@ -214,6 +215,7 @@ class AuthService:
             row = result.first()
             if row:
                 old_push_token, old_device_id = row[0], row[1]
+                print(f"🔍 Old session data: device_id={old_device_id}, push_token={old_push_token[:20] if old_push_token else 'NONE'}...")
 
         # Create new session first (yadav)
         session = UserSession(
@@ -278,12 +280,13 @@ class AuthService:
             
             if not is_same_device:
                 print(f"🚪 Different device - sending logout notification...")
+                print(f"   old_push_token = {old_push_token[:30] if old_push_token else 'NONE'}...")
                 await self.otp_service.redis.set_value(f"force_logout:{old_session_id}", "true", expire=300)
                 
                 if old_push_token:
                     await self._send_logout_notification_async(old_push_token, old_session_id)
                 else:
-                    print(f"⚠️ No push token on old device")
+                    print(f"⚠️ No push token on old device - cannot send notification")
         except Exception as e:
             print(f"❌ Background task error: {e}")
 
