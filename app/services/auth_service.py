@@ -5,15 +5,15 @@ from datetime import datetime, timedelta
 from uuid import UUID, uuid4
 from hashlib import sha256
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
+from sqlalchemy import select, update
 
 from app.models.user import User, UserRole, ClassLevel, TargetExam
-from app.models.session import DeviceType
-from app.core.security import create_access_token, create_refresh_token, hash_password, verify_password
+from app.models.session import DeviceType, UserSession
+from app.core.security import create_access_token, create_refresh_token, hash_password, verify_password, decode_token
 from app.core.config import settings
 from app.services.otp_service import OTPService
 from app.services.twilio_service import TwilioService
-from app.db.session_calls import create_user_session, invalidate_old_sessions
+from app.db.session_calls import invalidate_old_sessions
 from app.utils.exceptions import (
     NotFoundException,
     PhoneAlreadyExistsException,
@@ -126,21 +126,14 @@ class AuthService:
             target_exams=signup_data["target_exams"],
             role=signup_data["role"],
         )
-
         self.db.add(user)
-        await self.db.commit()
-        await self.db.refresh(user)
+        await self.db.flush()  # Get user.id without commit
 
-        # Delete signup data
-        await self.otp_service.redis.delete_key(f"signup_data:{temp_token}")
-
-        # Create session
-        session_id = uuid4()
-        refresh_token = create_refresh_token({"sub": str(user.id), "session_id": str(session_id)})
+        # Create session in same transaction (yadav)
+        refresh_token = create_refresh_token({"sub": str(user.id), "session_id": str(uuid4())})
         refresh_token_hash = sha256(refresh_token.encode()).hexdigest()
 
-        session = await create_user_session(
-            db=self.db,
+        session = UserSession(
             user_id=user.id,
             device_id=signup_data["device_id"],
             device_type=DeviceType(signup_data["device_type"]),
@@ -150,7 +143,12 @@ class AuthService:
             user_agent=user_agent,
             refresh_token_hash=refresh_token_hash,
             expires_at=datetime.utcnow() + timedelta(days=settings.REFRESH_TOKEN_EXPIRE_DAYS),
+            is_active=True,
         )
+        self.db.add(session)
+        await self.db.commit()  # Single commit for user + session
+
+        await self.otp_service.redis.delete_key(f"signup_data:{temp_token}")
 
         # Store active session in Redis (1 year TTL matching refresh token)
         await self.otp_service.redis.set_active_session(
@@ -185,66 +183,43 @@ class AuthService:
         ip_address: str | None = None,
         user_agent: str | None = None,
     ) -> dict:
-        """Login with phone number and password - returns tokens immediately, processes device info in background"""
-        # STEP 1: Validate credentials (fast path - no device info needed)
+        """Login with phone number and password (yadav)"""
+        # Validate phone
         is_valid, formatted_phone = validate_indian_phone(phone_number)
         if not is_valid:
             raise UnauthorizedException("Invalid phone number")
 
-        # Get user
         user = await self.get_user_by_phone(formatted_phone)
         if not user:
             raise UserNotFoundException("User not found. Please sign up to create an account")
-
         if not user.is_active:
             raise UnauthorizedException("Account is inactive")
-
-        # Verify password
         if not user.password_hash:
             raise UnauthorizedException("Please set up your password first")
-        
         if not verify_password(password, user.password_hash):
             raise UnauthorizedException("Invalid phone number or password")
 
-        # STEP 2: Create minimal session and return tokens immediately
-        # Device info processing happens in background if not provided
-        session_id = uuid4()
-        refresh_token = create_refresh_token({"sub": str(user.id), "session_id": str(session_id)})
+        # Prepare new session (yadav)
+        user_id_str = str(user.id)
+        refresh_token = create_refresh_token({"sub": user_id_str, "session_id": str(uuid4())})
         refresh_token_hash = sha256(refresh_token.encode()).hexdigest()
 
-        # Get old session ID from Redis BEFORE invalidating/updating
-        # This is needed for logout notification to the old device
-        user_id_str = str(user.id)
+        # Get old session data BEFORE changes - needed for logout notification (yadav)
         old_session_id = await self.otp_service.redis.get_active_session(user_id_str)
-        
-        # Fetch old session data BEFORE any DB changes (needed for background task)
-        # This avoids DB session conflicts in background task
-        old_push_token = None
-        old_device_id = None
+        old_push_token, old_device_id = None, None
         if old_session_id:
-            from app.models.session import UserSession
             result = await self.db.execute(
                 select(UserSession.push_token, UserSession.device_id).where(UserSession.id == UUID(old_session_id))
             )
             row = result.first()
             if row:
-                old_push_token = row[0]
-                old_device_id = row[1]
-        
-        # Invalidate old sessions (without commit - will commit with session creation)
-        invalidated_count = await invalidate_old_sessions(self.db, user.id, commit=False)
-        
-        # Update user.updated_at
-        user.updated_at = datetime.utcnow()
-        
-        # Create new session (with device info if provided, temporary UUID otherwise)
-        # If device_id not provided, use temporary UUID - will be updated in background
-        from app.models.session import UserSession
-        temp_device_id = device_id or str(uuid4())  # Temporary UUID if device info not provided
+                old_push_token, old_device_id = row[0], row[1]
+
+        # Create new session first (yadav)
         session = UserSession(
             user_id=user.id,
-            device_id=temp_device_id,
-            device_type=device_type or DeviceType.MOBILE,  # Default to mobile
+            device_id=device_id or str(uuid4()),
+            device_type=device_type or DeviceType.MOBILE,
             device_model=device_model,
             os_version=os_version,
             ip_address=ip_address,
@@ -254,28 +229,26 @@ class AuthService:
             is_active=True,
         )
         self.db.add(session)
-        
-        # Single commit for: invalidate old sessions + create new session + update user
-        await self.db.commit()
-        await self.db.refresh(session)
+        await self.db.flush()  # Get session.id without commit
 
-        # Store active session in Redis immediately (1 year TTL matching refresh token)
-        user_id_str = str(user.id)
+        # Invalidate old sessions EXCLUDING the new one - single batch UPDATE (yadav)
+        await invalidate_old_sessions(self.db, user.id, exclude_session_id=session.id, commit=False)
+        
+        user.updated_at = datetime.utcnow()
+        await self.db.commit()
+
+        # Cache active session in Redis
         await self.otp_service.redis.set_active_session(
-            user_id_str, 
-            str(session.id),
-            expire=86400 * settings.SESSION_TTL_DAYS
+            user_id_str, str(session.id), expire=86400 * settings.SESSION_TTL_DAYS
         )
 
-        # Generate access token with session_id
         access_token = create_access_token({
-            "sub": str(user.id),
+            "sub": user_id_str,
             "phone": user.phone_number,
             "session_id": str(session.id)
         })
 
-        # STEP 3: Process device info and old session logic in background (non-blocking)
-        # Pass pre-fetched data to avoid DB session conflicts
+        # Send logout notification to old device in background (yadav)
         if device_id and old_session_id and old_device_id:
             asyncio.create_task(self._process_device_info_background(
                 device_id=device_id,
@@ -298,137 +271,72 @@ class AuthService:
         old_device_id: str,
         old_push_token: str | None,
     ) -> None:
-        """Process device info and old session logic in background (non-blocking)
-        
-        NOTE: This function does NOT access the database to avoid session conflicts.
-        All needed data is passed as parameters.
-        """
+        """Handle logout notification to old device (yadav)"""
         try:
             is_same_device = old_device_id == device_id
+            print(f"🔍 Device check: old={old_device_id}, new={device_id}, same={is_same_device}")
             
-            print(f"🔍 Old session check: old_device={old_device_id}, new_device={device_id}, same={is_same_device}")
-            
-            # Handle different device login
             if not is_same_device:
-                print(f"🚪 Different device detected! Sending logout notification...")
-                print(f"   Old push token: {old_push_token if old_push_token else 'NONE'}")
-                # Mark old session for force logout
-                await self.otp_service.redis.set_value(
-                    f"force_logout:{old_session_id}",
-                    "true",
-                    expire=300
-                )
+                print(f"🚪 Different device - sending logout notification...")
+                await self.otp_service.redis.set_value(f"force_logout:{old_session_id}", "true", expire=300)
                 
-                # Send push notification to OLD device (non-blocking)
                 if old_push_token:
-                    print(f"📱 Sending push notification to old device...")
-                    # Don't create nested task - await directly since we're already in background
-                    await self._send_logout_notification_async(old_push_token, str(old_session_id))
+                    await self._send_logout_notification_async(old_push_token, old_session_id)
                 else:
-                    print(f"⚠️ Old device has no push token - cannot send logout notification")
-            else:
-                print(f"✅ Same device login - no logout notification needed")
+                    print(f"⚠️ No push token on old device")
         except Exception as e:
-            print(f"❌ Error processing device info in background: {e}")
-            import traceback
-            print(traceback.format_exc())
-            # Non-critical - login already succeeded
+            print(f"❌ Background task error: {e}")
 
     async def _send_logout_notification_async(self, push_token: str, session_id: str) -> None:
-        """Send logout notification asynchronously (fire and forget)"""
+        """Fire-and-forget logout notification (yadav)"""
         try:
             from app.services.push_notification_service import PushNotificationService
-            push_service = PushNotificationService()
-            success = await push_service.send_logout_notification(push_token)
-            if success:
-                print(f"✅ Logout push notification sent successfully for session {session_id}")
-            else:
-                print(f"⚠️ Logout push notification failed for session {session_id}")
+            success = await PushNotificationService().send_logout_notification(push_token)
+            print(f"{'✅' if success else '⚠️'} Logout notification {'sent' if success else 'failed'} for {session_id}")
         except Exception as e:
-            print(f"❌ Failed to send logout push notification for session {session_id}: {e}")
+            print(f"❌ Push notification error: {e}")
 
     async def register_push_token(self, user_id: str, push_token: str) -> bool:
-        """
-        Register push notification token for the current active session.
-        This ensures the push token is only registered to the NEW device's session,
-        not the old one that was just invalidated.
-        """
+        """Register push token for current active session (yadav)"""
         try:
-            print(f"📱 Registering push token for user {user_id}: {push_token[:20]}...")
-            
-            # Get the active session ID from Redis
-            # This will be the NEW session if user just logged in from a new device
             active_session_id = await self.otp_service.redis.get_active_session(user_id)
             if not active_session_id:
-                print(f"⚠️ No active session found for user {user_id}")
+                print(f"⚠️ No active session for user {user_id}")
                 return False
             
-            print(f"📱 Active session ID: {active_session_id} (this is the NEW device's session)")
-            
-            # Verify the session exists and is active
-            from app.models.session import UserSession
             result = await self.db.execute(
                 select(UserSession).where(UserSession.id == UUID(active_session_id))
             )
             session = result.scalar_one_or_none()
             
-            if not session:
-                print(f"❌ Session {active_session_id} not found in database")
+            if not session or not session.is_active:
+                print(f"⚠️ Session {active_session_id} invalid")
                 return False
             
-            if not session.is_active:
-                print(f"⚠️ Session {active_session_id} is not active - this shouldn't happen")
-                return False
-            
-            # Update the session with push token
-            from sqlalchemy import update
-            
-            stmt = (
-                update(UserSession)
-                .where(UserSession.id == UUID(active_session_id))
-                .values(push_token=push_token)
+            await self.db.execute(
+                update(UserSession).where(UserSession.id == UUID(active_session_id)).values(push_token=push_token)
             )
-            await self.db.execute(stmt)
             await self.db.commit()
-            
-            print(f"✅ Push token registered successfully for NEW device's session {active_session_id}")
-            print(f"✅ This push token will receive notifications for future logins from other devices")
+            print(f"✅ Push token registered for session {active_session_id}")
             return True
         except Exception as e:
-            print(f"❌ Failed to register push token: {e}")
-            import traceback
-            print(traceback.format_exc())
+            print(f"❌ Push token registration failed: {e}")
             return False
 
     async def logout(self, user_id: str, session_id: str | None = None) -> bool:
-        
+        """Logout user and clear session (yadav)"""
         try:
-            print(f"🔓 Logging out user {user_id}, session {session_id}")
-            
-            from app.models.session import UserSession
-            from sqlalchemy import update
-            
-            # If we have a session_id, clear the push token and mark it inactive
             if session_id:
-                # Clear push token first - this prevents logout notification on re-login
-                stmt = (
-                    update(UserSession)
-                    .where(UserSession.id == UUID(session_id))
-                    .values(push_token=None, is_active=False)
+                await self.db.execute(
+                    update(UserSession).where(UserSession.id == UUID(session_id)).values(push_token=None, is_active=False)
                 )
-                await self.db.execute(stmt)
                 await self.db.commit()
-                print(f"✅ Session {session_id} push token cleared and marked inactive")
             
-            # Invalidate the active session in Redis
             await self.otp_service.redis.invalidate_user_session(user_id)
-            print(f"✅ Active session removed from Redis for user {user_id}")
-            
+            print(f"✅ Logged out user {user_id}")
             return True
         except Exception as e:
-            print(f"❌ Failed to logout: {e}")
-            import traceback
-            print(traceback.format_exc())
+            print(f"❌ Logout failed: {e}")
             return False
 
     async def initiate_forgot_password(self, phone_number: str) -> tuple[str, str]:
@@ -507,94 +415,54 @@ class AuthService:
         return True
 
     async def refresh_access_token(self, refresh_token: str) -> dict:
-        """Refresh access token using refresh token"""
-        from app.core.security import decode_token
-        from app.models.session import UserSession
-        
-        # Decode and validate refresh token
+        """Refresh access token using refresh token (yadav)"""
         payload = decode_token(refresh_token)
-        if not payload:
+        if not payload or payload.get("type") != "refresh":
             raise UnauthorizedException("Invalid or expired refresh token")
         
-        # Check token type
-        if payload.get("type") != "refresh":
-            raise UnauthorizedException("Invalid token type")
-        
-        # Get user_id and session_id from token
-        user_id_str = payload.get("sub")
-        session_id_str = payload.get("session_id")
-        
+        user_id_str, session_id_str = payload.get("sub"), payload.get("session_id")
         if not user_id_str or not session_id_str:
             raise UnauthorizedException("Invalid token payload")
         
         try:
-            user_id = UUID(user_id_str)
-            session_id = UUID(session_id_str)
+            user_id, session_id = UUID(user_id_str), UUID(session_id_str)
         except ValueError:
             raise UnauthorizedException("Invalid token format")
         
-        # Get session from database
-        result = await self.db.execute(
-            select(UserSession).where(UserSession.id == session_id)
-        )
+        # Validate session in DB (source of truth)
+        result = await self.db.execute(select(UserSession).where(UserSession.id == session_id))
         session = result.scalar_one_or_none()
         
-        if not session:
-            raise UnauthorizedException("Session not found")
-        
-        if not session.is_active:
-            raise UnauthorizedException("Session is inactive")
-        
-        # Check if session belongs to the user
+        if not session or not session.is_active:
+            raise UnauthorizedException("Session not found or inactive")
         if session.user_id != user_id:
             raise UnauthorizedException("Session does not belong to user")
-        
-        # Check if session has expired
         if session.expires_at < datetime.utcnow():
             raise UnauthorizedException("Session has expired")
-        
-        # Verify refresh token hash
-        refresh_token_hash = sha256(refresh_token.encode()).hexdigest()
-        if session.refresh_token_hash != refresh_token_hash:
+        if sha256(refresh_token.encode()).hexdigest() != session.refresh_token_hash:
             raise UnauthorizedException("Invalid refresh token")
         
-        # Check if session is still active in Redis (non-blocking, Redis is optimization)
-        # Database is the source of truth - if DB says active, allow refresh
+        # Re-sync Redis if needed (yadav)
         try:
             is_valid = await self.otp_service.redis.is_session_valid(user_id_str, session_id_str)
             if not is_valid:
-                # Re-sync Redis with DB state (session is active in DB but not in Redis)
-                print(f"⚠️ Session {session_id_str} not in Redis but active in DB - re-syncing")
-                await self.otp_service.redis.set_active_session(
-                    user_id_str, 
-                    session_id_str,
-                    expire=86400 * settings.SESSION_TTL_DAYS
-                )
-        except Exception as redis_error:
-            # Redis is down or unavailable - proceed with DB-only validation
-            print(f"⚠️ Redis session check failed: {redis_error} - proceeding with DB validation")
+                await self.otp_service.redis.set_active_session(user_id_str, session_id_str, expire=86400 * settings.SESSION_TTL_DAYS)
+        except Exception:
+            pass  # Redis optional, DB is truth
         
-        # Get user for token generation
         user = await self.get_user_by_id(user_id)
-        if not user:
-            raise UnauthorizedException("User not found")
+        if not user or not user.is_active:
+            raise UnauthorizedException("User not found or inactive")
         
-        if not user.is_active:
-            raise UnauthorizedException("Account is inactive")
-        
-        # Generate new access token with same session_id
         access_token = create_access_token({
             "sub": str(user.id),
             "phone": user.phone_number,
             "session_id": str(session.id)
         })
         
-        # Optionally rotate refresh token (for now, reuse the same one)
-        # To rotate: generate new refresh token, update hash in DB
-        
         return {
             "access_token": access_token,
-            "refresh_token": refresh_token,  # Reuse same refresh token
+            "refresh_token": refresh_token,
             "token_type": "bearer",
             "session_id": str(session.id),
         }
