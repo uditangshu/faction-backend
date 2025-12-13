@@ -311,6 +311,7 @@ class AuthService:
             # Handle different device login
             if not is_same_device:
                 print(f"🚪 Different device detected! Sending logout notification...")
+                print(f"   Old push token: {old_push_token if old_push_token else 'NONE'}")
                 # Mark old session for force logout
                 await self.otp_service.redis.set_value(
                     f"force_logout:{old_session_id}",
@@ -320,8 +321,9 @@ class AuthService:
                 
                 # Send push notification to OLD device (non-blocking)
                 if old_push_token:
-                    print(f"📱 Old device has push token, sending notification...")
-                    asyncio.create_task(self._send_logout_notification_async(old_push_token, str(old_session_id)))
+                    print(f"📱 Sending push notification to old device...")
+                    # Don't create nested task - await directly since we're already in background
+                    await self._send_logout_notification_async(old_push_token, str(old_session_id))
                 else:
                     print(f"⚠️ Old device has no push token - cannot send logout notification")
             else:
