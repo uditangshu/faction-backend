@@ -217,6 +217,20 @@ class AuthService:
         user_id_str = str(user.id)
         old_session_id = await self.otp_service.redis.get_active_session(user_id_str)
         
+        # Fetch old session data BEFORE any DB changes (needed for background task)
+        # This avoids DB session conflicts in background task
+        old_push_token = None
+        old_device_id = None
+        if old_session_id:
+            from app.models.session import UserSession
+            result = await self.db.execute(
+                select(UserSession.push_token, UserSession.device_id).where(UserSession.id == UUID(old_session_id))
+            )
+            row = result.first()
+            if row:
+                old_push_token = row[0]
+                old_device_id = row[1]
+        
         # Invalidate old sessions (without commit - will commit with session creation)
         invalidated_count = await invalidate_old_sessions(self.db, user.id, commit=False)
         
@@ -261,13 +275,13 @@ class AuthService:
         })
 
         # STEP 3: Process device info and old session logic in background (non-blocking)
-        if device_id and old_session_id:
-            # Only process old session logic if device_id and old_session_id are provided
+        # Pass pre-fetched data to avoid DB session conflicts
+        if device_id and old_session_id and old_device_id:
             asyncio.create_task(self._process_device_info_background(
-                user_id=user.id,
-                session_id=session.id,
                 device_id=device_id,
                 old_session_id=old_session_id,
+                old_device_id=old_device_id,
+                old_push_token=old_push_token,
             ))
 
         return {
@@ -279,53 +293,39 @@ class AuthService:
 
     async def _process_device_info_background(
         self,
-        user_id: UUID,
-        session_id: UUID,
         device_id: str,
         old_session_id: str,
+        old_device_id: str,
+        old_push_token: str | None,
     ) -> None:
-        """Process device info and old session logic in background (non-blocking)"""
+        """Process device info and old session logic in background (non-blocking)
+        
+        NOTE: This function does NOT access the database to avoid session conflicts.
+        All needed data is passed as parameters.
+        """
         try:
-            # Get old session details if exists
-            old_push_token = None
-            old_device_id = None
-            is_same_device = False
+            is_same_device = old_device_id == device_id
             
-            if old_session_id and str(old_session_id) != str(session_id):
-                from app.models.session import UserSession
-                result = await self.db.execute(
-                    select(UserSession.push_token, UserSession.device_id).where(UserSession.id == UUID(old_session_id))
+            print(f"🔍 Old session check: old_device={old_device_id}, new_device={device_id}, same={is_same_device}")
+            
+            # Handle different device login
+            if not is_same_device:
+                print(f"🚪 Different device detected! Sending logout notification...")
+                # Mark old session for force logout
+                await self.otp_service.redis.set_value(
+                    f"force_logout:{old_session_id}",
+                    "true",
+                    expire=300
                 )
-                row = result.first()
-                if row:
-                    old_push_token = row[0]
-                    old_device_id = row[1]
-                    is_same_device = old_device_id == device_id
-                    
-                    print(f"🔍 Old session check: old_device={old_device_id}, new_device={device_id}, same={is_same_device}")
-                    
-                    # Handle different device login
-                    if not is_same_device:
-                        print(f"🚪 Different device detected! Sending logout notification...")
-                        # Mark old session for force logout
-                        await self.otp_service.redis.set_value(
-                            f"force_logout:{old_session_id}",
-                            "true",
-                            expire=300
-                        )
-                        
-                        # Send push notification to OLD device (non-blocking)
-                        if old_push_token:
-                            print(f"📱 Old device has push token, sending notification...")
-                            asyncio.create_task(self._send_logout_notification_async(old_push_token, str(old_session_id)))
-                        else:
-                            print(f"⚠️ Old device has no push token - cannot send logout notification")
-                    else:
-                        print(f"✅ Same device login - no logout notification needed")
+                
+                # Send push notification to OLD device (non-blocking)
+                if old_push_token:
+                    print(f"📱 Old device has push token, sending notification...")
+                    asyncio.create_task(self._send_logout_notification_async(old_push_token, str(old_session_id)))
                 else:
-                    print(f"⚠️ Old session {old_session_id} not found in database")
+                    print(f"⚠️ Old device has no push token - cannot send logout notification")
             else:
-                print(f"ℹ️ No old session to process (first login or same session)")
+                print(f"✅ Same device login - no logout notification needed")
         except Exception as e:
             print(f"❌ Error processing device info in background: {e}")
             import traceback
