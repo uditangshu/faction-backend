@@ -92,10 +92,14 @@ class PushNotificationService:
                     print(f"❌ Expo API HTTP error: {response.status_code}")
                     print(f"   Response: {response.text}")
                     return False
-                    return False
                     
+        except httpx.TimeoutException as e:
+            print(f"❌ Push notification TIMEOUT: {e}")
+            return False
         except Exception as e:
-            logger.error(f"❌ Error sending push notification: {e}")
+            print(f"❌ Push notification EXCEPTION: {type(e).__name__}: {e}")
+            import traceback
+            print(traceback.format_exc())
             return False
     
     async def send_batch_notifications(self, messages: List[Dict[str, Any]]) -> bool:

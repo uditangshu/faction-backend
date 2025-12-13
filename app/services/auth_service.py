@@ -284,11 +284,15 @@ class AuthService:
                 await self.otp_service.redis.set_value(f"force_logout:{old_session_id}", "true", expire=300)
                 
                 if old_push_token:
+                    print(f"📱 Calling _send_logout_notification_async...")
                     await self._send_logout_notification_async(old_push_token, old_session_id)
+                    print(f"📱 _send_logout_notification_async completed")
                 else:
                     print(f"⚠️ No push token on old device - cannot send notification")
         except Exception as e:
             print(f"❌ Background task error: {e}")
+            import traceback
+            print(traceback.format_exc())
 
     async def _send_logout_notification_async(self, push_token: str, session_id: str) -> None:
         """Fire-and-forget logout notification (yadav)"""
