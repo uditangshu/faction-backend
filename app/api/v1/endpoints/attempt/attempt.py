@@ -25,7 +25,7 @@ async def create_attempt(
     current_user: CurrentUser,
     request: AttemptCreateRequest,
 ) -> AttemptResponse:
-    """Record a new question attempt"""
+    """Record a new question attempt (streak is updated automatically if answer is correct)"""
     try:
         attempt = await attempt_service.create_attempt(
             user_id=current_user.id,
