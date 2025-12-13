@@ -1,6 +1,5 @@
 """Authentication service"""
 
-import asyncio
 from datetime import datetime, timedelta
 from uuid import UUID, uuid4
 from hashlib import sha256
@@ -250,20 +249,22 @@ class AuthService:
             "session_id": str(session.id)
         })
 
-        # Send logout notification to old device in background (yadav)
-        if device_id and old_session_id and old_device_id:
-            asyncio.create_task(self._process_device_info_background(
-                device_id=device_id,
-                old_session_id=old_session_id,
-                old_device_id=old_device_id,
-                old_push_token=old_push_token,
-            ))
+        # Return background task data for endpoint to schedule (yadav)
+        background_task_data = None
+        if device_id and old_session_id and old_device_id and old_device_id != device_id:
+            background_task_data = {
+                "device_id": device_id,
+                "old_session_id": old_session_id,
+                "old_device_id": old_device_id,
+                "old_push_token": old_push_token,
+            }
 
         return {
             "access_token": access_token,
             "refresh_token": refresh_token,
             "token_type": "bearer",
             "session_id": str(session.id),
+            "background_task_data": background_task_data,
         }
 
     async def _process_device_info_background(
@@ -273,35 +274,26 @@ class AuthService:
         old_device_id: str,
         old_push_token: str | None,
     ) -> None:
-        """Handle logout notification to old device (yadav)"""
+        """Handle logout notification to old device - runs in FastAPI BackgroundTasks (yadav)"""
         try:
-            is_same_device = old_device_id == device_id
-            print(f"🔍 Device check: old={old_device_id}, new={device_id}, same={is_same_device}")
+            print(f"🔍 Background: old_device={old_device_id}, new={device_id}", flush=True)
             
-            if not is_same_device:
-                print(f"🚪 Different device - sending logout notification...")
-                print(f"   old_push_token = {old_push_token[:30] if old_push_token else 'NONE'}...")
-                await self.otp_service.redis.set_value(f"force_logout:{old_session_id}", "true", expire=300)
-                
-                if old_push_token:
-                    print(f"📱 Calling _send_logout_notification_async...")
-                    await self._send_logout_notification_async(old_push_token, old_session_id)
-                    print(f"📱 _send_logout_notification_async completed")
-                else:
-                    print(f"⚠️ No push token on old device - cannot send notification")
+            # Set force logout flag in Redis
+            await self.otp_service.redis.set_value(f"force_logout:{old_session_id}", "true", expire=300)
+            print(f"✅ force_logout flag set for {old_session_id}", flush=True)
+            
+            # Send push notification
+            if old_push_token:
+                print(f"📱 Sending push to: {old_push_token[:30]}...", flush=True)
+                from app.services.push_notification_service import PushNotificationService
+                success = await PushNotificationService().send_logout_notification(old_push_token)
+                print(f"{'✅' if success else '⚠️'} Push notification {'sent' if success else 'failed'}", flush=True)
+            else:
+                print(f"⚠️ No push token on old device", flush=True)
         except Exception as e:
-            print(f"❌ Background task error: {e}")
+            print(f"❌ Background task error: {e}", flush=True)
             import traceback
-            print(traceback.format_exc())
-
-    async def _send_logout_notification_async(self, push_token: str, session_id: str) -> None:
-        """Fire-and-forget logout notification (yadav)"""
-        try:
-            from app.services.push_notification_service import PushNotificationService
-            success = await PushNotificationService().send_logout_notification(push_token)
-            print(f"{'✅' if success else '⚠️'} Logout notification {'sent' if success else 'failed'} for {session_id}")
-        except Exception as e:
-            print(f"❌ Push notification error: {e}")
+            print(traceback.format_exc(), flush=True)
 
     async def register_push_token(self, user_id: str, push_token: str) -> bool:
         """Register push token for current active session (yadav)"""

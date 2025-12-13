@@ -1,7 +1,7 @@
 """Authentication endpoints"""
 
 from typing import Annotated
-from fastapi import APIRouter, status, Request
+from fastapi import APIRouter, status, Request, BackgroundTasks
 from pydantic import BaseModel
 from app.api.v1.dependencies import AuthServiceDep, CurrentUserDep
 from app.schemas.auth import (
@@ -83,12 +83,11 @@ async def login(
     request: LoginRequest,
     http_request: Request,
     auth_service: AuthServiceDep,
+    background_tasks: BackgroundTasks,
 ) -> dict:
-    """Login with phone number and password - returns tokens immediately, processes device info in background"""
+    """Login - returns tokens immediately, push notification runs in background (yadav)"""
     ip_address = http_request.client.host if http_request.client else None
     user_agent = http_request.headers.get("user-agent")
-    
-    # Extract device info if provided (optional)
     device_info = request.device_info
     
     result = await auth_service.login(
@@ -102,12 +101,23 @@ async def login(
         user_agent=user_agent,
     )
     
+    # Schedule push notification in background AFTER response is sent (yadav)
+    if result.get("background_task_data"):
+        data = result["background_task_data"]
+        background_tasks.add_task(
+            auth_service._process_device_info_background,
+            device_id=data["device_id"],
+            old_session_id=data["old_session_id"],
+            old_device_id=data["old_device_id"],
+            old_push_token=data["old_push_token"],
+        )
+    
     return {
         "access_token": result["access_token"],
         "refresh_token": result["refresh_token"],
         "token_type": result["token_type"],
         "session_id": result["session_id"],
-        "expires_in": 90 * 24 * 60 * 60,  # 3 months (7,776,000 seconds)
+        "expires_in": 90 * 24 * 60 * 60,
     }
 
 
