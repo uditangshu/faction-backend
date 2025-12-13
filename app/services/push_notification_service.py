@@ -20,13 +20,22 @@ class PushNotificationService:
         This triggers immediate logout on the receiving device
         """
         try:
-            logger.info(f"Sending logout push notification to token: {push_token[:20]}...")
+            # Validate push token format
+            if not push_token:
+                print(f"❌ Push token is empty or None")
+                return False
+            
+            if not push_token.startswith("ExponentPushToken["):
+                print(f"⚠️ Push token format may be invalid: {push_token[:50]}...")
+                print(f"   Expected format: ExponentPushToken[xxxxx]")
+            
+            print(f"📤 Sending logout push notification to: {push_token}")
             
             message = {
                 "to": push_token,
                 "sound": "default",
                 "title": "Session Expired",
-                "body": "You have been logged out. This may be because you logged in from another device.",
+                "body": "You have been logged out because you logged in from another device.",
                 "data": {
                     "type": "FORCE_LOGOUT",
                     "timestamp": datetime.utcnow().isoformat()
@@ -34,6 +43,8 @@ class PushNotificationService:
                 "priority": "high",
                 "channelId": "default",
             }
+            
+            print(f"📤 Push message payload: {message}")
             
             async with httpx.AsyncClient() as client:
                 response = await client.post(
@@ -47,31 +58,49 @@ class PushNotificationService:
                     timeout=10.0
                 )
                 
-                logger.info(f"Push notification response status: {response.status_code}")
+                print(f"📥 Expo API response status: {response.status_code}")
                 
                 if response.status_code == 200:
                     result = response.json()
-                    logger.info(f"Push notification response: {result}")
+                    print(f"📥 Expo API response body: {result}")
                     
-                    # Check if notification was accepted
+                    # Parse Expo response - can be {'data': {...}} or {'data': [{...}]}
                     if isinstance(result, dict) and result.get("data"):
                         data = result["data"]
-                        if isinstance(data, list) and len(data) > 0:
-                            status = data[0].get("status")
-                            if status == "ok":
-                                logger.info("✅ Push notification sent successfully")
-                                return True
-                            else:
-                                error_msg = data[0].get('message', 'Unknown error')
-                                logger.error(f"❌ Push notification failed: {error_msg}")
-                                return False
+                        
+                        # Handle both single object and array response
+                        if isinstance(data, list):
+                            data = data[0] if len(data) > 0 else {}
+                        
+                        status = data.get("status")
+                        
+                        if status == "ok":
+                            print(f"✅ Push notification ACCEPTED by Expo")
+                            return True
+                        elif status == "error":
+                            error_msg = data.get('message', 'Unknown error')
+                            error_details = data.get('details', {})
+                            print(f"❌ Push notification REJECTED: {error_msg}")
+                            
+                            if "InvalidCredentials" in str(error_details):
+                                print(f"   ⚠️ FCM credentials not configured in Expo!")
+                            elif "DeviceNotRegistered" in str(error_details):
+                                print(f"   ⚠️ Device token expired or app uninstalled")
+                            
+                            return False
+                    
                     return True
                 else:
-                    logger.error(f"❌ Failed to send push notification: HTTP {response.status_code}")
+                    print(f"❌ Expo API HTTP error: {response.status_code}")
                     return False
                     
+        except httpx.TimeoutException as e:
+            print(f"❌ Push notification TIMEOUT: {e}")
+            return False
         except Exception as e:
-            logger.error(f"❌ Error sending push notification: {e}")
+            print(f"❌ Push notification EXCEPTION: {type(e).__name__}: {e}")
+            import traceback
+            print(traceback.format_exc())
             return False
     
     async def send_batch_notifications(self, messages: List[Dict[str, Any]]) -> bool:
