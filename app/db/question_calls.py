@@ -38,11 +38,12 @@ async def update_class(db : AsyncSession, updated_class: Class):
 
 
 #subjects
-async def create_subject(db : AsyncSession, subject_type: Subject_Type, class_id : UUID) -> Subject:
+async def create_subject(db : AsyncSession, subject_type: Subject_Type, class_id : UUID, exam_type: Optional[List[TargetExam]] = None) -> Subject:
     """Create a new subject"""
     new_subject = Subject(
         subject_type=subject_type, 
-        class_id=class_id     
+        class_id=class_id,
+        exam_type=exam_type if exam_type is not None else []
     )
     
     db.add(new_subject)

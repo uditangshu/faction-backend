@@ -12,6 +12,7 @@ from app.schemas.question import (
     SubjectWithChaptersResponse,
 )
 from app.exceptions.http_exceptions import NotFoundException, BadRequestException
+from app.models.user import TargetExam
 
 router = APIRouter(prefix="/subjects", tags=["Subjects"])
 
@@ -25,7 +26,8 @@ async def create_subject(
     try:
         new_subject = await subject_service.create_subject(
             request.subject_type, 
-            request.class_id
+            request.class_id,
+            request.exam_type
         )
         return SubjectResponse.model_validate(new_subject)
     except Exception as e:
@@ -36,9 +38,15 @@ async def create_subject(
 async def get_all_subjects(
     subject_service: SubjectServiceDep,
     class_id: Optional[UUID] = Query(None, description="Filter subjects by class ID"),
+    exam_type: Optional[TargetExam] = Query(None, description="Filter subjects by exam type"),
 ) -> SubjectListResponse:
-    """Get all subjects, optionally filtered by class ID"""
-    if class_id:
+    """Get all subjects, optionally filtered by class ID or exam type"""
+    if exam_type:
+        subjects = await subject_service.get_subjects_by_exam_type(exam_type)
+        # Further filter by class_id if provided
+        if class_id:
+            subjects = [s for s in subjects if s.class_id == class_id]
+    elif class_id:
         subjects = await subject_service.get_subjects_by_class(class_id)
     else:
         subjects = await subject_service.get_all_subjects()

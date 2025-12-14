@@ -9,9 +9,9 @@ from sqlalchemy.orm import selectinload
 from typing import List, Optional, Tuple
 
 from app.models.pyq import PreviousYearProblems
-from app.models.Basequestion import Question, QuestionType, DifficultyLevel
+from app.models.Basequestion import Question, QuestionType, DifficultyLevel, Topic, Chapter, Subject
 from app.models.attempt import QuestionAttempt
-from app.schemas.filters import YearWiseSorting
+from app.schemas.filters import YearWiseSorting, QuestionAppearance
 
 
 class FilteringService:
@@ -23,173 +23,178 @@ class FilteringService:
     async def get_filtered_pyqs(
         self,
         user_id: Optional[UUID] = None,
+        subject_ids: Optional[List[UUID]] = None,
+        chapter_ids: Optional[List[UUID]] = None,
         difficulty: Optional[DifficultyLevel] = None,
-        question_type: Optional[QuestionType] = None,
-        year_wise_sorting: Optional[YearWiseSorting] = None,
-        last_practiced_first: bool = False,
-        exam_filter: Optional[List[str]] = None,
         year_filter: Optional[List[int]] = None,
-        skip: int = 0,
+        question_appearance: QuestionAppearance = QuestionAppearance.BOTH,
+        cursor: Optional[UUID] = None,
         limit: int = 20,
-    ) -> Tuple[List[dict], int]:
+    ) -> Tuple[List[dict], int, Optional[UUID], bool]:
         """
-        Get filtered PYQ questions with various filters.
+        Get filtered questions with various filters. Filters on Question model.
         
         Args:
             user_id: User ID for last_practiced filtering
+            subject_ids: Filter by list of subject IDs
+            chapter_ids: Filter by list of chapter IDs
             difficulty: Filter by difficulty level
-            question_type: Filter by question type
-            year_wise_sorting: Sort by year (ascending/descending)
-            last_practiced_first: Sort by last practiced date
-            exam_filter: Filter by exam names in exam_detail
-            year_filter: Filter by list of years
-            skip: Pagination offset
-            limit: Pagination limit
+            year_filter: Filter by list of years (only applies to PYQ questions)
+            question_appearance: Filter by PYQ_ONLY, NON_PYQ_ONLY, or BOTH
+            cursor: Cursor for infinite scrolling (question ID)
+            limit: Number of records to return
             
         Returns:
-            Tuple of (list of question dicts, total count)
+            Tuple of (list of question dicts, total count, next cursor, has_more)
         """
-        # Base query joining PYQ with Question
-        query = (
-            select(
-                PreviousYearProblems,
-                Question,
-            )
-            .join(Question, PreviousYearProblems.question_id == Question.id)
-        )
+        # Base query starting from Question
+        query = select(Question)
+        count_query = select(func.count(Question.id))
         
-        count_query = (
-            select(func.count(PreviousYearProblems.id))
-            .join(Question, PreviousYearProblems.question_id == Question.id)
-        )
+        # Join with Topic, Chapter, Subject for filtering
+        query = query.join(Topic, Question.topic_id == Topic.id)
+        query = query.join(Chapter, Topic.chapter_id == Chapter.id)
+        query = query.join(Subject, Chapter.subject_id == Subject.id)
+        
+        count_query = count_query.join(Topic, Question.topic_id == Topic.id)
+        count_query = count_query.join(Chapter, Topic.chapter_id == Chapter.id)
+        count_query = count_query.join(Subject, Chapter.subject_id == Subject.id)
 
         # Apply filters
+        if subject_ids:
+            query = query.where(Subject.id.in_(subject_ids))
+            count_query = count_query.where(Subject.id.in_(subject_ids))
+        
+        if chapter_ids:
+            query = query.where(Chapter.id.in_(chapter_ids))
+            count_query = count_query.where(Chapter.id.in_(chapter_ids))
+        
         if difficulty:
             query = query.where(Question.difficulty == difficulty)
             count_query = count_query.where(Question.difficulty == difficulty)
-        
-        if question_type:
-            query = query.where(Question.type == question_type)
-            count_query = count_query.where(Question.type == question_type)
-        
-        if exam_filter:
-            # Filter by any of the exam names in exam_detail
-            for exam in exam_filter:
-                query = query.filter(cast(PreviousYearProblems.exam_detail, JSONB).contains([exam]))
-                count_query = count_query.filter(cast(PreviousYearProblems.exam_detail, JSONB).contains([exam]))
 
-        if year_filter:
-            # Filter by years - match if year is in the provided list
-            query = query.where(PreviousYearProblems.year.in_(year_filter))
-            count_query = count_query.where(PreviousYearProblems.year.in_(year_filter))
+        # Handle question_appearance filter
+        all_pyq_question_ids = select(PreviousYearProblems.question_id).distinct()
+        
+        if question_appearance == QuestionAppearance.PYQ_ONLY:
+            # Only questions that exist in PYQ table
+            if year_filter:
+                pyq_subquery = select(PreviousYearProblems.question_id).where(
+                    PreviousYearProblems.year.in_(year_filter)
+                ).distinct()
+                query = query.where(Question.id.in_(pyq_subquery))
+                count_query = count_query.where(Question.id.in_(pyq_subquery))
+            else:
+                query = query.where(Question.id.in_(all_pyq_question_ids))
+                count_query = count_query.where(Question.id.in_(all_pyq_question_ids))
+        elif question_appearance == QuestionAppearance.NON_PYQ_ONLY:
+            # Only questions that do NOT exist in PYQ table
+            query = query.where(~Question.id.in_(all_pyq_question_ids))
+            count_query = count_query.where(~Question.id.in_(all_pyq_question_ids))
+        elif question_appearance == QuestionAppearance.BOTH:
+            # All questions, but if year_filter is provided, filter PYQ questions by year
+            if year_filter:
+                # Include non-PYQ questions OR PYQ questions matching year filter
+                pyq_with_year_subquery = select(PreviousYearProblems.question_id).where(
+                    PreviousYearProblems.year.in_(year_filter)
+                ).distinct()
+                query = query.where(
+                    (~Question.id.in_(all_pyq_question_ids)) |
+                    (Question.id.in_(pyq_with_year_subquery))
+                )
+                count_query = count_query.where(
+                    (~Question.id.in_(all_pyq_question_ids)) |
+                    (Question.id.in_(pyq_with_year_subquery))
+                )
 
         # Get total count
         total_result = await self.db.execute(count_query)
         total = total_result.scalar() or 0
 
-        # Apply sorting
-        if year_wise_sorting:
-            if year_wise_sorting == YearWiseSorting.ASCENDING:
-                query = query.order_by(asc(PreviousYearProblems.year))
-            else:
-                query = query.order_by(desc(PreviousYearProblems.year))
-        else:
-            # Default: newest first (by year descending, then by created_at)
-            query = query.order_by(desc(PreviousYearProblems.year), desc(PreviousYearProblems.created_at))
-
-        # Apply pagination
-        query = query.offset(skip).limit(limit)
+        # Apply cursor-based pagination for infinite scrolling
+        if cursor:
+            query = query.where(Question.id > cursor)
+        
+        # Order by question ID for consistent pagination
+        query = query.order_by(Question.id.asc())
+        
+        # Fetch one extra to check if there are more
+        query = query.limit(limit + 1)
         
         result = await self.db.execute(query)
-        rows = result.all()
+        questions_result = result.scalars().all()
+        
+        # Check if there are more results
+        has_more = len(questions_result) > limit
+        if has_more:
+            # Get the cursor from the item after the limit (the one that indicates more)
+            next_cursor = questions_result[limit].id
+            questions_result = questions_result[:limit]
+        else:
+            next_cursor = None
 
-        # Build response with last practiced info if user_id is provided
+        # Build response with PYQ and last practiced info
         questions = []
-        for pyq, question in rows:
+        question_ids = [q.id for q in questions_result]
+        
+        # Fetch PYQ data for all questions in one query
+        pyq_map = {}
+        if question_ids:
+            pyq_result = await self.db.execute(
+                select(PreviousYearProblems)
+                .where(PreviousYearProblems.question_id.in_(question_ids))
+            )
+            pyqs = pyq_result.scalars().all()
+            for pyq in pyqs:
+                pyq_map[pyq.question_id] = pyq
+        
+        # Fetch last practiced dates if user_id is provided
+        last_practiced_map = {}
+        if user_id and question_ids:
+            attempt_result = await self.db.execute(
+                select(
+                    QuestionAttempt.question_id,
+                    func.max(QuestionAttempt.attempted_at).label('last_attempted_at')
+                )
+                .where(
+                    QuestionAttempt.user_id == user_id,
+                    QuestionAttempt.question_id.in_(question_ids)
+                )
+                .group_by(QuestionAttempt.question_id)
+            )
+            for row in attempt_result.all():
+                last_practiced_map[row.question_id] = str(row.last_attempted_at)
+
+        # Build response
+        for question in questions_result:
             question_data = {
-                "pyq_id": pyq.id,
                 "question_id": question.id,
-                "year": pyq.year,
-                "exam_detail": pyq.exam_detail or [],
-                "pyq_created_at": str(pyq.created_at),
-                "question": question, 
+                "question": question,
+                "pyq_id": None,
+                "year": None,
+                "exam_detail": None,
+                "pyq_created_at": None,
                 "last_practiced_at": None,
             }
             
-            # Get last practiced date if user_id is provided
-            if user_id:
-                attempt_result = await self.db.execute(
-                    select(QuestionAttempt.attempted_at)
-                    .where(
-                        QuestionAttempt.user_id == user_id,
-                        QuestionAttempt.question_id == question.id,
-                    )
-                    .order_by(desc(QuestionAttempt.attempted_at))
-                    .limit(1)
-                )
-                last_attempt = attempt_result.scalar_one_or_none()
-                if last_attempt:
-                    question_data["last_practiced_at"] = str(last_attempt)
+            # Add PYQ data if available
+            if question.id in pyq_map:
+                pyq = pyq_map[question.id]
+                question_data["pyq_id"] = pyq.id
+                question_data["year"] = pyq.year
+                question_data["exam_detail"] = pyq.exam_detail or []
+                question_data["pyq_created_at"] = str(pyq.created_at)
+            
+            # Add last practiced date if available
+            if question.id in last_practiced_map:
+                question_data["last_practiced_at"] = last_practiced_map[question.id]
             
             questions.append(question_data)
 
-        # Sort by last practiced if requested
-        if last_practiced_first and user_id:
-            # Sort: practiced questions first (most recent), then unpracticed
-            questions.sort(
-                key=lambda x: (
-                    x["last_practiced_at"] is None,  # Unpracticed last
-                    x["last_practiced_at"] or "",  # Then by date descending
-                ),
-                reverse=False
-            )
-            # Reverse the practiced ones to get most recent first
-            practiced = [q for q in questions if q["last_practiced_at"]]
-            unpracticed = [q for q in questions if not q["last_practiced_at"]]
-            practiced.sort(key=lambda x: x["last_practiced_at"], reverse=True)
-            questions = practiced + unpracticed
+        return questions, total, next_cursor, has_more
 
-        return questions, total
-
-    async def get_pyqs_by_difficulty(
-        self,
-        difficulty: DifficultyLevel,
-        skip: int = 0,
-        limit: int = 20,
-    ) -> Tuple[List[dict], int]:
-        """Get PYQs filtered by difficulty level"""
-        return await self.get_filtered_pyqs(
-            difficulty=difficulty,
-            skip=skip,
-            limit=limit,
-        )
-
-    async def get_pyqs_by_question_type(
-        self,
-        question_type: QuestionType,
-        skip: int = 0,
-        limit: int = 20,
-    ) -> Tuple[List[dict], int]:
-        """Get PYQs filtered by question type"""
-        return await self.get_filtered_pyqs(
-            question_type=question_type,
-            skip=skip,
-            limit=limit,
-        )
-
-    async def get_user_practiced_pyqs(
-        self,
-        user_id: UUID,
-        skip: int = 0,
-        limit: int = 20,
-    ) -> Tuple[List[dict], int]:
-        """Get PYQs that user has practiced, sorted by last practiced"""
-        return await self.get_filtered_pyqs(
-            user_id=user_id,
-            last_practiced_first=True,
-            skip=skip,
-            limit=limit,
-        )
+    # Note: The following helper methods have been removed.
+    # Use get_filtered_pyqs() with appropriate filters instead.
 
     async def get_pyq_stats(self, user_id: UUID) -> dict:
         """Get PYQ statistics for a user"""

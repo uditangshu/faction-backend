@@ -16,16 +16,23 @@ class YearWiseSorting(str, Enum):
     DESCENDING = "descending"
 
 
-class PYQQuestionResponse(BaseModel):
-    """PYQ Question response with question details"""
-    pyq_id: UUID
+class QuestionAppearance(str, Enum):
+    """Question appearance filter options"""
+    PYQ_ONLY = "pyq_only"  # Only questions that are in PYQ
+    NON_PYQ_ONLY = "non_pyq_only"  # Only questions that are NOT in PYQ
+    BOTH = "both"  # All questions regardless of PYQ status
+
+
+class QuestionResponse(BaseModel):
+    """Question response with optional PYQ details"""
     question_id: UUID
-    year: int
-    exam_detail: List[str]
-    pyq_created_at: str
-    
-    # Question details
     question: Question
+    
+    # PYQ details (if question is a PYQ)
+    pyq_id: Optional[UUID] = None
+    year: Optional[int] = None
+    exam_detail: Optional[List[str]] = None
+    pyq_created_at: Optional[str] = None
     
     # Last practiced info (if available)
     last_practiced_at: Optional[str] = None
@@ -34,12 +41,12 @@ class PYQQuestionResponse(BaseModel):
         from_attributes = True
 
 
-class PYQFilteredListResponse(BaseModel):
-    """Filtered PYQ list response"""
-    questions: List[PYQQuestionResponse]
+class QuestionFilteredListResponse(BaseModel):
+    """Filtered question list response with infinite scrolling support"""
+    questions: List[QuestionResponse]
     total: int
-    skip: int
-    limit: int
+    cursor: Optional[UUID] = None  # Last question ID for infinite scrolling
+    has_more: bool  # Whether there are more questions to load
 
 
 class PYQFilterRequest(BaseModel):

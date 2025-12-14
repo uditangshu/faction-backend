@@ -6,126 +6,70 @@ from fastapi import APIRouter, Query
 
 from app.api.v1.dependencies import FilteringServiceDep, CurrentUser
 from app.schemas.filters import (
-    YearWiseSorting,
-    PYQQuestionResponse,
-    PYQFilteredListResponse,
+    QuestionAppearance,
+    QuestionResponse,
+    QuestionFilteredListResponse,
 )
-from app.models.Basequestion import DifficultyLevel, QuestionType
+from app.models.Basequestion import DifficultyLevel
 from app.exceptions.http_exceptions import BadRequestException
 
 router = APIRouter(prefix="/pyq/filter", tags=["Filter Previous Year Questions"])
 
 
-@router.get("/", response_model=PYQFilteredListResponse)
+@router.get("/", response_model=QuestionFilteredListResponse)
 async def get_filtered_pyqs(
     filtering_service: FilteringServiceDep,
     current_user: CurrentUser,
+    subject_ids: Optional[List[UUID]] = Query(None, description="Filter by subject IDs (comma-separated)"),
+    chapter_ids: Optional[List[UUID]] = Query(None, description="Filter by chapter IDs (comma-separated)"),
     difficulty: Optional[DifficultyLevel] = Query(None, description="Filter by difficulty level"),
-    question_type: Optional[QuestionType] = Query(None, description="Filter by question type"),
-    year_wise_sorting: Optional[YearWiseSorting] = Query(None, description="Sort by year (ascending/descending)"),
-    last_practiced_first: bool = Query(False, description="Sort by last practiced date (most recent first)"),
-    exam_filter: Optional[List[str]] = Query(None, description="Filter by exam name (comma-separated for multiple)"),
     year_filter: Optional[List[int]] = Query(None, description="Filter by years (e.g., 2023,2022,2021)"),
-    skip: int = Query(0, ge=0, description="Number of records to skip"),
-    limit: int = Query(20, ge=1, le=100, description="Maximum number of records"),
-) -> PYQFilteredListResponse:
+    question_appearance: QuestionAppearance = Query(
+        QuestionAppearance.BOTH, 
+        description="Filter by question appearance: pyq_only, non_pyq_only, or both"
+    ),
+    cursor: Optional[UUID] = Query(None, description="Cursor for infinite scrolling (question ID from previous response)"),
+    limit: int = Query(20, ge=1, le=100, description="Maximum number of records to return"),
+) -> QuestionFilteredListResponse:
     """
-    Get filtered PYQ questions with various filters.
+    Get filtered questions with various filters. Supports infinite scrolling.
     
     Filters:
+    - subject_ids: Filter by list of subject IDs
+    - chapter_ids: Filter by list of chapter IDs
     - difficulty: Filter by difficulty level (EASY, MEDIUM, HARD, EXPERT, MASTER)
-    - question_type: Filter by question type (INTEGER, MCQ, MATCH, SCQ)
-    - year_wise_sorting: Sort by year (ascending/descending)
-    - last_practiced_first: Sort by user's last practiced date
-    - exam_filter: Filter by exam names (comma-separated, e.g., "JEE 2023,JEE 2022")
-    - year_filter: Filter by years (comma-separated, e.g., 2023,2022,2021)
+    - year_filter: Filter by years (only applies to PYQ questions)
+    - question_appearance: Filter by PYQ_ONLY, NON_PYQ_ONLY, or BOTH
+    - cursor: For infinite scrolling - use the cursor from previous response to get next page
+    - limit: Number of records to return
+    
+    Returns questions with optional PYQ information and supports infinite scrolling via cursor.
     """
     try:
-        # Parse exam filter if provided
-        
-        questions, total = await filtering_service.get_filtered_pyqs(
+        questions, total, next_cursor, has_more = await filtering_service.get_filtered_pyqs(
             user_id=current_user.id,
+            subject_ids=subject_ids,
+            chapter_ids=chapter_ids,
             difficulty=difficulty,
-            question_type=question_type,
-            year_wise_sorting=year_wise_sorting,
-            last_practiced_first=last_practiced_first,
-            exam_filter=exam_filter,
             year_filter=year_filter,
-            skip=skip,
+            question_appearance=question_appearance,
+            cursor=cursor,
             limit=limit,
         )
         
-        return PYQFilteredListResponse(
-            questions=[PYQQuestionResponse(**q) for q in questions],
+        return QuestionFilteredListResponse(
+            questions=[QuestionResponse(**q) for q in questions],
             total=total,
-            skip=skip,
-            limit=limit,
+            cursor=next_cursor,
+            has_more=has_more,
         )
     except Exception as e:
-        raise BadRequestException(f"Failed to filter PYQs: {str(e)}")
+        raise BadRequestException(f"Failed to filter questions: {str(e)}")
 
 
-@router.get("/by-difficulty/{difficulty}", response_model=PYQFilteredListResponse)
-async def get_pyqs_by_difficulty(
-    filtering_service: FilteringServiceDep,
-    difficulty: DifficultyLevel,
-    skip: int = Query(0, ge=0),
-    limit: int = Query(20, ge=1, le=100),
-) -> PYQFilteredListResponse:
-    """Get PYQs filtered by difficulty level"""
-    questions, total = await filtering_service.get_pyqs_by_difficulty(
-        difficulty=difficulty,
-        skip=skip,
-        limit=limit,
-    )
-    return PYQFilteredListResponse(
-        questions=[PYQQuestionResponse(**q) for q in questions],
-        total=total,
-        skip=skip,
-        limit=limit,
-    )
-
-
-@router.get("/by-type/{question_type}", response_model=PYQFilteredListResponse)
-async def get_pyqs_by_question_type(
-    filtering_service: FilteringServiceDep,
-    question_type: QuestionType,
-    skip: int = Query(0, ge=0),
-    limit: int = Query(20, ge=1, le=100),
-) -> PYQFilteredListResponse:
-    """Get PYQs filtered by question type"""
-    questions, total = await filtering_service.get_pyqs_by_question_type(
-        question_type=question_type,
-        skip=skip,
-        limit=limit,
-    )
-    return PYQFilteredListResponse(
-        questions=[PYQQuestionResponse(**q) for q in questions],
-        total=total,
-        skip=skip,
-        limit=limit,
-    )
-
-
-@router.get("/practiced", response_model=PYQFilteredListResponse)
-async def get_practiced_pyqs(
-    filtering_service: FilteringServiceDep,
-    current_user: CurrentUser,
-    skip: int = Query(0, ge=0),
-    limit: int = Query(20, ge=1, le=100),
-) -> PYQFilteredListResponse:
-    """Get PYQs that the current user has practiced, sorted by last practiced date"""
-    questions, total = await filtering_service.get_user_practiced_pyqs(
-        user_id=current_user.id,
-        skip=skip,
-        limit=limit,
-    )
-    return PYQFilteredListResponse(
-        questions=[PYQQuestionResponse(**q) for q in questions],
-        total=total,
-        skip=skip,
-        limit=limit,
-    )
+# Note: The following endpoints have been replaced by the main filtering endpoint above
+# which supports all filtering options including difficulty, question type, and more.
+# Use the main endpoint with appropriate filters instead.
 
 
 @router.get("/stats")

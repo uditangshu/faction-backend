@@ -33,6 +33,7 @@ class SubjectResponse(BaseModel):
     id: UUID
     subject_type: Subject_Type
     class_id: UUID
+    exam_type: List[TargetExam]
 
     class Config:
         from_attributes = True
@@ -48,6 +49,7 @@ class SubjectCreateRequest(BaseModel):
     """Request to create a new subject"""
     subject_type: Subject_Type
     class_id: UUID
+    exam_type: Optional[List[TargetExam]] = None
 
 
 class SubjectListResponse(BaseModel):

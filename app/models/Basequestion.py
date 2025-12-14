@@ -51,6 +51,10 @@ class Subject(SQLModel, table=True):
     # Foreign Key
     class_id: UUID = Field(foreign_key="class.id")
     
+    # Storing a list of Enums using JSON column
+    # Example data: ["JEE_ADVANCED", "JEE_MAINS", "NEET"]
+    exam_type: List[TargetExam] = Field(default_factory=list, sa_column=Column(JSON))
+    
     # Relationships
     subject_class_lvl: Optional[Class] = Relationship(back_populates="subjects")
     chapters: List["Chapter"] = Relationship(back_populates="subject")
