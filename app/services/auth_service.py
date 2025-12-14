@@ -129,9 +129,6 @@ class AuthService:
         await self.db.flush()  # Get user.id without commit
 
         # Create session in same transaction (yadav)
-        refresh_token = create_refresh_token({"sub": str(user.id), "session_id": str(uuid4())})
-        refresh_token_hash = sha256(refresh_token.encode()).hexdigest()
-
         session = UserSession(
             user_id=user.id,
             device_id=signup_data["device_id"],
@@ -140,11 +137,18 @@ class AuthService:
             os_version=signup_data.get("os_version"),
             ip_address=ip_address,
             user_agent=user_agent,
-            refresh_token_hash=refresh_token_hash,
+            refresh_token_hash="placeholder",  # Will update after we have session.id
             expires_at=datetime.utcnow() + timedelta(days=settings.REFRESH_TOKEN_EXPIRE_DAYS),
             is_active=True,
         )
         self.db.add(session)
+        await self.db.flush()  # Get session.id without commit
+
+        # NOW create refresh token with the actual session ID
+        refresh_token = create_refresh_token({"sub": str(user.id), "session_id": str(session.id)})
+        refresh_token_hash = sha256(refresh_token.encode()).hexdigest()
+        session.refresh_token_hash = refresh_token_hash
+
         await self.db.commit()  # Single commit for user + session
 
         await self.otp_service.redis.delete_key(f"signup_data:{temp_token}")
@@ -200,8 +204,6 @@ class AuthService:
 
         # Prepare new session (yadav)
         user_id_str = str(user.id)
-        refresh_token = create_refresh_token({"sub": user_id_str, "session_id": str(uuid4())})
-        refresh_token_hash = sha256(refresh_token.encode()).hexdigest()
 
         # Get old session data BEFORE changes - needed for logout notification (yadav)
         old_session_id = await self.otp_service.redis.get_active_session(user_id_str)
@@ -225,12 +227,17 @@ class AuthService:
             os_version=os_version,
             ip_address=ip_address,
             user_agent=user_agent,
-            refresh_token_hash=refresh_token_hash,
+            refresh_token_hash="placeholder",  # Will update after we have session.id
             expires_at=datetime.now() + timedelta(days=settings.REFRESH_TOKEN_EXPIRE_DAYS),
             is_active=True,
         )
         self.db.add(session)
         await self.db.flush()  # Get session.id without commit
+
+        # NOW create refresh token with the actual session ID
+        refresh_token = create_refresh_token({"sub": user_id_str, "session_id": str(session.id)})
+        refresh_token_hash = sha256(refresh_token.encode()).hexdigest()
+        session.refresh_token_hash = refresh_token_hash
 
         # Invalidate old sessions EXCLUDING the new one - single batch UPDATE (yadav)
         await invalidate_old_sessions(self.db, user.id, exclude_session_id=session.id, commit=False)
