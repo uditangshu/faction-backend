@@ -2,26 +2,16 @@
 
 from uuid import UUID
 from fastapi import APIRouter, Query
-from typing import Optional
+from typing import Optional, List
 
-from app.api.v1.dependencies import DBSession
-from app.db.youtube_video_calls import (
-    create_youtube_video,
-    delete_youtube_video,
-    get_videos_by_subject,
-    get_videos_by_chapter,
-    get_random_video,
-    get_youtube_video_by_id,
-    update_youtube_video,
-    get_latest_youtube_video,
-)
+from app.api.v1.dependencies import YouTubeVideoServiceDep
 from app.schemas.youtube_video import (
     YouTubeVideoCreateRequest,
     YouTubeVideoResponse,
     YouTubeVideoListResponse,
     YouTubeVideoUpdateRequest,
 )
-from app.exceptions.http_exceptions import NotFoundException
+from app.exceptions.http_exceptions import NotFoundException, BadRequestException
 
 router = APIRouter(prefix="/youtube-videos", tags=["YouTube Videos"])
 
@@ -29,11 +19,10 @@ router = APIRouter(prefix="/youtube-videos", tags=["YouTube Videos"])
 @router.post("/", response_model=YouTubeVideoResponse, status_code=201)
 async def create_video(
     request: YouTubeVideoCreateRequest,
-    db: DBSession,
+    youtube_video_service: YouTubeVideoServiceDep,
 ) -> YouTubeVideoResponse:
     """Create a new YouTube video"""
-    video = await create_youtube_video(
-        db=db,
+    video = await youtube_video_service.create_video(
         chapter_id=request.chapter_id,
         subject_id=request.subject_id,
         youtube_video_id=request.youtube_video_id,
@@ -51,11 +40,10 @@ async def create_video(
 async def update_video(
     video_id: UUID,
     request: YouTubeVideoUpdateRequest,
-    db: DBSession,
+    youtube_video_service: YouTubeVideoServiceDep,
 ) -> YouTubeVideoResponse:
     """Update a YouTube video"""
-    video = await update_youtube_video(
-        db=db,
+    video = await youtube_video_service.update_video(
         video_id=video_id,
         title=request.title,
         description=request.description,
@@ -74,30 +62,30 @@ async def update_video(
 @router.delete("/{video_id}", status_code=204)
 async def delete_video(
     video_id: UUID,
-    db: DBSession,
+    youtube_video_service: YouTubeVideoServiceDep,
 ) -> None:
     """Delete a YouTube video"""
-    deleted = await delete_youtube_video(db, video_id)
+    deleted = await youtube_video_service.delete_video(video_id)
     if not deleted:
         raise NotFoundException(f"Video with ID {video_id} not found")
 
 
 @router.get("/", response_model=YouTubeVideoListResponse)
 async def get_videos(
-    db: DBSession,
+    youtube_video_service: YouTubeVideoServiceDep,
     subject_id: Optional[UUID] = Query(None, description="Filter by subject ID"),
     chapter_id: Optional[UUID] = Query(None, description="Filter by chapter ID"),
 ) -> YouTubeVideoListResponse:
     """Get videos by subject_id or chapter_id"""
     if chapter_id:
-        videos = await get_videos_by_chapter(db, chapter_id)
+        videos = await youtube_video_service.get_videos_by_chapter(chapter_id)
         return YouTubeVideoListResponse(
             videos=[YouTubeVideoResponse.model_validate(v) for v in videos],
             total=len(videos),
             chapter_id=chapter_id,
         )
     elif subject_id:
-        videos = await get_videos_by_subject(db, subject_id)
+        videos = await youtube_video_service.get_videos_by_subject(subject_id)
         return YouTubeVideoListResponse(
             videos=[YouTubeVideoResponse.model_validate(v) for v in videos],
             total=len(videos),
@@ -109,10 +97,10 @@ async def get_videos(
 
 @router.get("/latest", response_model=YouTubeVideoResponse)
 async def get_latest_video(
-    db: DBSession,
+    youtube_video_service: YouTubeVideoServiceDep,
 ) -> YouTubeVideoResponse:
     """Get the latest YouTube video"""
-    video = await get_latest_youtube_video(db)
+    video = await youtube_video_service.get_latest_video()
     if not video:
         raise NotFoundException("No videos available")
     return YouTubeVideoResponse.model_validate(video)
@@ -120,22 +108,53 @@ async def get_latest_video(
 
 @router.get("/suggestion", response_model=YouTubeVideoResponse)
 async def get_suggestion(
-    db: DBSession,
+    youtube_video_service: YouTubeVideoServiceDep,
 ) -> YouTubeVideoResponse:
     """Get a random video suggestion"""
-    video = await get_random_video(db)
+    video = await youtube_video_service.get_random_video()
     if not video:
         raise NotFoundException("No videos available")
     return YouTubeVideoResponse.model_validate(video)
 
 
+@router.get("/filter", response_model=YouTubeVideoListResponse)
+async def get_filtered_videos(
+    youtube_video_service: YouTubeVideoServiceDep,
+    chapter_ids: Optional[List[UUID]] = Query(None, description="Filter by chapter IDs (comma-separated)"),
+    sort_order: str = Query("latest", description="Sort order: 'latest' or 'oldest'"),
+    skip: int = Query(0, ge=0, description="Number of records to skip"),
+    limit: int = Query(20, ge=1, le=100, description="Maximum number of records"),
+) -> YouTubeVideoListResponse:
+    """
+    Get filtered YouTube videos by chapter IDs with sorting.
+    
+    Filters:
+    - chapter_ids: List of chapter IDs to filter by
+    - sort_order: "latest" for newest first (default), "oldest" for oldest first
+    """
+    if sort_order not in ["latest", "oldest"]:
+        raise BadRequestException("sort_order must be 'latest' or 'oldest'")
+    
+    videos = await youtube_video_service.get_filtered_videos(
+        chapter_ids=chapter_ids,
+        sort_order=sort_order,
+        skip=skip,
+        limit=limit
+    )
+    
+    return YouTubeVideoListResponse(
+        videos=[YouTubeVideoResponse.model_validate(v) for v in videos],
+        total=len(videos),
+    )
+
+
 @router.get("/{video_id}", response_model=YouTubeVideoResponse)
 async def get_video_with_id(
     video_id: UUID,
-    db: DBSession,
+    youtube_video_service: YouTubeVideoServiceDep,
 ) -> YouTubeVideoResponse:
     """Get a YouTube video by ID"""
-    video = await get_youtube_video_by_id(db, video_id)
+    video = await youtube_video_service.get_video_by_id(video_id)
     if not video:
         raise NotFoundException(f"Video with ID {video_id} not found")
     return YouTubeVideoResponse.model_validate(video)

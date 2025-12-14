@@ -29,6 +29,7 @@ from app.services.custom_test_service import CustomTestService
 from app.services.leaderboard_service import LeaderboardService
 from app.services.contest_service import ContestService
 from app.services.badge_service import BadgeService
+from app.services.youtube_video_service import YouTubeVideoService
 
 # Database session dependency
 DBSession = Annotated[AsyncSession, Depends(get_db_session)]
@@ -182,6 +183,14 @@ async def get_badge_service(db: DBSession) -> BadgeService:
 
 
 BadgeServiceDep = Annotated[BadgeService, Depends(get_badge_service)]
+
+
+async def get_youtube_video_service(db: DBSession) -> YouTubeVideoService:
+    """Get YouTube video service"""
+    return YouTubeVideoService(db)
+
+
+YouTubeVideoServiceDep = Annotated[YouTubeVideoService, Depends(get_youtube_video_service)]
 
 
 bearer_scheme = HTTPBearer()
