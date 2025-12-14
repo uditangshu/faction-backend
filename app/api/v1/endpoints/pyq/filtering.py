@@ -13,7 +13,7 @@ from app.schemas.filters import (
 from app.models.Basequestion import DifficultyLevel
 from app.exceptions.http_exceptions import BadRequestException
 
-router = APIRouter(prefix="/pyq/filter", tags=["Filter Previous Year Questions"])
+router = APIRouter(prefix="/question/filter", tags=["Filter Questions"])
 
 
 @router.get("/", response_model=QuestionFilteredListResponse)
