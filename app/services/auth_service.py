@@ -423,10 +423,12 @@ class AuthService:
     async def refresh_access_token(self, refresh_token: str) -> dict:
         """Refresh access token using refresh token (yadav)"""
         payload = decode_token(refresh_token)
+        print(f"🔄 Refresh token payload: {payload}")
         if not payload or payload.get("type") != "refresh":
             raise UnauthorizedException("Invalid or expired refresh token")
         
         user_id_str, session_id_str = payload.get("sub"), payload.get("session_id")
+        print(f"🔄 user_id={user_id_str}, session_id={session_id_str}")
         if not user_id_str or not session_id_str:
             raise UnauthorizedException("Invalid token payload")
         
@@ -438,6 +440,7 @@ class AuthService:
         # Validate session in DB (source of truth)
         result = await self.db.execute(select(UserSession).where(UserSession.id == session_id))
         session = result.scalar_one_or_none()
+        print(f"🔄 Session from DB: {session}, is_active={session.is_active if session else 'N/A'}")
         
         if not session or not session.is_active:
             raise UnauthorizedException("Session not found or inactive")
