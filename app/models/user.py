@@ -58,7 +58,13 @@ class User(SQLModel, table=True):
     name: str = Field(max_length=100)
     class_level: ClassLevel
     target_exams: list[str] = Field(sa_column=Column(JSON), default=[])
-    avatar_svg: str | None = Field(default=None)
+    avatar_url: str | None = Field(default=None, max_length=500)
+    
+    # Profile fields
+    school: str | None = Field(default=None, max_length=200)
+    state: str | None = Field(default=None, max_length=100)
+    city: str | None = Field(default=None, max_length=100)
+    email: str | None = Field(default=None, max_length=255)
 
     current_rating: int = Field(default=0, nullable=False)
     max_rating: int = Field(default=0, nullable=False)
@@ -69,6 +75,7 @@ class User(SQLModel, table=True):
     
     subscription_type: SubscriptionType = Field(default=SubscriptionType.FREE)
     is_active: bool = Field(default=True)
+    
     created_at: datetime = Field(default_factory=datetime.now)
     updated_at: datetime = Field(default_factory=datetime.now)
 

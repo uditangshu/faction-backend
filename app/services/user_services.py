@@ -144,8 +144,13 @@ class UserService:
         user_id: UUID,
         name: Optional[str] = None,
         class_level: Optional[ClassLevel] = None,
+        target_exams: Optional[List[TargetExam]] = None,
         subscription_type: Optional[SubscriptionType] = None,
-        avatar_svg: Optional[str] = None,
+        avatar_url: Optional[str] = None,
+        school: Optional[str] = None,
+        state: Optional[str] = None,
+        city: Optional[str] = None,
+        email: Optional[str] = None,
     ) -> User:
         """
         Update user profile.
@@ -154,8 +159,13 @@ class UserService:
             user_id: User UUID
             name: Optional new name
             class_level: Optional new class level
+            target_exams: Optional list of target exams
             subscription_type: Optional new subscription type
-            avatar_svg: Optional SVG string for user avatar
+            avatar_url: Optional URL to user's avatar image
+            school: Optional school name
+            state: Optional state
+            city: Optional city
+            email: Optional email address
             
         Returns:
             Updated User object
@@ -170,10 +180,21 @@ class UserService:
             user.name = name
         if class_level is not None:
             user.class_level = class_level
+        if target_exams is not None:
+            # Convert target_exams enum list to string list
+            user.target_exams = [exam.value for exam in target_exams]
         if subscription_type is not None:
             user.subscription_type = subscription_type
-        if avatar_svg is not None:
-            user.avatar_svg = avatar_svg
+        if avatar_url is not None:
+            user.avatar_url = avatar_url
+        if school is not None:
+            user.school = school
+        if state is not None:
+            user.state = state
+        if city is not None:
+            user.city = city
+        if email is not None:
+            user.email = email
 
         user.updated_at = datetime.utcnow()
 

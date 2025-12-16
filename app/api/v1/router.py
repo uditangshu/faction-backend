@@ -8,12 +8,12 @@ from app.api.v1.endpoints.curriculum import questions, classes, subjects, chapte
 from app.api.v1.endpoints.analysis import analysis
 from app.api.v1.endpoints.attempt import attempt
 from app.api.v1.endpoints.pyq import pyq, filtering
-from app.api.v1.endpoints.custom_test import custom_test
 from app.api.v1.endpoints.leaderboard import leaderboard, arena_ranking, streak_ranking
 from app.api.v1.endpoints.contest import contest
 from app.api.v1.endpoints.youtube_video import youtube_video
 from app.api.v1.endpoints.badge import badge
 from app.api.v1.endpoints.weak_topic import weak_topic
+from app.api.v1.endpoints.custom_test import custom_test
 
 api_router = APIRouter()
 
@@ -36,7 +36,6 @@ api_router.include_router(pyq.router)
 
 api_router.include_router(filtering.router)
 
-api_router.include_router(custom_test.router)
 
 # Leaderboard routes
 api_router.include_router(leaderboard.router)
@@ -54,3 +53,6 @@ api_router.include_router(badge.router)
 
 # Weak Topics routes
 api_router.include_router(weak_topic.router)
+
+# Custom Test routes
+api_router.include_router(custom_test.router)

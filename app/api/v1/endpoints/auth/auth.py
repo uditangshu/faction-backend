@@ -1,6 +1,7 @@
 """Authentication endpoints"""
 
 from typing import Annotated
+import json
 from fastapi import APIRouter, status, Request, BackgroundTasks
 from pydantic import BaseModel
 from app.api.v1.dependencies import AuthServiceDep, CurrentUserDep
@@ -89,7 +90,7 @@ async def login(
     ip_address = http_request.client.host if http_request.client else None
     user_agent = http_request.headers.get("user-agent")
     device_info = request.device_info
-    
+   
     result = await auth_service.login(
         phone_number=request.phone_number,
         password=request.password,
@@ -100,7 +101,9 @@ async def login(
         ip_address=ip_address,
         user_agent=user_agent,
     )
-    
+    size=len(json.dumps(result).encode("utf-8"))
+    print(size)
+
     # Schedule push notification in background AFTER response is sent (yadav)
     if result.get("background_task_data"):
         data = result["background_task_data"]

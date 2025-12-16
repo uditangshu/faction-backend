@@ -23,7 +23,14 @@ class UserResponse(UserBase):
     role: UserRole
     subscription_type: SubscriptionType
     is_active: bool
-    avatar_svg: Optional[str] = None
+    avatar_url: Optional[str] = None
+    
+    # Profile fields
+    school: Optional[str] = None
+    state: Optional[str] = None
+    city: Optional[str] = None
+ 
+    email: Optional[str] = None
     
     # Contest rating fields
     current_rating: int = 0
@@ -50,7 +57,12 @@ class UserUpdateRequest(BaseModel):
     
     name: Optional[str] = Field(None, max_length=100)
     class_level: Optional[ClassLevel] = None
-    avatar_svg: Optional[str] = Field(None, description="SVG string for user avatar")
+    target_exams: Optional[list[TargetExam]] = Field(None, description="List of target exams")
+    avatar_url: Optional[str] = Field(None, max_length=500, description="URL to user's avatar image")
+    school: Optional[str] = Field(None, max_length=200, description="User's school name")
+    state: Optional[str] = Field(None, max_length=100, description="User's state")
+    city: Optional[str] = Field(None, max_length=100, description="User's city")
+    email: Optional[str] = Field(None, max_length=255, description="User's email address")
 
 
 class UserRatingUpdateRequest(BaseModel):
