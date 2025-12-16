@@ -624,7 +624,7 @@ def extract_options_from_question(question_text: str) -> List[str]:
     return options[:4]  # Return at most 4 options
 
 
-def map_answer_to_indices(gold: str, question_type: QuestionType) -> Tuple[Optional[int], Optional[List[int]]]:
+def map_answer_to_indices(gold: str, question_type: QuestionType) -> Tuple[Optional[int | List[int]], Optional[int]]:
     """Map answer string to correct option indices"""
     if question_type == QuestionType.INTEGER:
         try:
@@ -641,13 +641,15 @@ def map_answer_to_indices(gold: str, question_type: QuestionType) -> Tuple[Optio
     elif question_type == QuestionType.MCQ:
         # Single answer: A=0, B=1, C=2, D=3
         if len(gold) == 1:
-            return ord(gold.upper()) - ord('A'), None
+            return [ord(gold.upper()) - ord('A')], None
         return None, None
     
     elif question_type == QuestionType.SCQ:
-        # Multiple answers: "ABD" -> [0, 1, 3]
-        indices = [ord(c.upper()) - ord('A') for c in gold if c.isalpha()]
-        return None, indices if indices else None
+        # Single correct answer: take first alpha character
+        for char in gold:
+            if char.isalpha():
+                return None, ord(char.upper()) - ord('A')
+        return None, None
     
     return None, None
 
@@ -796,7 +798,7 @@ async def import_questions():
                         scq_options = options
                         # Map multiple answers
                         _, scq_correct_options = map_answer_to_indices(q_data["gold"], question_type)
-                        if not scq_correct_options:
+                        if scq_correct_options is None:
                             print(f"  ⚠️  Warning: Could not map SCQ answers")
                             stats["skipped"] += 1
                             continue

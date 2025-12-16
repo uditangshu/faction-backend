@@ -363,11 +363,20 @@ class CustomTestService:
             if question.integer_answer is not None:
                 return [str(question.integer_answer)]
         elif question.type == QuestionType.MCQ:
-            if question.mcq_correct_option is not None and question.mcq_options:
-                return [question.mcq_options[question.mcq_correct_option]]
+            if question.mcq_correct_option and question.mcq_options:
+                answers = []
+                try:
+                    for idx in question.mcq_correct_option:
+                        answers.append(question.mcq_options[idx])
+                except (IndexError, TypeError):
+                    return None
+                return answers
         elif question.type == QuestionType.SCQ:
-            if question.scq_correct_options and question.scq_options:
-                return [question.scq_options[i] for i in question.scq_correct_options]
+            if question.scq_correct_options is not None and question.scq_options:
+                try:
+                    return [question.scq_options[question.scq_correct_options]]
+                except (IndexError, TypeError):
+                    return None
         return None
 
     def _check_answer(self, question: Question, user_answer: List[str]) -> bool:
@@ -381,37 +390,43 @@ class CustomTestService:
                 return False
         
         elif question.type == QuestionType.MCQ:
-            if question.mcq_correct_option is None or not question.mcq_options:
+            if not question.mcq_correct_option or not question.mcq_options:
                 return False
             try:
-                # User can submit either the option text or the index
-                correct_option = question.mcq_options[question.mcq_correct_option]
-                user_submission = user_answer[0]
-                
-                # Check if it matches the option text
-                if user_submission == correct_option:
-                    return True
-                
-                # Check if it's an index
-                try:
-                    user_index = int(user_submission)
-                    return user_index == question.mcq_correct_option
-                except ValueError:
-                    return False
+                correct_answers = set(question.mcq_options[idx] for idx in question.mcq_correct_option)
             except (IndexError, TypeError):
                 return False
+
+            user_answers_normalized = set()
+            for ans in user_answer:
+                try:
+                    ans_idx = int(ans)
+                    if 0 <= ans_idx < len(question.mcq_options):
+                        user_answers_normalized.add(question.mcq_options[ans_idx])
+                        continue
+                except (ValueError, TypeError):
+                    pass
+                user_answers_normalized.add(ans)
+
+            return correct_answers == user_answers_normalized
         
         elif question.type == QuestionType.SCQ:
-            if not question.scq_correct_options or not question.scq_options:
+            if question.scq_correct_options is None or not question.scq_options:
                 return False
             try:
-                # Get correct answers as set
-                correct_answers = set(question.scq_options[i] for i in question.scq_correct_options)
-                user_answers_set = set(user_answer)
-                
-                # For multi-correct, all answers must match
-                return correct_answers == user_answers_set
+                correct_answer = question.scq_options[question.scq_correct_options]
             except (IndexError, TypeError):
+                return False
+
+            if not user_answer:
+                return False
+
+            submission = user_answer[0]
+            if submission == correct_answer:
+                return True
+            try:
+                return int(submission) == question.scq_correct_options
+            except (ValueError, TypeError):
                 return False
         
         return False

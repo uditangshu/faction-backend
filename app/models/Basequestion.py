@@ -114,11 +114,11 @@ class Question(SQLModel, table=True):
     
     # MCQ type (Lists stored as JSON)
     mcq_options: Optional[List[str]] = Field(default=None, sa_column=Column(JSON))
-    mcq_correct_option: Optional[int] = None # Index of the correct option
+    mcq_correct_option: Optional[List[int]] = Field(default=None, sa_column=Column(JSON))
     
     # SCQ / Multiple Correct type
     scq_options: Optional[List[str]] = Field(default=None, sa_column=Column(JSON))
-    scq_correct_options: Optional[List[int]] = Field(default=None, sa_column=Column(JSON))
+    scq_correct_options: Optional[int] = None
 
     #stats
     questions_solved: int

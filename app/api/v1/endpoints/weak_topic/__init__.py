@@ -1,0 +1,3 @@
+"""Weak topic endpoints"""
+
+

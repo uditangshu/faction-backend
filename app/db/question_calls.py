@@ -146,9 +146,9 @@ async def create_question(db : AsyncSession,
                           question_image : Optional[str],
                           integer_answer : Optional[int],
                           mcq_options: Optional[List[str]],
-                          mcq_correct_option: Optional[int],
+                          mcq_correct_option: Optional[List[int]],
                           scq_options: Optional[List[str]],
-                          scq_correct_options: Optional[List[int]],
+                          scq_correct_options: Optional[int],
                           questions_solved: int
                          ) -> Class:
     """Create A New Question"""

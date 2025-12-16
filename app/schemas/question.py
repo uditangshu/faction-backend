@@ -151,10 +151,10 @@ class QuestionCreateRequest(BaseModel):
 
     integer_answer: Optional[int] = None
     mcq_options: Optional[List[str]] = None
-    mcq_correct_option: Optional[int] = None
+    mcq_correct_option: Optional[List[int]] = None
 
     scq_options: Optional[List[str]] = None
-    scq_correct_options: Optional[List[int]] = None
+    scq_correct_options: Optional[int] = None
 
 
 class QuestionUpdateRequest(BaseModel):
@@ -171,10 +171,10 @@ class QuestionUpdateRequest(BaseModel):
 
     integer_answer: Optional[int] = None
     mcq_options: Optional[List[str]] = None
-    mcq_correct_option: Optional[int] = None
+    mcq_correct_option: Optional[List[int]] = None
 
     scq_options: Optional[List[str]] = None
-    scq_correct_options: Optional[List[int]] = None
+    scq_correct_options: Optional[int] = None
 
 
 class QuestionDetailedResponse(BaseModel):
@@ -190,9 +190,9 @@ class QuestionDetailedResponse(BaseModel):
     question_image: Optional[str] = None
     integer_answer: Optional[int] = None
     mcq_options: Optional[List[str]] = None
-    mcq_correct_option: Optional[int] = None
+    mcq_correct_option: Optional[List[int]] = None
     scq_options: Optional[List[str]] = None
-    scq_correct_options: Optional[List[int]] = None
+    scq_correct_options: Optional[int] = None
     questions_solved: int
 
     class Config:

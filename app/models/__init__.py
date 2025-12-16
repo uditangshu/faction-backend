@@ -12,6 +12,7 @@ from app.models.custom_test import CustomTest, CustomTestAnalysis, CustomTestQue
 from app.models.contest import Contest, ContestSubmissionAnalytics, ContestLeaderboard, ContestQuestions 
 from app.models.youtube_video import YouTubeVideo
 from app.models.badge import Badge, BadgeCategory
+from app.models.weak_topic import UserWeakTopic
 __all__ = [
     "User",
     "UserRole",
@@ -44,5 +45,6 @@ __all__ = [
     "YouTubeVideo",
     "Badge",
     "BadgeCategory",
+    "UserWeakTopic",
 ]
 

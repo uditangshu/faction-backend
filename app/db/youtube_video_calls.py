@@ -115,6 +115,7 @@ async def update_youtube_video(
     title: Optional[str] = None,
     description: Optional[str] = None,
     thumbnail_url: Optional[str] = None,
+    youtube_url: Optional[str] = None,
     duration_seconds: Optional[int] = None,
     order: Optional[int] = None,
     is_active: Optional[bool] = None,
@@ -142,6 +143,8 @@ async def update_youtube_video(
         video.chapter_id = chapter_id
     if subject_id is not None:
         video.subject_id = subject_id
+    if youtube_url is not None:
+        video.youtube_url = youtube_url
     
     video.updated_at = datetime.now()
     db.add(video)

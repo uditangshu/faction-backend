@@ -30,6 +30,7 @@ from app.services.leaderboard_service import LeaderboardService
 from app.services.contest_service import ContestService
 from app.services.badge_service import BadgeService
 from app.services.youtube_video_service import YouTubeVideoService
+from app.services.weak_topic_service import WeakTopicService
 
 # Database session dependency
 DBSession = Annotated[AsyncSession, Depends(get_db_session)]
@@ -191,6 +192,14 @@ async def get_youtube_video_service(db: DBSession) -> YouTubeVideoService:
 
 
 YouTubeVideoServiceDep = Annotated[YouTubeVideoService, Depends(get_youtube_video_service)]
+
+
+async def get_weak_topic_service(db: DBSession) -> WeakTopicService:
+    """Get weak topic service"""
+    return WeakTopicService(db)
+
+
+WeakTopicServiceDep = Annotated[WeakTopicService, Depends(get_weak_topic_service)]
 
 
 bearer_scheme = HTTPBearer()

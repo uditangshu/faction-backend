@@ -45,6 +45,7 @@ async def update_video(
     """Update a YouTube video"""
     video = await youtube_video_service.update_video(
         video_id=video_id,
+        youtube_url=request.youtube_url,
         title=request.title,
         description=request.description,
         thumbnail_url=request.thumbnail_url,

@@ -13,6 +13,7 @@ from app.api.v1.endpoints.leaderboard import leaderboard, arena_ranking, streak_
 from app.api.v1.endpoints.contest import contest
 from app.api.v1.endpoints.youtube_video import youtube_video
 from app.api.v1.endpoints.badge import badge
+from app.api.v1.endpoints.weak_topic import weak_topic
 
 api_router = APIRouter()
 
@@ -50,3 +51,6 @@ api_router.include_router(youtube_video.router)
 
 # Badge routes
 api_router.include_router(badge.router)
+
+# Weak Topics routes
+api_router.include_router(weak_topic.router)

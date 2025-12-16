@@ -30,6 +30,7 @@ class YouTubeVideoUpdateRequest(BaseModel):
     
     title: Optional[str] = Field(None, max_length=200)
     description: Optional[str] = None
+    youtube_url: Optional[str] = None
     thumbnail_url: Optional[str] = None
     duration_seconds: Optional[int] = Field(None, ge=0)
     order: Optional[int] = Field(None, ge=0)

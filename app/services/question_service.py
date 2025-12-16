@@ -28,9 +28,9 @@ class QuestionService:
         question_image: Optional[str] = None,
         integer_answer: Optional[int] = None,
         mcq_options: Optional[List[str]] = None,
-        mcq_correct_option: Optional[int] = None,
+        mcq_correct_option: Optional[List[int]] = None,
         scq_options: Optional[List[str]] = None,
-        scq_correct_options: Optional[List[int]] = None,
+        scq_correct_options: Optional[int] = None,
     ) -> Question:
         """Create a new question"""
         question = Question(
@@ -115,9 +115,9 @@ class QuestionService:
         question_image: Optional[str] = None,
         integer_answer: Optional[int] = None,
         mcq_options: Optional[List[str]] = None,
-        mcq_correct_option: Optional[int] = None,
+        mcq_correct_option: Optional[List[int]] = None,
         scq_options: Optional[List[str]] = None,
-        scq_correct_options: Optional[List[int]] = None,
+        scq_correct_options: Optional[int] = None,
     ) -> Optional[Question]:
         """Update an existing question"""
         question = await self.get_question_by_id(question_id)
