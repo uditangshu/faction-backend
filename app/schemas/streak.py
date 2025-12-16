@@ -1,6 +1,7 @@
 """Streak and calendar schemas"""
 
 from typing import Dict, Any, Optional, List
+from uuid import UUID
 from pydantic import BaseModel, Field
 from enum import Enum
 
@@ -20,6 +21,42 @@ class StreakRequest(BaseModel):
     """User Streak Information Request"""
     
     
+
+class SubjectDifficultyStats(BaseModel):
+    """Subject-wise difficulty statistics"""
+    easy: int = 0
+    medium: int = 0
+    hard: int = 0
+
+
+class StudyStatsResponse(BaseModel):
+    """User study statistics response"""
+    
+    id: UUID
+    user_id: UUID
+    
+    # Question solving stats
+    questions_solved: int
+    total_attempts: int
+    accuracy_rate: float
+    
+    # Difficulty-wise breakdown
+    
+    # Streak tracking
+    current_study_streak: int
+    longest_study_streak: int
+    last_study_date: str | None
+    
+    # Performance rating (ELO-style)
+    performance_rating: int
+    
+    # Subject-wise and difficulty-wise breakdown
+    study_activity_graph: Dict[str, SubjectDifficultyStats]
+    
+    
+    class Config:
+        from_attributes = True
+
 
 class CalendarDayData(BaseModel):
     """Calendar day data"""

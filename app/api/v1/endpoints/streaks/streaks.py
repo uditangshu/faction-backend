@@ -2,7 +2,7 @@
 
 from fastapi import APIRouter, Query
 from app.api.v1.dependencies import CurrentUser, StreakServiceDep
-from app.schemas.streak import StreakResponse, CalendarResponse
+from app.schemas.streak import StreakResponse, CalendarResponse, StudyStatsResponse, SubjectDifficultyStats
 from app.schemas.general import Successful_Query
 
 router = APIRouter(prefix="/streaks", tags=["Streaks"])
@@ -63,5 +63,48 @@ async def update_study_stats(
     return Successful_Query(
         msg= "Successfully updated the streak",
         id= result.id,
+    )
+
+
+@router.get("/me/stats", response_model=StudyStatsResponse)
+async def get_my_study_stats(
+    streak_service: StreakServiceDep,
+    current_user: CurrentUser,
+) -> StudyStatsResponse:
+    """
+    Get current user's complete study statistics.
+    
+    Returns all study statistics including:
+    - Question solving stats (questions_solved, total_attempts, accuracy_rate)
+    - Difficulty-wise breakdown (easy_solved, medium_solved, hard_solved)
+    - Streak information (current_study_streak, longest_study_streak, last_study_date)
+    - Performance rating
+    - Subject-wise and difficulty-wise breakdown (study_activity_graph)
+    """
+    stats = await streak_service.get_or_create_user_stats(current_user.id)
+    
+    # Convert study_activity_graph dict to proper format with SubjectDifficultyStats objects
+    study_graph = {}
+    if stats.study_activity_graph:
+        for subject, difficulties in stats.study_activity_graph.items():
+            if isinstance(difficulties, dict):
+                study_graph[subject] = SubjectDifficultyStats(
+                    easy=difficulties.get("easy", 0),
+                    medium=difficulties.get("medium", 0),
+                    hard=difficulties.get("hard", 0),
+                )
+    
+    return StudyStatsResponse(
+        id=stats.id,
+        user_id=stats.user_id,
+        questions_solved=stats.questions_solved,
+        total_attempts=stats.total_attempts,
+        accuracy_rate=stats.accuracy_rate,
+        current_study_streak=stats.current_study_streak,
+        longest_study_streak=stats.longest_study_streak,
+        last_study_date=stats.last_study_date.isoformat() if stats.last_study_date else None,
+        performance_rating=stats.performance_rating,
+        study_activity_graph=study_graph,
+
     )
 

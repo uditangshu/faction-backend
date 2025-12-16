@@ -7,6 +7,7 @@ from sqlalchemy import delete, select, func, and_
 from typing import List
 from app.models.attempt import QuestionAttempt
 from app.models.streak import UserStudyStats, UserDailyStreak
+from app.models.Basequestion import Question, Topic, Chapter, Subject, DifficultyLevel
 
 
 async def create_attempt(
@@ -37,6 +38,16 @@ async def create_attempt(
         
         # Update streak only if answer is correct
         if is_correct:
+            # Fetch question with subject information for subject-wise tracking
+            question_result = await db.execute(
+                select(Question, Subject.subject_type)
+                .join(Topic, Question.topic_id == Topic.id)
+                .join(Chapter, Topic.chapter_id == Chapter.id)
+                .join(Subject, Chapter.subject_id == Subject.id)
+                .where(Question.id == question_id)
+            )
+            question_data = question_result.first()
+            
             # Get or create user stats
             result = await db.execute(select(UserStudyStats).where(UserStudyStats.user_id == user_id))
             stats = result.scalar_one_or_none()
@@ -44,6 +55,43 @@ async def create_attempt(
             if not stats:
                 stats = UserStudyStats(user_id=user_id)
                 db.add(stats)
+            
+            # Initialize study_activity_graph if it doesn't exist
+            if not stats.study_activity_graph:
+                stats.study_activity_graph = {}
+            
+            # Update subject-wise and difficulty-wise stats if question data is available
+            if question_data:
+                question, subject_type = question_data
+                # Subject_Type is a string enum, so it can be used directly as a string
+                subject_name = str(subject_type)
+                
+                # Map difficulty level to string
+                difficulty_value = question.difficulty.value
+                if difficulty_value == DifficultyLevel.EASY.value:
+                    difficulty_str = "easy"
+                    # Update easy_solved count
+                    stats.easy_solved += 1
+                elif difficulty_value == DifficultyLevel.MEDIUM.value:
+                    difficulty_str = "medium"
+                    # Update medium_solved count
+                    stats.medium_solved += 1
+                else:  # HARD, EXPERT, MASTER are all considered "hard"
+                    difficulty_str = "hard"
+                    # Update hard_solved count
+                    stats.hard_solved += 1
+                
+                # Initialize subject in study_activity_graph if not exists
+                if subject_name not in stats.study_activity_graph:
+                    stats.study_activity_graph[subject_name] = {
+                        "easy": 0,
+                        "medium": 0,
+                        "hard": 0
+                    }
+                
+                # Increment the count for this subject and difficulty
+                stats.study_activity_graph[subject_name][difficulty_str] = \
+                    stats.study_activity_graph[subject_name].get(difficulty_str, 0) + 1
             
             today = date.today()
             
