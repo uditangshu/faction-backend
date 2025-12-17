@@ -30,6 +30,7 @@ from app.services.contest_service import ContestService
 from app.services.badge_service import BadgeService
 from app.services.youtube_video_service import YouTubeVideoService
 from app.services.weak_topic_service import WeakTopicService
+from app.services.custom_test_service import CustomTestService
 
 # Database session dependency
 DBSession = Annotated[AsyncSession, Depends(get_db_session)]
@@ -191,6 +192,14 @@ async def get_weak_topic_service(db: DBSession) -> WeakTopicService:
 
 
 WeakTopicServiceDep = Annotated[WeakTopicService, Depends(get_weak_topic_service)]
+
+
+async def get_custom_test_service(db: DBSession) -> CustomTestService:
+    """Get custom test service"""
+    return CustomTestService(db)
+
+
+CustomTestServiceDep = Annotated[CustomTestService, Depends(get_custom_test_service)]
 
 
 bearer_scheme = HTTPBearer()

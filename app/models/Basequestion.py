@@ -4,6 +4,7 @@ from datetime import datetime
 from enum import Enum
 from uuid import UUID, uuid4
 from sqlmodel import SQLModel, Field, Relationship, JSON, Column
+
 from typing import List, Optional
 from app.models.user import TargetExam
 from app.models.linking import CustomTestQuestion, ContestQuestions
@@ -33,8 +34,6 @@ class DifficultyLevel(int, Enum):
     EASY = 1
     MEDIUM = 2
     HARD = 3
-    EXPERT = 4
-    MASTER = 5
 
 
 class Class(SQLModel, table=True):

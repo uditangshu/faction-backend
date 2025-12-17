@@ -21,7 +21,6 @@ async def get_filtered_pyqs(
     filtering_service: FilteringServiceDep,
     current_user: CurrentUser,
     subject_ids: Optional[List[UUID]] = Query(None, description="Filter by subject IDs (comma-separated)"),
-    chapter_ids: Optional[List[UUID]] = Query(None, description="Filter by chapter IDs (comma-separated)"),
     difficulty: Optional[DifficultyLevel] = Query(None, description="Filter by difficulty level"),
     year_filter: Optional[List[int]] = Query(None, description="Filter by years (e.g., 2023,2022,2021)"),
     question_appearance: QuestionAppearance = Query(
