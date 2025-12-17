@@ -11,10 +11,12 @@ from app.models.Basequestion import Question, Topic, Chapter, Subject
 from app.models.pyq import PreviousYearProblems
 from app.models.weak_topic import UserWeakTopic
 from app.models.user import TargetExam
-from app.models.custom_test import CustomTest, AttemptStatus
+from app.models.custom_test import CustomTest, AttemptStatus, CustomTestAnalysis
 from app.models.linking import CustomTestQuestion
 from app.exceptions.http_exceptions import BadRequestException, NotFoundException
+from app.db.attempt_calls import create_attempt
 from sqlalchemy.orm import selectinload
+from datetime import datetime
 
 
 class CustomTestService:
@@ -325,4 +327,130 @@ class CustomTestService:
             .where(CustomTestQuestion.test_id == test_id)
         )
         return result.scalar() or 0
+
+    async def submit_custom_test(
+        self,
+        test_id: UUID,
+        user_id: UUID,
+        attempts_data: List[dict],
+    ) -> CustomTestAnalysis:
+        """
+        Submit a custom test by creating attempts iteratively and updating analysis.
+        
+        This method:
+        1. Validates the test exists and belongs to the user
+        2. Validates all attempts are for questions in the test
+        3. Creates attempts iteratively using create_attempt (which handles streaks)
+        4. Calculates analysis metrics
+        5. Creates/updates CustomTestAnalysis
+        6. Updates test status to finished
+        
+        Args:
+            test_id: Custom test ID
+            user_id: User ID (must match test owner)
+            attempts_data: List of attempt data dicts with keys:
+                - question_id: UUID
+                - user_answer: List[str]
+                - is_correct: bool
+                - marks_obtained: int
+                - time_taken: int
+                - hint_used: bool (optional)
+        
+        Returns:
+            CustomTestAnalysis instance
+            
+        Raises:
+            NotFoundException: If test not found or doesn't belong to user
+            BadRequestException: If test is already finished or invalid data
+        """
+        # Get the test with questions - single query with eager loading
+        test = await self.get_custom_test_by_id(test_id=test_id, user_id=user_id)
+        if not test:
+            raise NotFoundException(f"Custom test with ID {test_id} not found")
+        
+        # Check if test is already finished
+        if test.status == AttemptStatus.finished:
+            raise BadRequestException("Test has already been submitted")
+        
+        # Get all question IDs in the test - efficient set lookup
+        test_question_ids = {q.question_id for q in test.questions}
+        
+        # Validate that all attempts are for questions in the test
+        attempt_question_ids = {attempt["question_id"] for attempt in attempts_data}
+        invalid_questions = attempt_question_ids - test_question_ids
+        if invalid_questions:
+            raise BadRequestException(
+                f"Attempts contain questions not in this test: {invalid_questions}"
+            )
+        
+        # Calculate total marks from all questions in the test
+        total_marks = sum(q.question.marks for q in test.questions)
+        
+        # Create attempts iteratively - each call to create_attempt handles streaks
+        # This is the most efficient approach as create_attempt already optimizes streak updates
+        created_attempts = []
+        for attempt_data in attempts_data:
+            attempt = await create_attempt(
+                db=self.db,
+                user_id=user_id,
+                question_id=attempt_data["question_id"],
+                user_answer=attempt_data["user_answer"],
+                is_correct=attempt_data["is_correct"],
+                marks_obtained=attempt_data["marks_obtained"],
+                time_taken=attempt_data["time_taken"],
+                hint_used=attempt_data.get("hint_used", False),
+            )
+            created_attempts.append(attempt)
+        
+        # Calculate analysis metrics efficiently
+        marks_obtained = sum(attempt.marks_obtained for attempt in created_attempts)
+        total_time_spent = sum(attempt.time_taken for attempt in created_attempts)
+        correct = sum(1 for attempt in created_attempts if attempt.is_correct)
+        incorrect = len(created_attempts) - correct
+        
+        # Calculate unattempted questions
+        attempted_question_ids = {attempt.question_id for attempt in created_attempts}
+        unattempted = len(test_question_ids) - len(attempted_question_ids)
+        
+        # Check if analysis already exists (shouldn't, but handle it)
+        analysis_result = await self.db.execute(
+            select(CustomTestAnalysis).where(
+                CustomTestAnalysis.custom_test_id == test_id
+            )
+        )
+        existing_analysis = analysis_result.scalar_one_or_none()
+        
+        if existing_analysis:
+            # Update existing analysis
+            existing_analysis.marks_obtained = marks_obtained
+            existing_analysis.total_marks = total_marks
+            existing_analysis.total_time_spent = total_time_spent
+            existing_analysis.correct = correct
+            existing_analysis.incorrect = incorrect
+            existing_analysis.unattempted = unattempted
+            existing_analysis.submitted_at = datetime.now()
+            analysis = existing_analysis
+        else:
+            # Create new analysis
+            analysis = CustomTestAnalysis(
+                user_id=user_id,
+                custom_test_id=test_id,
+                marks_obtained=marks_obtained,
+                total_marks=total_marks,
+                total_time_spent=total_time_spent,
+                correct=correct,
+                incorrect=incorrect,
+                unattempted=unattempted,
+            )
+            self.db.add(analysis)
+        
+        # Update test status to finished
+        test.status = AttemptStatus.finished
+        test.updated_at = datetime.now()
+        
+        # Commit analysis and test status update
+        await self.db.commit()
+        await self.db.refresh(analysis)
+        
+        return analysis
 

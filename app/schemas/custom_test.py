@@ -6,6 +6,7 @@ from pydantic import BaseModel, Field
 from app.models.Basequestion import QuestionType, DifficultyLevel
 from app.models.user import TargetExam
 from app.models.custom_test import AttemptStatus
+from app.schemas.question import AttemptCreateRequest
 
 
 class CustomTestGenerateRequest(BaseModel):
@@ -93,6 +94,28 @@ class CustomTestDetailResponse(BaseModel):
     questions: List[CustomTestQuestionResponse]
     total_questions: int
     total_marks: int
+
+    class Config:
+        from_attributes = True
+
+
+class CustomTestSubmitRequest(BaseModel):
+    """Request to submit a custom test with attempts"""
+    attempts: List[AttemptCreateRequest] = Field(..., min_length=1, description="List of question attempts")
+
+
+class CustomTestAnalysisResponse(BaseModel):
+    """Response after submitting custom test"""
+    id: UUID
+    user_id: UUID
+    custom_test_id: UUID
+    marks_obtained: int
+    total_marks: int
+    total_time_spent: int
+    correct: int
+    incorrect: int
+    unattempted: int
+    submitted_at: str
 
     class Config:
         from_attributes = True

@@ -11,6 +11,8 @@ from app.schemas.custom_test import (
     CustomTestListPaginatedResponse,
     CustomTestListResponse,
     CustomTestDetailResponse,
+    CustomTestSubmitRequest,
+    CustomTestAnalysisResponse,
 )
 from app.exceptions.http_exceptions import BadRequestException, NotFoundException
 
@@ -216,5 +218,71 @@ async def get_custom_test_detail(
         raise HTTPException(
             status_code=500,
             detail=f"Failed to fetch custom test: {str(e)}"
+        )
+
+
+@router.post("/{test_id}/submit", response_model=CustomTestAnalysisResponse, status_code=200)
+async def submit_custom_test(
+    custom_test_service: CustomTestServiceDep,
+    current_user: CurrentUser,
+    test_id: UUID,
+    request: CustomTestSubmitRequest,
+) -> CustomTestAnalysisResponse:
+    """
+    Submit a custom test with question attempts.
+    
+    Takes an array of attempt data in the format of AttemptCreateRequest.
+    Creates all attempts iteratively (each call updates streaks automatically),
+    calculates analysis metrics, and updates the test status to finished.
+    
+    Args:
+        test_id: Custom test ID to submit
+        request: Submit request containing list of attempts
+    
+    Returns:
+        CustomTestAnalysisResponse with test results
+    """
+    try:
+        # Convert attempts to dict format for service method
+        attempts_data = [
+            {
+                "question_id": attempt.question_id,
+                "user_answer": attempt.user_answer,
+                "is_correct": attempt.is_correct,
+                "marks_obtained": attempt.marks_obtained,
+                "time_taken": attempt.time_taken,
+                "hint_used": attempt.hint_used,
+            }
+            for attempt in request.attempts
+        ]
+        
+        # Submit the test - this creates attempts iteratively and updates analysis
+        analysis = await custom_test_service.submit_custom_test(
+            test_id=test_id,
+            user_id=current_user.id,
+            attempts_data=attempts_data,
+        )
+        
+        return CustomTestAnalysisResponse(
+            id=analysis.id,
+            user_id=analysis.user_id,
+            custom_test_id=analysis.custom_test_id,
+            marks_obtained=analysis.marks_obtained,
+            total_marks=analysis.total_marks,
+            total_time_spent=analysis.total_time_spent,
+            correct=analysis.correct,
+            incorrect=analysis.incorrect,
+            unattempted=analysis.unattempted,
+            submitted_at=analysis.submitted_at.isoformat(),
+        )
+        
+    except NotFoundException as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    except BadRequestException as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to submit custom test: {str(e)}"
         )
 
