@@ -262,6 +262,9 @@ def generate_embed_html(
                     case 'setVolume':
                         player.setVolume(data.volume);
                         break;
+                    case 'setPlaybackRate':
+                        player.setPlaybackRate(data.rate);
+                        break;
                     case 'mute':
                         player.mute();
                         break;
