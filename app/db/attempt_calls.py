@@ -2,8 +2,10 @@
 
 from uuid import UUID
 from datetime import datetime, date, timedelta
+import copy
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import delete, select, func, and_
+from sqlalchemy.orm.attributes import flag_modified
 from typing import List
 from app.models.attempt import QuestionAttempt
 from app.models.streak import UserStudyStats, UserDailyStreak
@@ -63,8 +65,8 @@ async def create_attempt(
             # Update subject-wise and difficulty-wise stats if question data is available
             if question_data:
                 question, subject_type = question_data
-                # Subject_Type is a string enum, so it can be used directly as a string
-                subject_name = str(subject_type)
+                # Use .value to get the actual enum string value (e.g., "Chemistry" not "Subject_Type.CHEMISTRY")
+                subject_name = subject_type.value if hasattr(subject_type, 'value') else str(subject_type)
                 
                 # Map difficulty level to string
                 difficulty_value = question.difficulty.value
@@ -81,17 +83,26 @@ async def create_attempt(
                     # Update hard_solved count
                     stats.hard_solved += 1
                 
-                # Initialize subject in study_activity_graph if not exists
-                if subject_name not in stats.study_activity_graph:
-                    stats.study_activity_graph[subject_name] = {
+                # IMPORTANT: Create a deep copy of the dictionary to ensure SQLAlchemy detects the change
+                # SQLAlchemy doesn't always detect in-place modifications to JSON columns
+                activity_graph = copy.deepcopy(stats.study_activity_graph) if stats.study_activity_graph else {}
+                
+                # Initialize subject in activity_graph if not exists
+                if subject_name not in activity_graph:
+                    activity_graph[subject_name] = {
                         "easy": 0,
                         "medium": 0,
                         "hard": 0
                     }
                 
                 # Increment the count for this subject and difficulty
-                stats.study_activity_graph[subject_name][difficulty_str] = \
-                    stats.study_activity_graph[subject_name].get(difficulty_str, 0) + 1
+                activity_graph[subject_name][difficulty_str] = \
+                    activity_graph[subject_name].get(difficulty_str, 0) + 1
+                
+                # Assign the new dictionary back and explicitly flag it as modified
+                stats.study_activity_graph = activity_graph
+                # Explicitly tell SQLAlchemy that this JSON column has been modified
+                flag_modified(stats, "study_activity_graph")
             
             today = date.today()
             
