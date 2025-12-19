@@ -10,7 +10,7 @@ from app.api.v1.endpoints.attempt import attempt
 from app.api.v1.endpoints.pyq import pyq, filtering
 from app.api.v1.endpoints.leaderboard import leaderboard, arena_ranking, streak_ranking
 from app.api.v1.endpoints.contest import contest
-from app.api.v1.endpoints.youtube_video import youtube_video
+from app.api.v1.endpoints.youtube_video import youtube_video, video_embed
 from app.api.v1.endpoints.badge import badge
 from app.api.v1.endpoints.weak_topic import weak_topic
 from app.api.v1.endpoints.custom_test import custom_test
@@ -47,6 +47,7 @@ api_router.include_router(contest.router)
 
 # YouTube Video routes
 api_router.include_router(youtube_video.router)
+api_router.include_router(video_embed.router)
 
 # Badge routes
 api_router.include_router(badge.router)
