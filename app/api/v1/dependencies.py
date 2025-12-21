@@ -31,6 +31,7 @@ from app.services.youtube_video_service import YouTubeVideoService
 from app.services.weak_topic_service import WeakTopicService
 from app.services.custom_test_service import CustomTestService
 from app.services.contest_service import ContestService
+from app.services.doubt_forum_service import DoubtForumService
 
 # Database session dependency
 DBSession = Annotated[AsyncSession, Depends(get_db_session)]
@@ -200,6 +201,14 @@ async def get_contest_service(db: DBSession, redis_service: RedisServiceDep) -> 
 
 
 ContestServiceDep = Annotated[ContestService, Depends(get_contest_service)]
+
+
+async def get_doubt_forum_service(db: DBSession) -> DoubtForumService:
+    """Get doubt forum service"""
+    return DoubtForumService(db)
+
+
+DoubtForumServiceDep = Annotated[DoubtForumService, Depends(get_doubt_forum_service)]
 
 
 bearer_scheme = HTTPBearer()

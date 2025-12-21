@@ -1,0 +1,1 @@
+"""Doubt forum endpoints"""
