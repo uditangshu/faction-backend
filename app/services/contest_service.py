@@ -1,111 +1,242 @@
-"""Contest service"""
+"""Contest Service"""
 
 from uuid import UUID
-from datetime import datetime
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, delete
-from typing import Optional, List, Tuple
+from sqlalchemy import select
+from sqlalchemy.orm import selectinload
+from typing import List, Dict, Any
+from datetime import datetime
 
 from app.models.contest import Contest, ContestStatus
 from app.models.linking import ContestQuestions
 from app.models.Basequestion import Question
-
+from app.exceptions.http_exceptions import BadRequestException, NotFoundException
+from app.integrations.redis_client import RedisService
 
 class ContestService:
     """Service for contest operations"""
 
-    def __init__(self, db: AsyncSession):
+    def __init__(self, db: AsyncSession, redis_service: RedisService | None = None):
         self.db = db
+        self.redis_service = redis_service
 
     async def create_contest(
         self,
+        name: str,
+        description: str | None,
+        question_ids: List[UUID],
         total_time: int,
         status: ContestStatus,
         starts_at: datetime,
         ends_at: datetime,
-        question_ids: List[UUID],
     ) -> Contest:
-        """Create a new contest"""
+        """
+        Create a contest with questions in the database.
+        
+        Args:
+            name: Contest name
+            description: Contest description
+            question_ids: List of question IDs to include
+            total_time: Total time for the contest in seconds
+            status: Contest status
+            starts_at: Contest start datetime
+            ends_at: Contest end datetime
+            
+        Returns:
+            Created Contest instance
+        """
+        # Validate that all questions exist
+        if not question_ids:
+            raise BadRequestException("At least one question is required")
+        
+        # Check if all questions exist
+        result = await self.db.execute(
+            select(Question).where(Question.id.in_(question_ids))
+        )
+        existing_questions = result.scalars().all()
+        existing_question_ids = {q.id for q in existing_questions}
+        
+        if len(existing_questions) != len(question_ids):
+            missing_ids = set(question_ids) - existing_question_ids
+            raise NotFoundException(f"Questions not found: {missing_ids}")
+        
+        # Validate datetime
+        if starts_at >= ends_at:
+            raise BadRequestException("starts_at must be before ends_at")
+        
+        # Create the contest
         contest = Contest(
+            name=name,
+            description=description,
             total_time=total_time,
             status=status,
             starts_at=starts_at,
             ends_at=ends_at,
         )
         self.db.add(contest)
+        await self.db.flush()  # Get the contest ID
+        
+        # Bulk insert contest questions
+        contest_questions = [
+            ContestQuestions(
+                contest_id=contest.id,
+                question_id=question_id
+            )
+            for question_id in question_ids
+        ]
+        self.db.add_all(contest_questions)
+        
         await self.db.commit()
         await self.db.refresh(contest)
-        
-        # Create ContestQuestions entries to link questions to the contest
-        for question_id in question_ids:
-            contest_question = ContestQuestions(
-                contest_id=contest.id,
-                question_id=question_id,
-            )
-            self.db.add(contest_question)
-        
-        await self.db.commit()
         return contest
 
-    async def get_contest_by_id(self, contest_id: UUID) -> Optional[Contest]:
-        """Get contest by ID"""
+    async def get_upcoming_contests(self) -> List[Contest]:
+        """
+        Get all upcoming contests (contests that haven't started yet).
+        
+        Returns:
+            List of upcoming Contest instances
+        """
+        from datetime import datetime as dt
+        
+        now = dt.now()
         result = await self.db.execute(
-            select(Contest).where(Contest.id == contest_id)
+            select(Contest)
+            .where(Contest.starts_at > now)
+            .order_by(Contest.starts_at.asc())
         )
-        return result.scalar_one_or_none()
+        return list(result.scalars().all())
 
-    async def update_contest(
+    async def get_past_contests(self) -> List[Contest]:
+        """
+        Get all past contests (contests that have ended).
+        
+        Returns:
+            List of past Contest instances
+        """
+        from datetime import datetime as dt
+        
+        now = dt.now()
+        result = await self.db.execute(
+            select(Contest)
+            .where(Contest.ends_at < now)
+            .order_by(Contest.ends_at.desc())
+        )
+        return list(result.scalars().all())
+
+    async def get_contest_questions_with_details(
         self,
         contest_id: UUID,
-        total_time: Optional[int] = None,
-        status: Optional[ContestStatus] = None,
-        starts_at: Optional[datetime] = None,
-        ends_at: Optional[datetime] = None,
-    ) -> Optional[Contest]:
-        """Update an existing contest"""
-        contest = await self.get_contest_by_id(contest_id)
-        if not contest:
-            return None
-
-        if total_time is not None:
-            contest.total_time = total_time
-        if status is not None:
-            contest.status = status
-        if starts_at is not None:
-            contest.starts_at = starts_at
-        if ends_at is not None:
-            contest.ends_at = ends_at
-
-        self.db.add(contest)
-        await self.db.commit()
-        await self.db.refresh(contest)
-        return contest
-
-    async def delete_contest(self, contest_id: UUID) -> bool:
-        """Delete a contest by ID"""
-        contest = await self.get_contest_by_id(contest_id)
-        if not contest:
-            return False
+        cache_ttl: int = 3600,  # 1 hour default
+    ) -> List[Dict[str, Any]]:
+        """
+        Get contest questions with full details, using Redis caching.
         
-        stmt = delete(Contest).where(Contest.id == contest_id)
-        await self.db.execute(stmt)
-        await self.db.commit()
-        return True
-
-    async def get_contest_with_questions(self, contest_id: UUID) -> Optional[Tuple[Contest, List[Question]]]:
-        """Get contest by ID with all linked questions"""
-        # Get the contest
-        contest = await self.get_contest_by_id(contest_id)
-        if not contest:
-            return None
+        Args:
+            contest_id: Contest ID
+            cache_ttl: Cache time-to-live in seconds (default: 3600 = 1 hour)
+            
+        Returns:
+            List of question dictionaries with full details
+            
+        Raises:
+            NotFoundException: If contest not found
+        """
+        # Redis cache key
+        cache_key = f"contest:questions:{contest_id}"
         
-        # Get all questions linked to this contest
+        # Try to get from Redis cache first
+        if self.redis_service:
+            cached_data = await self.redis_service.get_value(cache_key)
+            if cached_data is not None:
+                return cached_data
+        
+        # If not in cache, query database
+        
+        # Get contest with questions relationship
         result = await self.db.execute(
-            select(Question)
-            .join(ContestQuestions, ContestQuestions.question_id == Question.id)
-            .where(ContestQuestions.contest_id == contest_id)
+            select(Contest)
+            .where(Contest.id == contest_id)
+            .options(selectinload(Contest.questions).selectinload(ContestQuestions.question))
         )
-        questions = list(result.scalars().all())
+        contest = result.scalar_one_or_none()
         
-        return contest, questions
+        if not contest:
+            raise NotFoundException(f"Contest with id {contest_id} not found")
+        
+        # Extract questions from contest_questions relationship
+        questions = []
+        for contest_question in contest.questions:
+            question = contest_question.question
+            # Convert question to dictionary with all fields
+            # Serialize enums as their string values for JSON compatibility
+            question_dict = {
+                "id": str(question.id),
+                "topic_id": str(question.topic_id),
+                "type": question.type.value,
+                "difficulty": question.difficulty.value,
+                "exam_type": [exam.value for exam in question.exam_type] if question.exam_type else [],
+                "question_text": question.question_text,
+                "marks": question.marks,
+                "solution_text": question.solution_text,
+                "question_image": question.question_image,
+                "integer_answer": question.integer_answer,
+                "mcq_options": question.mcq_options,
+                "mcq_correct_option": question.mcq_correct_option,
+                "scq_options": question.scq_options,
+                "scq_correct_options": question.scq_correct_options,
+                "questions_solved": question.questions_solved,
+            }
+            questions.append(question_dict)
+        
+        # Store in Redis cache
+        if self.redis_service:
+            await self.redis_service.set_value(cache_key, questions, expire=cache_ttl)
+        
+        return questions
+
+    async def push_submissions_to_queue(
+        self,
+        contest_id: UUID,
+        user_id: UUID,
+        submissions: List[Dict[str, Any]],
+    ) -> str:
+        """
+        Push contest submissions to Redis queue for async processing.
+        
+        Args:
+            contest_id: Contest ID
+            user_id: User ID
+            submissions: List of submission dictionaries
+            
+        Returns:
+            Queue name used for storing submissions
+            
+        Raises:
+            BadRequestException: If Redis service is not available
+        """
+
+        if not self.redis_service:
+            raise BadRequestException("Redis service is not available")
+                
+        # Queue name for contest submissions
+        queue_name = f"contest:submissions:{contest_id}"
+        
+        # Format submissions with contest_id and user_id
+        formatted_submissions = []
+        for submission in submissions:
+            formatted_submission = {
+                "contest_id": str(contest_id),
+                "user_id": str(user_id),
+                "question_id": str(submission["question_id"]),
+                "user_answer": submission["user_answer"],
+                "time_taken": submission["time_taken"],
+                "hint_used": submission.get("hint_used", False),
+            }
+            formatted_submissions.append(formatted_submission)
+        
+        # Push all submissions to Redis queue
+        await self.redis_service.push_multiple_to_queue(queue_name, formatted_submissions)
+        
+        return queue_name
 

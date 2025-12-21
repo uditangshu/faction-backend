@@ -1,0 +1,129 @@
+[
+  {
+    "class_level": "Eleventh",
+    "subject_type": "PHYSICS",
+    "chapter_name": "Mechanics",
+    "topic_name": "Newton's Laws",
+    "exam_types": ["JEE_MAINS", "JEE_ADVANCED"],
+    "question": {
+      "type": "mcq",
+      "difficulty": 2,
+      "exam_type": ["JEE_MAINS", "JEE_ADVANCED"],
+      "question_text": "A block of mass 2 kg is placed on a frictionless horizontal surface. A force of 10 N is applied horizontally. What is the acceleration of the block?",
+      "marks": 4,
+      "solution_text": "Using Newton's second law: F = ma, we get a = F/m = 10/2 = 5 m/s²",
+      "question_image": null,
+      "mcq_options": [
+        "2.5 m/s²",
+        "5 m/s²",
+        "10 m/s²",
+        "20 m/s²"
+      ],
+      "mcq_correct_option": [1]
+    },
+    "pyq": {
+      "year": 2023,
+      "exam_detail": ["JEE_MAINS", "Paper 1", "Shift 1"]
+    }
+  },
+  {
+    "class_level": "Eleventh",
+    "subject_type": "PHYSICS",
+    "chapter_name": "Mechanics",
+    "topic_name": "Newton's Laws",
+    "exam_types": ["JEE_MAINS", "JEE_ADVANCED"],
+    "question": {
+      "type": "integer",
+      "difficulty": 1,
+      "exam_type": ["JEE_MAINS"],
+      "question_text": "A force of 20 N is applied to a 5 kg object. Calculate the acceleration in m/s².",
+      "marks": 4,
+      "solution_text": "Using F = ma, acceleration = 20/5 = 4 m/s²",
+      "question_image": null,
+      "integer_answer": 4
+    },
+    "pyq": null
+  },
+  {
+    "class_level": "Twelth",
+    "subject_type": "CHEMISTRY",
+    "chapter_name": "Organic Chemistry",
+    "topic_name": "Alkanes",
+    "exam_types": ["JEE_MAINS", "NEET"],
+    "question": {
+      "type": "scq",
+      "difficulty": 2,
+      "exam_type": ["JEE_MAINS", "NEET"],
+      "question_text": "Which of the following is the correct IUPAC name for CH₃-CH₂-CH₃?",
+      "marks": 4,
+      "solution_text": "The compound CH₃-CH₂-CH₃ is propane. It has 3 carbon atoms in a straight chain.",
+      "question_image": null,
+      "scq_options": [
+        "Methane",
+        "Ethane",
+        "Propane",
+        "Butane"
+      ],
+      "scq_correct_options": 2
+    },
+    "pyq": {
+      "year": 2022,
+      "exam_detail": ["NEET", "Paper 1"]
+    }
+  },
+  {
+    "class_level": "Eleventh",
+    "subject_type": "MATHS",
+    "chapter_name": "Algebra",
+    "topic_name": "Quadratic Equations",
+    "exam_types": ["JEE_MAINS", "JEE_ADVANCED"],
+    "question": {
+      "type": "mcq",
+      "difficulty": 3,
+      "exam_type": ["JEE_ADVANCED"],
+      "question_text": "If the quadratic equation x² - 5x + 6 = 0 has roots α and β, find the value of α² + β².",
+      "marks": 4,
+      "solution_text": "Using the identity: α² + β² = (α + β)² - 2αβ. From the equation, α + β = 5 and αβ = 6. Therefore, α² + β² = 25 - 12 = 13.",
+      "question_image": null,
+      "mcq_options": [
+        "11",
+        "13",
+        "15",
+        "17"
+      ],
+      "mcq_correct_option": [1]
+    },
+    "pyq": {
+      "year": 2021,
+      "exam_detail": ["JEE_ADVANCED", "Paper 1", "Question 5"]
+    }
+  },
+  {
+    "class_level": "Twelth",
+    "subject_type": "BIOLOGY",
+    "chapter_name": "Cell Biology",
+    "topic_name": "Cell Structure",
+    "exam_types": ["NEET"],
+    "question": {
+      "type": "match_the_column",
+      "difficulty": 2,
+      "exam_type": ["NEET"],
+      "question_text": "Match the following cell organelles with their functions:\n\nColumn I:\nA. Mitochondria\nB. Ribosomes\nC. Golgi Apparatus\nD. Endoplasmic Reticulum\n\nColumn II:\n1. Protein synthesis\n2. Energy production\n3. Protein modification and packaging\n4. Protein and lipid synthesis",
+      "marks": 4,
+      "solution_text": "A-2 (Mitochondria produces energy), B-1 (Ribosomes synthesize proteins), C-3 (Golgi modifies and packages), D-4 (ER synthesizes proteins and lipids)",
+      "question_image": null,
+      "mcq_options": [
+        "A-2, B-1, C-3, D-4",
+        "A-1, B-2, C-4, D-3",
+        "A-3, B-4, C-1, D-2",
+        "A-4, B-3, C-2, D-1"
+      ],
+      "mcq_correct_option": [0]
+    },
+    "pyq": {
+      "year": 2023,
+      "exam_detail": ["NEET", "Paper 1"]
+    }
+  }
+]
+

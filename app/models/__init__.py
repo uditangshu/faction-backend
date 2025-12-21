@@ -10,7 +10,7 @@ from app.models.analysis import BookMarkedQuestion
 from app.models.pyq import PreviousYearProblems
 from app.models.custom_test import CustomTest, CustomTestAnalysis
 from app.models.linking import CustomTestQuestion
-from app.models.contest import Contest, ContestSubmissionAnalytics, ContestLeaderboard, ContestQuestions 
+from app.models.contest import Contest, ContestLeaderboard, ContestQuestions 
 from app.models.youtube_video import YouTubeVideo
 from app.models.badge import Badge, BadgeCategory
 from app.models.weak_topic import UserWeakTopic
@@ -40,7 +40,6 @@ __all__ = [
     "CustomTestAnalysis",
     "CustomTestQuestion",
     "Contest",
-    "ContestSubmissionAnalytics",
     "ContestQuestions",
     "ContestLeaderboard",
     "YouTubeVideo",

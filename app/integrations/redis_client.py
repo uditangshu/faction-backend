@@ -144,3 +144,91 @@ class RedisService:
         
         return processed_results
 
+    async def push_to_queue(self, queue_name: str, value: Any) -> int:
+        """
+        Push a value to the end of a Redis list (queue).
+        
+        Args:
+            queue_name: Name of the queue/list
+            value: Value to push (will be JSON serialized if not string)
+            
+        Returns:
+            int: Length of the list after push
+        """
+        if not isinstance(value, str):
+            value = json.dumps(value)
+        return await self.client.rpush(queue_name, value)
+
+    async def push_multiple_to_queue(self, queue_name: str, values: list[Any]) -> int:
+        """
+        Push multiple values to the end of a Redis list (queue).
+        
+        Args:
+            queue_name: Name of the queue/list
+            values: List of values to push (will be JSON serialized if not strings)
+            
+        Returns:
+            int: Length of the list after all pushes
+        """
+        serialized_values = []
+        for value in values:
+            if not isinstance(value, str):
+                serialized_values.append(json.dumps(value))
+            else:
+                serialized_values.append(value)
+        return await self.client.rpush(queue_name, *serialized_values)
+
+    async def pop_from_queue(self, queue_name: str) -> Any | None:
+        """
+        Pop a value from the beginning of a Redis list (queue).
+        Uses LPOP which is atomic - safe for multiple workers.
+        
+        Args:
+            queue_name: Name of the queue/list
+            
+        Returns:
+            Popped value or None if queue is empty
+        """
+        value = await self.client.lpop(queue_name)
+        if value is None:
+            return None
+        
+        try:
+            return json.loads(value)
+        except json.JSONDecodeError:
+            return value
+
+    async def pop_from_queue_blocking(self, queue_name: str, timeout: int = 5) -> tuple[str, Any] | None:
+        """
+        Atomically pop a value from the queue using BRPOP (blocking right pop).
+        This is atomic and safe for multiple workers. Blocks until item is available or timeout.
+        
+        Args:
+            queue_name: Name of the queue/list
+            timeout: Blocking timeout in seconds
+            
+        Returns:
+            Tuple of (queue_name, value) or None if timeout
+        """
+        result = await self.client.brpop(queue_name, timeout=timeout)
+        if result is None:
+            return None
+        
+        queue, value = result
+        try:
+            return (queue, json.loads(value))
+        except json.JSONDecodeError:
+            return (queue, value)
+
+    async def get_queue_length(self, queue_name: str) -> int:
+        """
+        Get the length of a Redis queue.
+        
+        Args:
+            queue_name: Name of the queue/list
+            
+        Returns:
+            int: Length of the queue
+        """
+        return await self.client.llen(queue_name)
+

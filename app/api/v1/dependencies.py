@@ -26,11 +26,11 @@ from app.services.attempt_service import AttemptService
 from app.services.pyq_service import PYQService
 from app.services.filtering_service import FilteringService
 from app.services.leaderboard_service import LeaderboardService
-from app.services.contest_service import ContestService
 from app.services.badge_service import BadgeService
 from app.services.youtube_video_service import YouTubeVideoService
 from app.services.weak_topic_service import WeakTopicService
 from app.services.custom_test_service import CustomTestService
+from app.services.contest_service import ContestService
 
 # Database session dependency
 DBSession = Annotated[AsyncSession, Depends(get_db_session)]
@@ -162,14 +162,6 @@ async def get_leaderboard_service(db: DBSession) -> LeaderboardService:
 LeaderboardServiceDep = Annotated[LeaderboardService, Depends(get_leaderboard_service)]
 
 
-async def get_contest_service(db: DBSession) -> ContestService:
-    """Get contest service"""
-    return ContestService(db)
-
-
-ContestServiceDep = Annotated[ContestService, Depends(get_contest_service)]
-
-
 async def get_badge_service(db: DBSession) -> BadgeService:
     """Get badge service"""
     return BadgeService(db)
@@ -200,6 +192,14 @@ async def get_custom_test_service(db: DBSession) -> CustomTestService:
 
 
 CustomTestServiceDep = Annotated[CustomTestService, Depends(get_custom_test_service)]
+
+
+async def get_contest_service(db: DBSession, redis_service: RedisServiceDep) -> ContestService:
+    """Get contest service"""
+    return ContestService(db, redis_service)
+
+
+ContestServiceDep = Annotated[ContestService, Depends(get_contest_service)]
 
 
 bearer_scheme = HTTPBearer()

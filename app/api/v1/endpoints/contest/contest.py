@@ -1,22 +1,19 @@
 """Contest endpoints"""
 
-from uuid import UUID
-from fastapi import APIRouter
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, desc
+from fastapi import APIRouter, Query
 
-from app.api.v1.dependencies import DBSession, ContestServiceDep
-from app.models.contest import ContestLeaderboard
+from uuid import UUID
+from app.api.v1.dependencies import ContestServiceDep, CurrentUser
 from app.schemas.contest import (
-    ContestLeaderboardResponse,
-    ContestLeaderboardListResponse,
-    ContestCreateRequest,
-    ContestUpdateRequest,
-    ContestResponse,
-    ContestWithQuestionsResponse,
+    ContestCreateRequest, 
+    ContestResponse, 
+    ContestListResponse,
+    ContestQuestionsResponse,
+    ContestQuestionResponse,
+    ContestSubmissionRequest,
+    ContestSubmissionResponse,
 )
-from app.schemas.question import QuestionDetailedResponse
-from app.exceptions.http_exceptions import NotFoundException, BadRequestException
+from app.exceptions.http_exceptions import BadRequestException, NotFoundException
 
 router = APIRouter(prefix="/contests", tags=["Contests"])
 
@@ -26,71 +23,160 @@ async def create_contest(
     contest_service: ContestServiceDep,
     request: ContestCreateRequest,
 ) -> ContestResponse:
-    """Create a new contest"""
+    """
+    Create a contest with questions.
+    
+    Takes an array of question IDs and creates a contest with those questions.
+    The contest and contest linking models are populated with UUID mappings.
+    """
     try:
-        new_contest = await contest_service.create_contest(
+        contest = await contest_service.create_contest(
+            name=request.name,
+            description=request.description,
+            question_ids=request.question_ids,
             total_time=request.total_time,
             status=request.status,
             starts_at=request.starts_at,
             ends_at=request.ends_at,
-            question_ids=request.question_ids,
         )
-        return ContestResponse.model_validate(new_contest)
+        return ContestResponse.model_validate(contest)
+    except (BadRequestException, NotFoundException):
+        # Let HTTPException subclasses propagate
+        raise
     except Exception as e:
         raise BadRequestException(f"Failed to create contest: {str(e)}")
 
 
-@router.put("/{contest_id}", response_model=ContestResponse)
-async def update_contest(
+@router.get("/", response_model=ContestListResponse)
+async def get_contests(
     contest_service: ContestServiceDep,
+    type: str = Query(..., description="Type of contests: 'upcoming' or 'past'"),
+) -> ContestListResponse:
+    """
+    Get contests by type.
+    
+    Fetches either upcoming contests (contests that haven't started yet) 
+    or past contests (contests that have ended).
+    
+    - type='upcoming': Returns contests that haven't started yet, ordered by start time (ascending)
+    - type='past': Returns contests that have ended, ordered by end time (descending)
+    """
+    try:
+        if type.lower() == "upcoming":
+            contests = await contest_service.get_upcoming_contests()
+        elif type.lower() == "past":
+            contests = await contest_service.get_past_contests()
+        else:
+            raise BadRequestException("Type must be either 'upcoming' or 'past'")
+        
+        contest_responses = [ContestResponse.model_validate(contest) for contest in contests]
+        return ContestListResponse(contests=contest_responses)
+    except (BadRequestException, NotFoundException):
+        raise
+    except Exception as e:
+        raise BadRequestException(f"Failed to fetch contests: {str(e)}")
+
+
+@router.get("/{contest_id}/questions", response_model=ContestQuestionsResponse)
+async def get_contest_questions(
     contest_id: UUID,
-    request: ContestUpdateRequest,
-) -> ContestResponse:
-    """Update an existing contest"""
-    updated_contest = await contest_service.update_contest(
-        contest_id=contest_id,
-        total_time=request.total_time,
-        status=request.status,
-        starts_at=request.starts_at,
-        ends_at=request.ends_at,
-    )
-    
-    if not updated_contest:
-        raise NotFoundException(f"Contest with ID {contest_id} not found")
-    
-    return ContestResponse.model_validate(updated_contest)
-
-
-@router.delete("/{contest_id}", status_code=204)
-async def delete_contest(
     contest_service: ContestServiceDep,
-    contest_id: UUID,
-) -> None:
-    """Delete a contest by ID"""
-    deleted = await contest_service.delete_contest(contest_id)
-    if not deleted:
-        raise NotFoundException(f"Contest with ID {contest_id} not found")
+) -> ContestQuestionsResponse:
+    """
+    Get contest questions with full details.
+    
+    Fetches all questions for a contest with complete details.
+    Results are cached in Redis for improved performance.
+    On subsequent requests, data is served from cache if available.
+    
+    - First request: Queries database and caches result in Redis
+    - Subsequent requests: Serves from Redis cache (faster response)
+    """
+    try:
+        questions_data = await contest_service.get_contest_questions_with_details(contest_id)
+        
+        # Convert dictionary data to response models
+        question_responses = []
+        for q_data in questions_data:
+            # Convert string UUIDs back to UUID objects
+            from app.models.Basequestion import QuestionType, DifficultyLevel
+            from app.models.user import TargetExam
+            
+            question_responses.append(
+                ContestQuestionResponse(
+                    id=UUID(q_data["id"]),
+                    topic_id=UUID(q_data["topic_id"]),
+                    type=QuestionType(q_data["type"]),
+                    difficulty=DifficultyLevel(q_data["difficulty"]),
+                    exam_type=[TargetExam(exam) for exam in q_data["exam_type"]],
+                    question_text=q_data["question_text"],
+                    marks=q_data["marks"],
+                    solution_text=q_data["solution_text"],
+                    question_image=q_data.get("question_image"),
+                    integer_answer=q_data.get("integer_answer"),
+                    mcq_options=q_data.get("mcq_options"),
+                    mcq_correct_option=q_data.get("mcq_correct_option"),
+                    scq_options=q_data.get("scq_options"),
+                    scq_correct_options=q_data.get("scq_correct_options"),
+                    questions_solved=q_data["questions_solved"],
+                )
+            )
+        
+        return ContestQuestionsResponse(questions=question_responses)
+    except (BadRequestException, NotFoundException):
+        raise
+    except Exception as e:
+        raise BadRequestException(f"Failed to fetch contest questions: {str(e)}")
 
 
-@router.get("/{contest_id}", response_model=ContestWithQuestionsResponse)
-async def get_contest_with_questions(
+@router.post("/submit", response_model=ContestSubmissionResponse, status_code=202)
+async def submit_contest(
     contest_service: ContestServiceDep,
-    contest_id: UUID,
-) -> ContestWithQuestionsResponse:
-    """Get a contest by ID with all linked questions and their details"""
-    result = await contest_service.get_contest_with_questions(contest_id)
+    current_user: CurrentUser,
+    request: ContestSubmissionRequest,
+) -> ContestSubmissionResponse:
+    """
+    Submit contest answers.
     
-    if not result:
-        raise NotFoundException(f"Contest with ID {contest_id} not found")
+    Accepts an array of submission attempts and pushes them to a Redis queue
+    for asynchronous processing. This allows for fast response times while
+    processing submissions in the background.
     
-    contest, questions = result
-    
-    return ContestWithQuestionsResponse(
-        id=contest.id,
-        total_time=contest.total_time,
-        status=contest.status,
-        starts_at=contest.starts_at,
-        ends_at=contest.ends_at,
-        created_at=contest.created_at,
-        questions=[QuestionDetailedResponse.model_validate(question) for question in questions],
-    )
+    The submissions are queued with the format:
+    - contest_id: Contest ID
+    - user_id: User ID (from authenticated user)
+    - question_id: Question ID
+    - user_answer: List of user's answers
+    - is_correct: Whether the answer is correct
+    - marks_obtained: Marks obtained for this attempt
+    - time_taken: Time taken in seconds
+    - hint_used: Whether hint was used
+    """
+    try:
+        # Convert submission attempts to dictionaries
+        submissions_data = []
+        for submission in request.submissions:
+            submissions_data.append({
+                "question_id": submission.question_id,
+                "user_answer": submission.user_answer,
+                "time_taken": submission.time_taken,
+                "hint_used": submission.hint_used,
+            })
+        
+        # Push all submissions to Redis queue
+        queue_name = await contest_service.push_submissions_to_queue(
+            contest_id=request.contest_id,
+            user_id=current_user.id,
+            submissions=submissions_data,
+        )
+        
+        return ContestSubmissionResponse(
+            message="Submissions queued successfully",
+            submissions_count=len(request.submissions),
+            queue_name=queue_name,
+        )
+    except (BadRequestException, NotFoundException):
+        raise
+    except Exception as e:
+        raise BadRequestException(f"Failed to submit contest: {str(e)}")
+
