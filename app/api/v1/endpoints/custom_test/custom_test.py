@@ -80,7 +80,10 @@ async def generate_custom_test(
                     marks=question.marks,
                     question_image=question.question_image,
                     mcq_options=question.mcq_options,
+                    mcq_correct_option=question.mcq_correct_option,  # Frontend needs this to validate
                     scq_options=question.scq_options,
+                    scq_correct_options=question.scq_correct_options,  # Frontend needs this to validate
+                    integer_answer=question.integer_answer,  # Frontend needs this to validate
                 )
             )
         
