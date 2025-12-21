@@ -56,7 +56,7 @@ class User(SQLModel, table=True):
     phone_number: str = Field(unique=True, index=True, max_length=15)
     password_hash: str | None = Field(default=None)  # Nullable for migration, will be required for new users
     name: str = Field(max_length=100)
-    class_level: ClassLevel
+    class_id: UUID = Field(foreign_key="class.id", index=True)
     target_exams: list[str] = Field(sa_column=Column(JSON), default=[])
     avatar_url: str | None = Field(default=None, max_length=500)
     

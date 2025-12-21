@@ -4,7 +4,7 @@ from datetime import datetime
 from typing import Optional
 from uuid import UUID
 from pydantic import BaseModel, Field
-from app.models.user import UserRole, ClassLevel, TargetExam, SubscriptionType, ContestRank
+from app.models.user import UserRole, TargetExam, SubscriptionType, ContestRank
 
 
 class UserBase(BaseModel):
@@ -12,7 +12,7 @@ class UserBase(BaseModel):
 
     phone_number: str
     name: str
-    class_level: ClassLevel
+    class_id: UUID
     target_exams: list[TargetExam]
 
 
@@ -56,7 +56,7 @@ class UserUpdateRequest(BaseModel):
     """Request to update user profile"""
     
     name: Optional[str] = Field(None, max_length=100)
-    class_level: Optional[ClassLevel] = None
+    class_id: Optional[UUID] = None
     target_exams: Optional[list[TargetExam]] = Field(None, description="List of target exams")
     avatar_url: Optional[str] = Field(None, max_length=500, description="URL to user's avatar image")
     school: Optional[str] = Field(None, max_length=200, description="User's school name")

@@ -1,10 +1,11 @@
 """Authentication schemas"""
 
 from pydantic import BaseModel, Field, field_validator
-from app.models.user import ClassLevel, TargetExam
+from app.models.user import TargetExam
 from app.models.session import DeviceType
 from app.models.user import UserRole
 from typing import Optional
+from uuid import UUID
 
 class DeviceInfo(BaseModel):
     """Device information schema"""
@@ -20,7 +21,7 @@ class SignupRequest(BaseModel):
 
     phone_number: str = Field(..., description="Phone number with country code", min_length=10, max_length=15)
     name: str = Field(..., description="Full name", min_length=2, max_length=100)
-    class_level: ClassLevel = Field(..., description="Student class")
+    class_id: UUID = Field(..., description="Student class ID (UUID)")
     target_exams: list[TargetExam] = Field(..., description="Target entrance exams (at least 1 required)", min_length=1)
     password: str = Field(..., description="User password", min_length=8, max_length=100)
     device_info: DeviceInfo = Field(..., description="Device information")

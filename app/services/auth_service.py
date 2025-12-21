@@ -6,7 +6,7 @@ from hashlib import sha256
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, update
 
-from app.models.user import User, UserRole, ClassLevel, TargetExam
+from app.models.user import User, UserRole, TargetExam
 from app.models.session import DeviceType, UserSession
 from app.core.security import create_access_token, create_refresh_token, hash_password, verify_password, decode_token
 from app.core.config import settings
@@ -44,7 +44,7 @@ class AuthService:
         self,
         phone_number: str,
         name: str,
-        class_level: ClassLevel,
+        class_id: UUID,
         target_exams: list[TargetExam],
         password: str,
         device_id: str,
@@ -73,7 +73,7 @@ class AuthService:
             {
                 "phone_number": formatted_phone,
                 "name": name,
-                "class_level": class_level,
+                "class_id": str(class_id),
                 "role" : role,
                 "target_exams": [exam.value for exam in target_exams],
                 "password_hash": password_hash,
@@ -121,7 +121,7 @@ class AuthService:
             phone_number=phone_number,
             password_hash=signup_data["password_hash"],
             name=signup_data["name"],
-            class_level=ClassLevel(signup_data["class_level"]),
+            class_id=UUID(signup_data["class_id"]),
             target_exams=signup_data["target_exams"],
             role=signup_data["role"],
         )

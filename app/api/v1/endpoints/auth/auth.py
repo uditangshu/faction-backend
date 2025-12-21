@@ -37,7 +37,7 @@ async def signup(
     temp_token, otp = await auth_service.initiate_signup(
         phone_number=request.phone_number,
         name=request.name,
-        class_level=request.class_level,
+        class_id=request.class_id,
         target_exams=request.target_exams,
         password=request.password,
         role= request.role,

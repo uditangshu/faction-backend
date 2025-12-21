@@ -6,7 +6,7 @@ from datetime import datetime
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, or_, func
 
-from app.models.user import User, UserRole, ClassLevel, TargetExam, SubscriptionType, ContestRank
+from app.models.user import User, UserRole, TargetExam, SubscriptionType, ContestRank
 from app.db.user_calls import (
     get_user_by_id as db_get_user_by_id,
     get_user_by_phone as db_get_user_by_phone,
@@ -34,7 +34,7 @@ class UserService:
         phone_number: str,
         name: str,
         password: str,
-        class_level: ClassLevel,
+        class_id: UUID,
         target_exams: List[TargetExam],
         role: UserRole = UserRole.STUDENT,
     ) -> User:
@@ -45,7 +45,7 @@ class UserService:
             phone_number: User's phone number
             name: User's name
             password: Plain text password (will be hashed)
-            class_level: User's class level
+            class_id: User's class ID (UUID)
             target_exams: List of target exams
             role: User role (default: STUDENT)
             
@@ -77,7 +77,7 @@ class UserService:
             phone_number=formatted_phone,
             password_hash=password_hash,
             name=name,
-            class_level=class_level,
+            class_id=class_id,
             target_exams=target_exams_list,
             role=role,
             subscription_type=SubscriptionType.FREE,
@@ -143,7 +143,7 @@ class UserService:
         self,
         user_id: UUID,
         name: Optional[str] = None,
-        class_level: Optional[ClassLevel] = None,
+        class_id: Optional[UUID] = None,
         target_exams: Optional[List[TargetExam]] = None,
         subscription_type: Optional[SubscriptionType] = None,
         avatar_url: Optional[str] = None,
@@ -158,7 +158,7 @@ class UserService:
         Args:
             user_id: User UUID
             name: Optional new name
-            class_level: Optional new class level
+            class_id: Optional new class ID (UUID)
             target_exams: Optional list of target exams
             subscription_type: Optional new subscription type
             avatar_url: Optional URL to user's avatar image
@@ -178,8 +178,8 @@ class UserService:
         # Update fields if provided
         if name is not None:
             user.name = name
-        if class_level is not None:
-            user.class_level = class_level
+        if class_id is not None:
+            user.class_id = class_id
         if target_exams is not None:
             # Convert target_exams enum list to string list
             user.target_exams = [exam.value for exam in target_exams]

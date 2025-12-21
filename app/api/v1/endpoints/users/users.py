@@ -11,7 +11,6 @@ from app.schemas.user import (
     UserProfileResponse,
     UserRatingResponse,
     UserRatingUpdateRequest,
-    ClassLevel,
     TargetExam
 )
 from app.utils.exceptions import ForbiddenException, BadRequestException
@@ -33,7 +32,7 @@ async def update_my_profile(
     user_service: UserServiceDep,
     avatar_file: Optional[UploadFile] = File(None, description="Avatar image file"),
     name: Optional[str] = Form(None),
-    class_level: Optional[str] = Form(None),
+    class_id: Optional[str] = Form(None, description="Class ID (UUID)"),
     target_exams: Optional[str] = Form(None, description="JSON array of target exams"),
     school: Optional[str] = Form(None),
     state: Optional[str] = Form(None),
@@ -42,7 +41,7 @@ async def update_my_profile(
 ) -> UserProfileResponse:
     """
     Update current authenticated user's profile.
-    Allows updating name, class_level, target_exams, avatar (via file upload), school, location, and email.
+    Allows updating name, class_id, target_exams, avatar (via file upload), school, location, and email.
     All fields are optional. If avatar_file is provided, it will be uploaded to Cloudinary.
     """
     from app.integrations.cloudinary_client import upload_image, delete_image
@@ -85,18 +84,18 @@ async def update_my_profile(
         except (json.JSONDecodeError, ValueError) as e:
             raise BadRequestException(f"Invalid target_exams format: {str(e)}")
     
-    # Parse class_level if provided
-    class_level_enum = None
-    if class_level:
+    # Parse class_id if provided
+    class_id_uuid = None
+    if class_id:
         try:
-            class_level_enum = ClassLevel(class_level)
+            class_id_uuid = UUID(class_id)
         except ValueError:
-            raise BadRequestException(f"Invalid class_level: {class_level}")
+            raise BadRequestException(f"Invalid class_id: {class_id}")
     
     user = await user_service.update_user(
         user_id=current_user.id,
         name=name,
-        class_level=class_level_enum,
+        class_id=class_id_uuid,
         target_exams=target_exams_list,
         avatar_url=avatar_url,
         school=school,
@@ -121,7 +120,7 @@ async def update_my_profile(
 #         phone_number=payload.phone_number,
 #         name=payload.name,
 #         password=payload.password,
-#         class_level=payload.class_level,
+#         class_id=payload.class_id,
 #         target_exams=payload.target_exams,
 #         role=payload.role,
 #     )
