@@ -1,6 +1,6 @@
 """Database models"""
 
-from app.models.user import User, UserRole, ClassLevel, TargetExam, SubscriptionType, ContestRank
+from app.models.user import User, UserRole, TargetExam, SubscriptionType, ContestRank
 from app.models.otp import OTPVerification
 from app.models.session import UserSession
 from app.models.Basequestion import Question, QuestionType, DifficultyLevel, Subject_Type, Class_level, Class, Subject, Chapter
@@ -19,7 +19,6 @@ __all__ = [
     "User",
     "UserRole",
     "ContestRank",
-    "ClassLevel",
     "Class",
     "Subject",
     "Chapter",

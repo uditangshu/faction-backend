@@ -9,7 +9,6 @@ from fastapi import APIRouter, Depends, File, Form, Query, UploadFile, status
 from app.api.v1.dependencies import CurrentUser, UserServiceDep
 from app.schemas.user import (
     UserProfileResponse,
-    UserUpdateRequest,
     UserRatingResponse,
     UserRatingUpdateRequest,
     ClassLevel,

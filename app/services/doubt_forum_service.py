@@ -5,7 +5,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from typing import List, Optional
 
 from app.models.doubt_forum import DoubtPost, DoubtComment, DoubtBookmark
-from app.models.user import ClassLevel
 from app.db.doubt_forum_calls import (
     create_doubt_post,
     get_doubt_post_by_id,
@@ -32,7 +31,7 @@ class DoubtForumService:
     async def create_post(
         self,
         user_id: UUID,
-        class_level: ClassLevel,
+        class_level: UUID,
         title: str,
         content: str,
         image_url: Optional[str] = None,
@@ -53,7 +52,7 @@ class DoubtForumService:
 
     async def get_posts(
         self,
-        class_level: Optional[ClassLevel] = None,
+        class_level: Optional[UUID] = None,
         is_solved: Optional[bool] = None,
         skip: int = 0,
         limit: int = 20,

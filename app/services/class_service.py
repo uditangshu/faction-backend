@@ -5,7 +5,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from typing import List, Optional
 
-from app.models.Basequestion import Class, Class_level
+from app.models.Basequestion import Class
 from app.db.question_calls import create_class, delete_class, get_nested_class
 
 
@@ -15,9 +15,9 @@ class ClassService:
     def __init__(self, db: AsyncSession):
         self.db = db
 
-    async def create_class(self, class_level: Class_level) -> Class:
+    async def create_class(self, name: str) -> Class:
         """Create a new class"""
-        return await create_class(self.db, class_level)
+        return await create_class(self.db, name)
 
     async def get_class_by_id(self, class_id: UUID) -> Optional[Class]:
         """Get a single class by ID"""

@@ -3,7 +3,7 @@
 from uuid import UUID
 from typing import List, Optional
 from pydantic import BaseModel, Field
-from app.models.Basequestion import QuestionType, Class_level, Subject_Type, DifficultyLevel
+from app.models.Basequestion import QuestionType, Subject_Type, DifficultyLevel
 from app.models.user import TargetExam
 
 
@@ -11,13 +11,13 @@ from app.models.user import TargetExam
 
 class ClassCreateRequest(BaseModel):
     """Request to create a new class"""
-    class_level: Class_level
+    name: str = Field(..., max_length=100)
 
 
 class ClassResponse(BaseModel):
     """Single class response"""
     id: UUID
-    class_level: Class_level
+    name: str
 
     class Config:
         from_attributes = True

@@ -4,7 +4,6 @@ from datetime import datetime
 from uuid import UUID, uuid4
 from sqlmodel import Field, SQLModel, Relationship
 from typing import List, Optional
-from app.models.Basequestion import Class_level
 
 
 class DoubtPost(SQLModel, table=True):

@@ -39,7 +39,7 @@ class DifficultyLevel(int, Enum):
 class Class(SQLModel, table=True):
     """Class Model"""
     id: UUID = Field(default_factory=uuid4, primary_key=True)
-    class_level: Class_level
+    name: str = Field(max_length=100)
     subjects: List["Subject"] = Relationship(back_populates="subject_class_lvl")
 
 

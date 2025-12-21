@@ -15,7 +15,6 @@ from app.schemas.doubt_forum import (
     DoubtLikeResponse,
     DoubtBookmarkResponse,
 )
-from app.models.user import ClassLevel
 from app.integrations.cloudinary_client import upload_image, delete_image
 from app.exceptions.http_exceptions import NotFoundException, BadRequestException
 
@@ -46,17 +45,11 @@ async def create_doubt_post(
     current_user: CurrentUser,
     title: str = Form(..., max_length=200),
     content: str = Form(...),
-    class_level: str = Form(...),
+    class_level: UUID = Form(...),
     image: Optional[UploadFile] = File(None, description="Post image file"),
 ) -> DoubtPostResponse:
     """Create a new doubt post with optional image upload to Cloudinary"""
     try:
-        # Validate class_level
-        try:
-            class_level_enum = ClassLevel(class_level)
-        except ValueError:
-            raise BadRequestException(f"Invalid class_level: {class_level}")
-        
         # Handle image upload if provided
         image_url = None
         if image:
@@ -77,7 +70,7 @@ async def create_doubt_post(
         # Create the post
         post = await doubt_forum_service.create_post(
             user_id=current_user.id,
-            class_level=class_level_enum,
+            class_level=class_level,
             title=title,
             content=content,
             image_url=image_url,
@@ -93,7 +86,7 @@ async def create_doubt_post(
 @router.get("/posts", response_model=DoubtPostListResponse)
 async def get_doubt_posts(
     doubt_forum_service: DoubtForumServiceDep,
-    class_level: Optional[str] = Query(None, description="Filter by class level"),
+    class_level: Optional[UUID] = Query(None, description="Filter by class ID (UUID)"),
     is_solved: Optional[bool] = Query(None, description="Filter by solved status"),
     skip: int = Query(0, ge=0, description="Number of records to skip (for pagination)"),
     limit: int = Query(20, ge=1, le=100, description="Maximum number of records"),
@@ -103,17 +96,9 @@ async def get_doubt_posts(
     if sort_order not in ["latest", "oldest"]:
         raise BadRequestException("sort_order must be 'latest' or 'oldest'")
     
-    # Parse class_level if provided
-    class_level_enum = None
-    if class_level:
-        try:
-            class_level_enum = ClassLevel(class_level)
-        except ValueError:
-            raise BadRequestException(f"Invalid class_level: {class_level}")
-    
     # Get posts
     posts = await doubt_forum_service.get_posts(
-        class_level=class_level_enum,
+        class_level=class_level,
         is_solved=is_solved,
         skip=skip,
         limit=limit + 1,  # Fetch one extra to check if there are more

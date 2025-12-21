@@ -8,14 +8,14 @@ from sqlalchemy.orm import selectinload
 
 from app.models.Basequestion import (
 Question, Class, Subject_Type,
-Subject, Chapter, Topic, QuestionType, Class_level, DifficultyLevel
+Subject, Chapter, Topic, QuestionType, DifficultyLevel
 )
 from app.models.user import TargetExam
 
 
-async def create_class(db : AsyncSession, class_lvl : Class_level) -> Class:
+async def create_class(db : AsyncSession, name : str) -> Class:
     """Create a new class"""
-    classes = Class(class_level=class_lvl)
+    classes = Class(name=name)
     print(classes)
     db.add(classes)
     await db.commit()

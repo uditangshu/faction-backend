@@ -15,7 +15,6 @@ import sqlmodel
 revision: str = '75de33638e92'
 down_revision: Union[str, None] = '2530388b5d58'
 branch_labels: Union[str, Sequence[str], None] = None
-depends_on: Union[str, Sequence[str], None] = None
 
 
 def upgrade() -> None:

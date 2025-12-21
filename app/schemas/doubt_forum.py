@@ -5,23 +5,20 @@ from datetime import datetime
 from typing import List, Optional
 from pydantic import BaseModel, Field
 
-from app.models.user import ClassLevel
-
-
 # ==================== Doubt Post Schemas ====================
 
 class DoubtPostCreateRequest(BaseModel):
     """Request to create a new doubt post"""
     title: str = Field(..., max_length=200)
     content: str
-    class_level: ClassLevel
+    class_level: UUID
 
 
 class DoubtPostResponse(BaseModel):
     """Doubt post response"""
     id: UUID
     user_id: UUID
-    class_level: ClassLevel
+    class_level: UUID
     title: str
     content: str
     image_url: Optional[str]
@@ -69,6 +66,8 @@ class DoubtCommentResponse(BaseModel):
     class Config:
         from_attributes = True
 
+
+DoubtPostDetailResponse.model_rebuild()
 
 # ==================== Doubt Like Schemas ====================
 

@@ -64,6 +64,13 @@ class ContestService:
         if starts_at >= ends_at:
             raise BadRequestException("starts_at must be before ends_at")
         
+        # Convert timezone-aware datetimes to timezone-naive for database compatibility
+        # The database uses TIMESTAMP WITHOUT TIME ZONE
+        if starts_at.tzinfo is not None:
+            starts_at = starts_at.replace(tzinfo=None)
+        if ends_at.tzinfo is not None:
+            ends_at = ends_at.replace(tzinfo=None)
+        
         # Create the contest
         contest = Contest(
             name=name,
@@ -170,12 +177,22 @@ class ContestService:
             question = contest_question.question
             # Convert question to dictionary with all fields
             # Serialize enums as their string values for JSON compatibility
+            # Handle exam_type: it might be enum objects or strings (from JSON deserialization)
+            exam_type_values = []
+            if question.exam_type:
+                for exam in question.exam_type:
+                    # If it's already a string, use it directly; otherwise get .value
+                    if isinstance(exam, str):
+                        exam_type_values.append(exam)
+                    else:
+                        exam_type_values.append(exam.value)
+            
             question_dict = {
                 "id": str(question.id),
                 "topic_id": str(question.topic_id),
-                "type": question.type.value,
-                "difficulty": question.difficulty.value,
-                "exam_type": [exam.value for exam in question.exam_type] if question.exam_type else [],
+                "type": question.type.value if hasattr(question.type, 'value') else str(question.type),
+                "difficulty": question.difficulty.value if hasattr(question.difficulty, 'value') else str(question.difficulty),
+                "exam_type": exam_type_values,
                 "question_text": question.question_text,
                 "marks": question.marks,
                 "solution_text": question.solution_text,

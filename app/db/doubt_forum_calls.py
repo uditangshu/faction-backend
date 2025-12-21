@@ -8,13 +8,12 @@ from sqlalchemy.orm import selectinload
 from datetime import datetime
 
 from app.models.doubt_forum import DoubtPost, DoubtComment, DoubtBookmark
-from app.models.user import ClassLevel
 
 
 async def create_doubt_post(
     db: AsyncSession,
     user_id: UUID,
-    class_level: ClassLevel,
+    class_level: UUID,
     title: str,
     content: str,
     image_url: Optional[str] = None,
@@ -48,7 +47,7 @@ async def get_doubt_post_by_id(
 
 async def get_doubt_posts(
     db: AsyncSession,
-    class_level: Optional[ClassLevel] = None,
+    class_level: Optional[UUID] = None,
     is_solved: Optional[bool] = None,
     skip: int = 0,
     limit: int = 20,

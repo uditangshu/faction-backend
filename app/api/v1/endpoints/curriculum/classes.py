@@ -5,7 +5,6 @@ from uuid import UUID
 from fastapi import APIRouter
 
 from app.api.v1.dependencies import ClassServiceDep
-from app.models.Basequestion import Class_level
 from app.schemas.question import (
     ClassCreateRequest,
     ClassResponse,
@@ -24,8 +23,8 @@ async def create_class(
 ) -> ClassResponse:
     """Create a new class"""
     try:
-        print(request.class_level)
-        new_class = await class_service.create_class(request.class_level)
+        print(request.name)
+        new_class = await class_service.create_class(request.name)
         return ClassResponse.model_validate(new_class)
     except Exception as e:
         raise BadRequestException(f"Failed to create class: {str(e)}")

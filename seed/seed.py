@@ -37,15 +37,15 @@ from app.models.user import TargetExam
 from app.models.pyq import PreviousYearProblems
 
 
-async def get_or_create_class(db: AsyncSession, class_level: Class_level) -> Class:
+async def get_or_create_class(db: AsyncSession, name: str) -> Class:
     """Get or create a Class entry"""
     result = await db.execute(
-        select(Class).where(Class.class_level == class_level)
+        select(Class).where(Class.name == name)
     )
     class_obj = result.scalar_one_or_none()
     
     if not class_obj:
-        class_obj = Class(class_level=class_level)
+        class_obj = Class(name=name)
         db.add(class_obj)
         await db.flush()
     return class_obj
@@ -238,14 +238,28 @@ async def seed_database(data_file: Path):
             
             for item in data:
                 # Extract hierarchy information
-                class_level = Class_level[item["class_level"]] if isinstance(item["class_level"], str) else Class_level(item["class_level"])
+                # Convert class_level to string name (handle both enum and direct string)
+                class_level_value = item["class_level"]
+                if isinstance(class_level_value, str):
+                    # If it's a string like "Ninth", "Tenth", etc., convert to number string
+                    class_name_map = {
+                        "Ninth": "9",
+                        "Tenth": "10", 
+                        "Eleventh": "11",
+                        "Twelth": "12"
+                    }
+                    class_name = class_name_map.get(class_level_value, str(class_level_value))
+                else:
+                    # If it's a number, convert to string
+                    class_name = str(class_level_value)
+                
                 subject_type = Subject_Type[item["subject_type"]] if isinstance(item["subject_type"], str) else Subject_Type(item["subject_type"])
                 chapter_name = item["chapter_name"]
                 topic_name = item["topic_name"]
                 exam_types = item.get("exam_types", ["JEE_MAINS"])
                 
                 # Create/get hierarchy
-                class_obj = await get_or_create_class(db, class_level)
+                class_obj = await get_or_create_class(db, class_name)
                 subject = await get_or_create_subject(db, class_obj, subject_type, parse_exam_types(exam_types))
                 chapter = await get_or_create_chapter(db, subject, chapter_name)
                 topic = await get_or_create_topic(db, chapter, topic_name)
