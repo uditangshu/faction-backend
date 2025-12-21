@@ -6,6 +6,7 @@ from sqlalchemy import select, desc, asc
 from typing import List, Optional
 
 from app.models.youtube_video import YouTubeVideo
+from app.models.Basequestion import Chapter
 from app.db.youtube_video_calls import (
     create_youtube_video,
     delete_youtube_video,
@@ -15,6 +16,7 @@ from app.db.youtube_video_calls import (
     get_youtube_video_by_id,
     update_youtube_video,
     get_latest_youtube_video,
+    get_chapters_with_youtube_videos,
 )
 
 
@@ -143,4 +145,8 @@ class YouTubeVideoService:
         query= query.offset(skip).limit(limit)
         result = await self.db.execute(query)
         return list(result.scalars().all())
+
+    async def get_chapters_with_youtube_videos(self) -> List[Chapter]:
+        """Get all chapters that have YouTube videos where youtube_video_id is not null"""
+        return await get_chapters_with_youtube_videos(self.db)
 

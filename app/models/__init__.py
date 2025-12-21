@@ -14,6 +14,7 @@ from app.models.contest import Contest, ContestLeaderboard, ContestQuestions
 from app.models.youtube_video import YouTubeVideo
 from app.models.badge import Badge, BadgeCategory
 from app.models.weak_topic import UserWeakTopic
+from app.models.doubt_forum import DoubtPost, DoubtComment
 __all__ = [
     "User",
     "UserRole",
@@ -46,5 +47,7 @@ __all__ = [
     "Badge",
     "BadgeCategory",
     "UserWeakTopic",
+    "DoubtPost",
+    "DoubtComment",
 ]
 

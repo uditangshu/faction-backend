@@ -11,6 +11,7 @@ from app.schemas.youtube_video import (
     YouTubeVideoListResponse,
     YouTubeVideoUpdateRequest,
 )
+from app.schemas.question import ChapterResponse, ChapterListResponse
 from app.exceptions.http_exceptions import NotFoundException, BadRequestException
 
 router = APIRouter(prefix="/youtube-videos", tags=["YouTube Videos"])
@@ -146,6 +147,18 @@ async def get_filtered_videos(
     return YouTubeVideoListResponse(
         videos=[YouTubeVideoResponse.model_validate(v) for v in videos],
         total=len(videos),
+    )
+
+
+@router.get("/chapters", response_model=ChapterListResponse)
+async def get_chapters_with_youtube_videos(
+    youtube_video_service: YouTubeVideoServiceDep,
+) -> ChapterListResponse:
+    """Get all chapters that have YouTube videos where youtube_video_id is not null"""
+    chapters = await youtube_video_service.get_chapters_with_youtube_videos()
+    return ChapterListResponse(
+        chapters=[ChapterResponse.model_validate(c) for c in chapters],
+        total=len(chapters),
     )
 
 

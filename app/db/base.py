@@ -11,6 +11,7 @@ from app.models.attempt import QuestionAttempt
 from app.models.analysis import BookMarkedQuestion
 from app.models.pyq import PreviousYearProblems
 from app.models.streak import UserStudyStats, UserDailyStreak
+from app.models.doubt_forum import DoubtPost, DoubtComment
 
 __all__ = [
     "SQLModel",
@@ -26,6 +27,8 @@ __all__ = [
     "UserStudyStats",
     "UserDailyStreak",
     "PreviousYearProblems",
-    "BookMarkedQuestion"
+    "BookMarkedQuestion",
+    "DoubtPost",
+    "DoubtComment"
 ]
 

@@ -4,10 +4,12 @@ from typing import List, Optional
 from uuid import UUID
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, delete, func, desc
+from sqlalchemy.orm import selectinload
 import random
 from datetime import datetime
 
 from app.models.youtube_video import YouTubeVideo
+from app.models.Basequestion import Chapter
 
 
 async def create_youtube_video(
@@ -164,4 +166,27 @@ async def get_latest_youtube_video(
         .limit(1)
     )
     return result.scalar_one_or_none()
+
+
+async def get_chapters_with_youtube_videos(
+    db: AsyncSession,
+) -> List[Chapter]:
+    """Get all chapters that have YouTube videos where youtube_video_id is not null"""
+    # Get distinct chapter IDs that have videos with non-null youtube_video_id
+    subquery = (
+        select(YouTubeVideo.chapter_id)
+        .where(
+            YouTubeVideo.youtube_video_id.isnot(None),
+            YouTubeVideo.is_active == True,
+        )
+        .distinct()
+    )
+    
+    # Get chapters with those IDs
+    result = await db.execute(
+        select(Chapter)
+        .where(Chapter.id.in_(subquery))
+        .options(selectinload(Chapter.subject))
+    )
+    return list(result.scalars().all())
 
