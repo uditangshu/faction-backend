@@ -196,9 +196,14 @@ async def get_custom_test_detail(
                     marks=q.marks,
                     question_image=q.question_image,
                     mcq_options=q.mcq_options,
+                    mcq_correct_option=q.mcq_correct_option,  # Correct answers for results
                     scq_options=q.scq_options,
+                    scq_correct_options=q.scq_correct_options,  # Correct answer for results
+                    integer_answer=q.integer_answer,  # Correct answer for integer type
+                    solution_text=q.solution_text,  # Solution explanation
                 )
             )
+
         
         return CustomTestDetailResponse(
             id=test.id,
