@@ -11,14 +11,14 @@ class DoubtPostCreateRequest(BaseModel):
     """Request to create a new doubt post"""
     title: str = Field(..., max_length=200)
     content: str
-    class_level: UUID
+    class_id: UUID
 
 
 class DoubtPostResponse(BaseModel):
     """Doubt post response"""
     id: UUID
     user_id: UUID
-    class_level: UUID
+    class_id: UUID
     title: str
     content: str
     image_url: Optional[str]

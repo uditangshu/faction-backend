@@ -31,7 +31,7 @@ class DoubtForumService:
     async def create_post(
         self,
         user_id: UUID,
-        class_level: UUID,
+        class_id: UUID,
         title: str,
         content: str,
         image_url: Optional[str] = None,
@@ -40,7 +40,7 @@ class DoubtForumService:
         return await create_doubt_post(
             self.db,
             user_id=user_id,
-            class_level=class_level,
+            class_id=class_id,
             title=title,
             content=content,
             image_url=image_url,
@@ -52,7 +52,7 @@ class DoubtForumService:
 
     async def get_posts(
         self,
-        class_level: Optional[UUID] = None,
+        class_id: Optional[UUID] = None,
         is_solved: Optional[bool] = None,
         skip: int = 0,
         limit: int = 20,
@@ -61,7 +61,7 @@ class DoubtForumService:
         """Get doubt posts with optional filters and pagination"""
         return await get_doubt_posts(
             self.db,
-            class_level=class_level,
+            class_id=class_id,
             is_solved=is_solved,
             skip=skip,
             limit=limit,

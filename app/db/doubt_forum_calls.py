@@ -13,7 +13,7 @@ from app.models.doubt_forum import DoubtPost, DoubtComment, DoubtBookmark
 async def create_doubt_post(
     db: AsyncSession,
     user_id: UUID,
-    class_level: UUID,
+    class_id: UUID,
     title: str,
     content: str,
     image_url: Optional[str] = None,
@@ -21,7 +21,7 @@ async def create_doubt_post(
     """Create a new doubt post"""
     post = DoubtPost(
         user_id=user_id,
-        class_level=class_level,
+        class_id=class_id,
         title=title,
         content=content,
         image_url=image_url,
@@ -47,7 +47,7 @@ async def get_doubt_post_by_id(
 
 async def get_doubt_posts(
     db: AsyncSession,
-    class_level: Optional[UUID] = None,
+    class_id: Optional[UUID] = None,
     is_solved: Optional[bool] = None,
     skip: int = 0,
     limit: int = 20,
@@ -58,8 +58,8 @@ async def get_doubt_posts(
     
     # Apply filters
     conditions = []
-    if class_level:
-        conditions.append(DoubtPost.class_level == class_level)
+    if class_id:
+        conditions.append(DoubtPost.class_id == class_id)
     if is_solved is not None:
         conditions.append(DoubtPost.is_solved == is_solved)
     

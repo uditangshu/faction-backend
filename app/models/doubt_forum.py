@@ -13,7 +13,7 @@ class DoubtPost(SQLModel, table=True):
     
     id: UUID = Field(default_factory=uuid4, primary_key=True)
     user_id: UUID = Field(foreign_key="users.id", index=True)
-    class_level: UUID = Field(foreign_key="class.id", index=True)
+    class_id: UUID = Field(foreign_key="class.id", index=True)
     
     # Post content
     title: str = Field(max_length=200)

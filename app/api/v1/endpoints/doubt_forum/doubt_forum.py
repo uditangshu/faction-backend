@@ -45,11 +45,15 @@ async def create_doubt_post(
     current_user: CurrentUser,
     title: str = Form(..., max_length=200),
     content: str = Form(...),
-    class_level: UUID = Form(...),
+    class_id: Optional[UUID] = Form(None, description="Class ID (optional, defaults to user's class_id)"),
     image: Optional[UploadFile] = File(None, description="Post image file"),
 ) -> DoubtPostResponse:
     """Create a new doubt post with optional image upload to Cloudinary"""
     try:
+        # Use current_user.class_id if class_id is not provided
+        if class_id is None:
+            class_id = current_user.class_id
+        
         # Handle image upload if provided
         image_url = None
         if image:
@@ -70,7 +74,7 @@ async def create_doubt_post(
         # Create the post
         post = await doubt_forum_service.create_post(
             user_id=current_user.id,
-            class_level=class_level,
+            class_id=class_id,
             title=title,
             content=content,
             image_url=image_url,
@@ -86,7 +90,7 @@ async def create_doubt_post(
 @router.get("/posts", response_model=DoubtPostListResponse)
 async def get_doubt_posts(
     doubt_forum_service: DoubtForumServiceDep,
-    class_level: Optional[UUID] = Query(None, description="Filter by class ID (UUID)"),
+    class_id: Optional[UUID] = Query(None, description="Filter by class ID (UUID)"),
     is_solved: Optional[bool] = Query(None, description="Filter by solved status"),
     skip: int = Query(0, ge=0, description="Number of records to skip (for pagination)"),
     limit: int = Query(20, ge=1, le=100, description="Maximum number of records"),
@@ -98,7 +102,7 @@ async def get_doubt_posts(
     
     # Get posts
     posts = await doubt_forum_service.get_posts(
-        class_level=class_level,
+        class_id=class_id,
         is_solved=is_solved,
         skip=skip,
         limit=limit + 1,  # Fetch one extra to check if there are more
