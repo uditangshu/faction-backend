@@ -11,6 +11,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from workers.contest_worker import ContestSubmissionWorker
+from workers.grading_worker import GradingWorker
 from app.core.config import settings
 
 # Configure logging
@@ -25,7 +26,7 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 # Global worker instance for signal handling
-worker: ContestSubmissionWorker | None = None
+worker = None
 shutdown_event = asyncio.Event()
 
 
@@ -39,11 +40,18 @@ async def main():
     """Main entry point for worker"""
     global worker
     
-    # Get worker ID from environment or use default
-    worker_id = os.getenv("WORKER_ID", f"{settings.APP_ENV}-worker-{os.getpid()}")
+    # Get worker type from environment (default: "submission")
+    worker_type = os.getenv("WORKER_TYPE", "submission").lower()
     
-    # Create worker instance
-    worker = ContestSubmissionWorker(worker_id=worker_id)
+    # Get worker ID from environment or use default
+    if worker_type == "grading":
+        worker_id = os.getenv("WORKER_ID", f"{settings.APP_ENV}-grading-worker-{os.getpid()}")
+        worker = GradingWorker(worker_id=worker_id)
+        logger.info(f"Starting grading worker: {worker_id}")
+    else:
+        worker_id = os.getenv("WORKER_ID", f"{settings.APP_ENV}-submission-worker-{os.getpid()}")
+        worker = ContestSubmissionWorker(worker_id=worker_id)
+        logger.info(f"Starting submission worker: {worker_id}")
     
     try:
         # Initialize worker

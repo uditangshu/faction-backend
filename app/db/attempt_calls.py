@@ -23,10 +23,26 @@ async def create_attempt(
     hint_used: bool,
 ) -> QuestionAttempt:
     """Create a new question attempt and update streak if answer is correct.
+    If an attempt already exists for the user and question, it will be deleted first.
     This is transactional - if any operation fails, everything is rolled back.
     """
     try:
-        # Create attempt
+        # Check if attempt already exists and delete it
+        existing_result = await db.execute(
+            select(QuestionAttempt).where(
+                and_(
+                    QuestionAttempt.user_id == user_id,
+                    QuestionAttempt.question_id == question_id
+                )
+            )
+        )
+        existing_attempt = existing_result.scalar_one_or_none()
+        
+        if existing_attempt:
+            # Delete existing attempt
+            await db.delete(existing_attempt)
+        
+        # Create new attempt
         attempt = QuestionAttempt(
             user_id=user_id,
             question_id=question_id,

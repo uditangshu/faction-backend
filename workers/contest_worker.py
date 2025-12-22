@@ -9,13 +9,18 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from uuid import UUID
-from typing import Dict, Any
+from typing import Dict, Any, Tuple, List
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.session import AsyncSessionLocal
 from app.integrations.redis_client import get_redis, RedisService
 from app.db.attempt_calls import create_attempt
 from app.core.config import settings
+from app.models.Basequestion import Question, QuestionType
+from app.models.contest import Contest, ContestLeaderboard
+from app.models.user import User
+from app.models.linking import ContestQuestions
+from sqlalchemy import select, func, desc
 
 logger = logging.getLogger(__name__)
 
@@ -41,43 +46,368 @@ class ContestSubmissionWorker:
             logger.error(f"Failed to initialize Redis for worker {self.worker_id}: {e}")
             raise
 
-    async def process_submission(self, submission: Dict[str, Any], db: AsyncSession) -> bool:
+    def _validate_answer(self, question_data: Dict[str, Any], user_answer: List[str]) -> Tuple[bool, int]:
         """
-        Process a single submission and save to database.
+        Validate user answer against question and calculate marks.
+        Handles string-based answers, partial marking for MCQ, and negative marking.
         
         Args:
-            submission: Submission data from queue
+            question_data: Dictionary with question data (type, answers, etc.)
+            user_answer: List of user's answer strings
+            
+        Returns:
+            Tuple of (is_correct: bool, marks_obtained: int)
+        """
+        is_correct = False
+        marks_obtained = 0
+        
+        if question_data["type"] == QuestionType.INTEGER:
+            # Integer type: user_answer should be a list with one integer string
+            if user_answer and len(user_answer) == 1:
+                try:
+                    user_int = int(user_answer[0])
+                    if question_data["integer_answer"] is not None:
+                        if user_int == question_data["integer_answer"]:
+                            is_correct = True
+                            marks_obtained = question_data["marks"]
+                        else:
+                            # Incorrect integer answer - negative marking
+                            marks_obtained = -1
+                except ValueError:
+                    # Invalid integer format - treat as incorrect
+                    marks_obtained = -1
+            else:
+                # Empty or multiple answers for integer type - negative marking
+                marks_obtained = -1
+                    
+        elif question_data["type"] == QuestionType.MCQ:
+            # MCQ type: Partial marking with negative marking
+            # If only correct options chosen (all correct, no incorrect) → full marks
+            # If some correct options chosen (and no incorrect) → +1 mark per correct option
+            # If any incorrect option chosen → -2 marks total (regardless of correct options)
+            if question_data["mcq_correct_option"] is not None and question_data["mcq_options"] is not None:
+                try:
+                    # Convert user_answer strings to integers (option indices)
+                    user_indices = set()
+                    for ans in user_answer:
+                        try:
+                            user_indices.add(int(ans))
+                        except ValueError:
+                            # If not an integer, try to match with option text
+                            for idx, option_text in enumerate(question_data["mcq_options"]):
+                                if ans.strip() == option_text.strip():
+                                    user_indices.add(idx)
+                                    break
+                    
+                    correct_indices = set(question_data["mcq_correct_option"])
+                    all_option_indices = set(range(len(question_data["mcq_options"])))
+                    
+                    # Calculate partial marks
+                    correct_selected = user_indices & correct_indices
+                    incorrect_selected = user_indices - correct_indices
+                    
+                    # If any incorrect option is selected, give -2 marks total
+                    if len(incorrect_selected) > 0:
+                        marks_obtained = -2
+                    else:
+                        # No incorrect options selected
+                        if len(correct_selected) == len(correct_indices):
+                            # All correct options selected - full marks
+                            is_correct = True
+                            marks_obtained = question_data["marks"]
+                        else:
+                            # Some correct options selected - +1 mark per correct option
+                            marks_obtained = len(correct_selected)
+                        
+                except (ValueError, TypeError, IndexError):
+                    # Invalid format - no marks
+                    marks_obtained = 0
+            else:
+                # No correct options defined - no marks
+                marks_obtained = 0
+                    
+        elif question_data["type"] == QuestionType.SCQ:
+            # SCQ type: user_answer should be a list with one option index (as string)
+            if user_answer and len(user_answer) == 1:
+                try:
+                    user_index = int(user_answer[0])
+                    if question_data["scq_correct_options"] is not None:
+                        if user_index == question_data["scq_correct_options"]:
+                            is_correct = True
+                            marks_obtained = question_data["marks"]
+                        else:
+                            # Incorrect option selected - negative marking
+                            marks_obtained = -1
+                except ValueError:
+                    # Invalid format - treat as incorrect
+                    marks_obtained = -1
+            else:
+                # Empty or multiple answers for SCQ - negative marking
+                marks_obtained = -1
+                    
+        # For other types (match_the_column, etc.), treat as MCQ format
+        elif question_data["type"] == QuestionType.MATCH:
+            if question_data["mcq_correct_option"] is not None:
+                try:
+                    user_indices = sorted([int(ans) for ans in user_answer])
+                    correct_indices = sorted(question_data["mcq_correct_option"])
+                    if user_indices == correct_indices:
+                        is_correct = True
+                        marks_obtained = question_data["marks"]
+                    else:
+                        # Incorrect match - negative marking
+                        marks_obtained = -1
+                except (ValueError, TypeError):
+                    # Invalid format - treat as incorrect
+                    marks_obtained = -1
+            else:
+                # No correct options defined - treat as incorrect
+                marks_obtained = -1
+        
+        return is_correct, marks_obtained
+
+    async def process_user_submissions(self, user_submission_group: Dict[str, Any], db: AsyncSession) -> bool:
+        """
+        Process all submissions for a single user and save to database.
+        Tracks analytics locally and populates leaderboard with single DB call.
+        
+        Args:
+            user_submission_group: Grouped submission data from queue containing:
+                - contest_id: Contest ID
+                - user_id: User ID
+                - submissions: List of submission dictionaries
             db: Database session
             
         Returns:
-            bool: True if successful, False otherwise
+            bool: True if all submissions processed successfully, False otherwise
         """
         try:
-            user_id = UUID(submission["user_id"])
-            question_id = UUID(submission["question_id"])
+            user_id = UUID(user_submission_group["user_id"])
+            contest_id = UUID(user_submission_group["contest_id"])
+            submissions = user_submission_group["submissions"]
             
-            await create_attempt(
-                db=db,
-                user_id=user_id,
-                question_id=question_id,
-                user_answer=submission["user_answer"],
-                is_correct=submission["is_correct"],
-                marks_obtained=submission["marks_obtained"],
-                time_taken=submission["time_taken"],
-                hint_used=submission.get("hint_used", False),
+            processed_count = 0
+            failed_count = 0
+            
+            # Local variables to track analytics
+            total_score = 0.0
+            correct_count = 0
+            incorrect_count = 0
+            attempted_count = 0
+            
+            # Get contest and total questions count
+            contest_result = await db.execute(
+                select(Contest).where(Contest.id == contest_id)
             )
+            contest = contest_result.scalar_one_or_none()
+            
+            if not contest:
+                logger.error(f"Worker {self.worker_id} contest not found: {contest_id}")
+                return False
+            
+            # Get total questions count
+            total_questions_result = await db.execute(
+                select(func.count(ContestQuestions.id)).where(
+                    ContestQuestions.contest_id == contest_id
+                )
+            )
+            total_questions = total_questions_result.scalar() or 0
+            
+            # Fetch all questions for this batch to avoid N+1 queries
+            question_ids = [UUID(sub["question_id"]) for sub in submissions]
+            result = await db.execute(
+                select(Question).where(Question.id.in_(question_ids))
+            )
+            questions_list = result.scalars().all()
+            
+            # Extract all needed attributes while still in async context to avoid lazy loading issues
+            questions_data = {}
+            for q in questions_list:
+                questions_data[q.id] = {
+                    "type": q.type,
+                    "integer_answer": q.integer_answer,
+                    "mcq_options": q.mcq_options,
+                    "mcq_correct_option": q.mcq_correct_option,
+                    "scq_options": q.scq_options,
+                    "scq_correct_options": q.scq_correct_options,
+                    "marks": q.marks,
+                }
+            
+            # Process each submission for this user
+            for submission in submissions:
+                try:
+                    question_id = UUID(submission["question_id"])
+                    question_data = questions_data.get(question_id)
+                    
+                    if not question_data:
+                        logger.warning(
+                            f"Worker {self.worker_id} question not found: {question_id}"
+                        )
+                        failed_count += 1
+                        continue
+                    
+                    # Validate answer and calculate marks
+                    is_correct, marks_obtained = self._validate_answer(
+                        question_data, submission["user_answer"]
+                    )
+                    
+                    await create_attempt(
+                        db=db,
+                        user_id=user_id,
+                        question_id=question_id,
+                        user_answer=submission["user_answer"],
+                        is_correct=is_correct,
+                        marks_obtained=marks_obtained,
+                        time_taken=submission["time_taken"],
+                        hint_used=submission.get("hint_used", False),
+                    )
+                    
+                    # Update local analytics
+                    total_score += marks_obtained
+                    attempted_count += 1
+                    if is_correct:
+                        correct_count += 1
+                    else:
+                        incorrect_count += 1
+                    
+                    processed_count += 1
+                except Exception as e:
+                    logger.error(
+                        f"Worker {self.worker_id} failed to process individual submission: "
+                        f"user={user_id}, question={submission.get('question_id')}, error={e}",
+                        exc_info=True
+                    )
+                    failed_count += 1
+            
+            # Populate leaderboard with single DB call
+            if processed_count > 0:
+                await self._populate_user_leaderboard(
+                    db=db,
+                    user_id=user_id,
+                    contest_id=contest_id,
+                    total_score=total_score,
+                    total_questions=total_questions,
+                    attempted_count=attempted_count,
+                    correct_count=correct_count,
+                    incorrect_count=incorrect_count,
+                )
+                # Commit leaderboard update
+                await db.commit()
             
             logger.info(
-                f"Worker {self.worker_id} processed submission: "
-                f"user={user_id}, question={question_id}, correct={submission['is_correct']}"
+                f"Worker {self.worker_id} processed user submissions: "
+                f"user={user_id}, contest={contest_id}, "
+                f"processed={processed_count}, failed={failed_count}"
             )
-            return True
+            
+            # Return True if at least some submissions were processed
+            return processed_count > 0
         except Exception as e:
             logger.error(
-                f"Worker {self.worker_id} failed to process submission: {e}",
+                f"Worker {self.worker_id} failed to process user submission group: {e}",
                 exc_info=True
             )
             return False
+
+    async def _populate_user_leaderboard(
+        self,
+        db: AsyncSession,
+        user_id: UUID,
+        contest_id: UUID,
+        total_score: float,
+        total_questions: int,
+        attempted_count: int,
+        correct_count: int,
+        incorrect_count: int,
+    ):
+        """
+        Populate or update contest leaderboard entry for a user with single DB call.
+        
+        Args:
+            db: Database session
+            user_id: User ID
+            contest_id: Contest ID
+            total_score: Total marks obtained
+            total_questions: Total questions in contest
+            attempted_count: Number of questions attempted
+            correct_count: Number of correct answers
+            incorrect_count: Number of incorrect answers
+        """
+        try:
+            # Get user's current rating
+            user_result = await db.execute(
+                select(User).where(User.id == user_id)
+            )
+            user = user_result.scalar_one_or_none()
+            
+            if not user:
+                logger.warning(f"User {user_id} not found for leaderboard")
+                return
+            
+            rating_before = user.current_rating
+            
+            # Calculate analytics
+            unattempted = total_questions - attempted_count
+            accuracy = (correct_count / attempted_count * 100) if attempted_count > 0 else 0.0
+            
+            # Simple rating delta calculation (adjust as needed)
+            rating_delta = 0
+            rating_after = rating_before + 0
+            
+            # Check if leaderboard entry exists
+            existing_result = await db.execute(
+                select(ContestLeaderboard).where(
+                    ContestLeaderboard.user_id == user_id,
+                    ContestLeaderboard.contest_id == contest_id
+                )
+            )
+            leaderboard_entry = existing_result.scalar_one_or_none()
+            
+            if leaderboard_entry:
+                # Update existing entry
+                leaderboard_entry.score = total_score
+                leaderboard_entry.accuracy = accuracy
+                leaderboard_entry.total_questions = total_questions
+                leaderboard_entry.attempted = attempted_count
+                leaderboard_entry.unattempted = unattempted
+                leaderboard_entry.correct = correct_count
+                leaderboard_entry.incorrect = incorrect_count
+                leaderboard_entry.rating_before = rating_before
+                leaderboard_entry.rating_after = rating_after
+                leaderboard_entry.rating_delta = rating_delta
+                leaderboard_entry.missed = False
+                # Rank will be recalculated separately after all users are processed
+            else:
+                # Create new entry
+                leaderboard_entry = ContestLeaderboard(
+                    user_id=user_id,
+                    contest_id=contest_id,
+                    score=total_score,
+                    accuracy=accuracy,
+                    total_questions=total_questions,
+                    attempted=attempted_count,
+                    unattempted=unattempted,
+                    correct=correct_count,
+                    incorrect=incorrect_count,
+                    rating_before=rating_before,
+                    rating_after=rating_after,
+                    rating_delta=rating_delta,
+                    rank=0,  # Will be calculated later
+                    missed=False,
+                )
+                db.add(leaderboard_entry)
+            
+            logger.debug(
+                f"Updated leaderboard for user {user_id} in contest {contest_id}: "
+                f"score={total_score}, correct={correct_count}, incorrect={incorrect_count}"
+            )
+            
+        except Exception as e:
+            logger.error(
+                f"Failed to populate leaderboard for user {user_id}: {e}",
+                exc_info=True
+            )
+            # Don't raise - allow submission processing to continue
 
     async def get_contest_queues(self) -> list[str]:
         """
@@ -169,13 +499,13 @@ class ContestSubmissionWorker:
                         
                         if submission:
                             processed_any = True
-                            # Process submission with database session
+                            # Process user submission group with database session
                             async with AsyncSessionLocal() as db:
-                                success = await self.process_submission(submission, db)
+                                success = await self.process_user_submissions(submission, db)
                                 
                                 if not success:
                                     logger.warning(
-                                        f"Worker {self.worker_id} failed to process submission from {queue_name}"
+                                        f"Worker {self.worker_id} failed to process user submission group from {queue_name}"
                                     )
                             # Break after processing one item to allow round-robin
                             break

@@ -1,6 +1,6 @@
 [
   {
-    "class_level": "Eleventh",
+    "name": "Eleventh",
     "subject_type": "PHYSICS",
     "chapter_name": "Mechanics",
     "topic_name": "Newton's Laws",
@@ -27,7 +27,7 @@
     }
   },
   {
-    "class_level": "Eleventh",
+    "name": "Eleventh",
     "subject_type": "PHYSICS",
     "chapter_name": "Mechanics",
     "topic_name": "Newton's Laws",
@@ -45,7 +45,7 @@
     "pyq": null
   },
   {
-    "class_level": "Twelth",
+    "name": "Twelth",
     "subject_type": "CHEMISTRY",
     "chapter_name": "Organic Chemistry",
     "topic_name": "Alkanes",
@@ -72,7 +72,7 @@
     }
   },
   {
-    "class_level": "Eleventh",
+    "name": "Eleventh",
     "subject_type": "MATHS",
     "chapter_name": "Algebra",
     "topic_name": "Quadratic Equations",
@@ -99,7 +99,7 @@
     }
   },
   {
-    "class_level": "Twelth",
+    "name": "Twelth",
     "subject_type": "BIOLOGY",
     "chapter_name": "Cell Biology",
     "topic_name": "Cell Structure",

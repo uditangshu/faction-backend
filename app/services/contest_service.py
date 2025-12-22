@@ -220,6 +220,7 @@ class ContestService:
     ) -> str:
         """
         Push contest submissions to Redis queue for async processing.
+        All submissions from a single user are grouped into a single queue item.
         
         Args:
             contest_id: Contest ID
@@ -239,12 +240,10 @@ class ContestService:
         # Queue name for contest submissions
         queue_name = f"contest:submissions:{contest_id}"
         
-        # Format submissions with contest_id and user_id
+        # Format individual submissions (without contest_id and user_id, they'll be in the parent object)
         formatted_submissions = []
         for submission in submissions:
             formatted_submission = {
-                "contest_id": str(contest_id),
-                "user_id": str(user_id),
                 "question_id": str(submission["question_id"]),
                 "user_answer": submission["user_answer"],
                 "time_taken": submission["time_taken"],
@@ -252,8 +251,15 @@ class ContestService:
             }
             formatted_submissions.append(formatted_submission)
         
-        # Push all submissions to Redis queue
-        await self.redis_service.push_multiple_to_queue(queue_name, formatted_submissions)
+        # Group all submissions from this user into a single queue item
+        user_submission_group = {
+            "contest_id": str(contest_id),
+            "user_id": str(user_id),
+            "submissions": formatted_submissions,
+        }
+        
+        # Push single grouped item to Redis queue
+        await self.redis_service.push_to_queue(queue_name, user_submission_group)
         
         return queue_name
 
