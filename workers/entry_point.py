@@ -6,6 +6,10 @@ import sys
 import signal
 import os
 from pathlib import Path
+from dotenv import load_dotenv
+
+# Load environment variables from .env file
+load_dotenv()
 
 # Add parent directory to path to import app modules
 sys.path.insert(0, str(Path(__file__).parent.parent))
@@ -43,13 +47,13 @@ async def main():
     # Get worker type from environment (default: "submission")
     worker_type = os.getenv("WORKER_TYPE", "submission").lower()
     
-    # Get worker ID from environment or use default
+    # Simple integer worker ID (using process ID for uniqueness)
+    worker_id = str(os.getpid())
+    
     if worker_type == "grading":
-        worker_id = os.getenv("WORKER_ID", f"{settings.APP_ENV}-grading-worker-{os.getpid()}")
         worker = GradingWorker(worker_id=worker_id)
         logger.info(f"Starting grading worker: {worker_id}")
     else:
-        worker_id = os.getenv("WORKER_ID", f"{settings.APP_ENV}-submission-worker-{os.getpid()}")
         worker = ContestSubmissionWorker(worker_id=worker_id)
         logger.info(f"Starting submission worker: {worker_id}")
     

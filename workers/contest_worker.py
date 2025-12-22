@@ -85,20 +85,24 @@ class ContestSubmissionWorker:
             # If only correct options chosen (all correct, no incorrect) → full marks
             # If some correct options chosen (and no incorrect) → +1 mark per correct option
             # If any incorrect option chosen → -2 marks total (regardless of correct options)
+            # NOTE: User sends option text, need to map to index, then compare with zero-indexed correct_option
             if question_data["mcq_correct_option"] is not None and question_data["mcq_options"] is not None:
                 try:
-                    # Convert user_answer strings to integers (option indices)
+                    # Map user_answer option texts to their indices in mcq_options
                     user_indices = set()
                     for ans in user_answer:
-                        try:
-                            user_indices.add(int(ans))
-                        except ValueError:
-                            # If not an integer, try to match with option text
-                            for idx, option_text in enumerate(question_data["mcq_options"]):
-                                if ans.strip() == option_text.strip():
-                                    user_indices.add(idx)
-                                    break
+                        # Find the index of this option text in mcq_options
+                        found = False
+                        for idx, option_text in enumerate(question_data["mcq_options"]):
+                            if ans.strip() == option_text.strip():
+                                user_indices.add(idx)  # idx is already zero-indexed
+                                found = True
+                                break
+                        if not found:
+                            # Option text not found - might be invalid, skip it
+                            logger.warning(f"Option text not found in mcq_options: {ans}")
                     
+                    # correct_option is already zero-indexed (0 = first option, 1 = second option, etc.)
                     correct_indices = set(question_data["mcq_correct_option"])
                     all_option_indices = set(range(len(question_data["mcq_options"])))
                     
@@ -127,18 +131,30 @@ class ContestSubmissionWorker:
                 marks_obtained = 0
                     
         elif question_data["type"] == QuestionType.SCQ:
-            # SCQ type: user_answer should be a list with one option index (as string)
+            # SCQ type: user_answer should be a list with one option text
+            # NOTE: User sends option text, need to map to index, then compare with zero-indexed scq_correct_options
             if user_answer and len(user_answer) == 1:
                 try:
-                    user_index = int(user_answer[0])
-                    if question_data["scq_correct_options"] is not None:
+                    # Map user_answer option text to its index in scq_options
+                    user_index = None
+                    if question_data.get("scq_options") is not None:
+                        for idx, option_text in enumerate(question_data["scq_options"]):
+                            if user_answer[0].strip() == option_text.strip():
+                                user_index = idx  # idx is already zero-indexed
+                                break
+                    
+                    if question_data["scq_correct_options"] is not None and user_index is not None:
+                        # scq_correct_options is already zero-indexed (0 = first option, 1 = second option, etc.)
                         if user_index == question_data["scq_correct_options"]:
                             is_correct = True
                             marks_obtained = question_data["marks"]
                         else:
                             # Incorrect option selected - negative marking
                             marks_obtained = -1
-                except ValueError:
+                    else:
+                        # Invalid option text or no correct option defined
+                        marks_obtained = -1
+                except (ValueError, TypeError, IndexError):
                     # Invalid format - treat as incorrect
                     marks_obtained = -1
             else:
@@ -147,9 +163,18 @@ class ContestSubmissionWorker:
                     
         # For other types (match_the_column, etc.), treat as MCQ format
         elif question_data["type"] == QuestionType.MATCH:
-            if question_data["mcq_correct_option"] is not None:
+            # NOTE: User sends option texts, need to map to indices, then compare with zero-indexed mcq_correct_option
+            if question_data["mcq_correct_option"] is not None and question_data.get("mcq_options") is not None:
                 try:
-                    user_indices = sorted([int(ans) for ans in user_answer])
+                    # Map user_answer option texts to their indices in mcq_options
+                    user_indices = []
+                    for ans in user_answer:
+                        for idx, option_text in enumerate(question_data["mcq_options"]):
+                            if ans.strip() == option_text.strip():
+                                user_indices.append(idx)  # idx is already zero-indexed
+                                break
+                    
+                    user_indices = sorted(user_indices)
                     correct_indices = sorted(question_data["mcq_correct_option"])
                     if user_indices == correct_indices:
                         is_correct = True
@@ -157,7 +182,7 @@ class ContestSubmissionWorker:
                     else:
                         # Incorrect match - negative marking
                         marks_obtained = -1
-                except (ValueError, TypeError):
+                except (ValueError, TypeError, IndexError):
                     # Invalid format - treat as incorrect
                     marks_obtained = -1
             else:
@@ -476,11 +501,43 @@ class ContestSubmissionWorker:
         self.running = True
         logger.info(f"Worker {self.worker_id} started")
         
+        # Track which contest queues we've seen (to detect when they become empty)
+        seen_queues = set()
+        
         try:
             while self.running:
                 try:
-                    # Get all active contest queues
+                    # Get all active contest queues (queues with items)
                     queues = await self.get_contest_queues()
+                    current_queue_set = set(queues)
+                    
+                    # Check if any previously seen queue is now empty (all submissions processed)
+                    queues_to_remove = []
+                    for queue_name in seen_queues:
+                        if queue_name not in current_queue_set:
+                            # Queue is now empty - push contest_id to grading queue
+                            try:
+                                contest_id_str = queue_name.split(":")[-1]
+                                contest_id = UUID(contest_id_str)
+                                grading_queue = "contest:grading"
+                                await self.redis_service.push_to_queue(grading_queue, str(contest_id))
+                                logger.info(
+                                    f"Worker {self.worker_id}: Contest {contest_id} queue empty, "
+                                    f"pushed to grading queue"
+                                )
+                                # Remove from seen_queues after successful push
+                                queues_to_remove.append(queue_name)
+                            except (ValueError, IndexError) as e:
+                                logger.warning(f"Failed to extract contest_id from queue {queue_name}: {e}")
+                                # Remove even on error to avoid retrying
+                                queues_to_remove.append(queue_name)
+                    
+                    # Remove processed queues from seen_queues
+                    for queue_name in queues_to_remove:
+                        seen_queues.discard(queue_name)
+                    
+                    # Update seen queues to include current active queues
+                    seen_queues.update(current_queue_set)
                     
                     if not queues:
                         # No active queues, wait before checking again
