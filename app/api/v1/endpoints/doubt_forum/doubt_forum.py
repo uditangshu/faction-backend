@@ -356,9 +356,10 @@ async def filter_doubt_posts(
     if sort_order not in ["latest", "oldest"]:
         raise BadRequestException("sort_order must be 'latest' or 'oldest'")
     
-    # Get filtered posts
+    # Get filtered posts - filtered by user's class_id
     posts = await doubt_forum_service.get_filtered_posts(
         user_id=current_user.id,
+        class_id=current_user.class_id,
         content_search=content_search,
         is_solved=is_solved,
         my_posts_only=my_posts_only,

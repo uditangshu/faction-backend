@@ -75,6 +75,7 @@ class DoubtForumService:
     async def get_filtered_posts(
         self,
         user_id: Optional[UUID] = None,
+        class_id: Optional[UUID] = None,
         content_search: Optional[str] = None,
         is_solved: Optional[bool] = None,
         my_posts_only: bool = False,
@@ -87,6 +88,7 @@ class DoubtForumService:
         return await get_filtered_doubt_posts(
             self.db,
             user_id=user_id,
+            class_id=class_id,
             content_search=content_search,
             is_solved=is_solved,
             my_posts_only=my_posts_only,

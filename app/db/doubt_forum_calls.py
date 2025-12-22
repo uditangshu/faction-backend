@@ -83,6 +83,7 @@ async def get_doubt_posts(
 async def get_filtered_doubt_posts(
     db: AsyncSession,
     user_id: Optional[UUID] = None,
+    class_id: Optional[UUID] = None,
     content_search: Optional[str] = None,
     is_solved: Optional[bool] = None,
     my_posts_only: bool = False,
@@ -96,6 +97,10 @@ async def get_filtered_doubt_posts(
     
     # Apply filters
     conditions = []
+    
+    # Filter by class_id (required)
+    if class_id:
+        conditions.append(DoubtPost.class_id == class_id)
     
     # Content search (search in title and content)
     if content_search:
