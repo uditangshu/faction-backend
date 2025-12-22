@@ -40,7 +40,13 @@ async def create_attempt(
         
         if existing_attempt:
             # Delete existing attempt
-            await db.delete(existing_attempt)
+            stmt = delete(QuestionAttempt).where(
+                and_(
+                    QuestionAttempt.user_id == user_id,
+                    QuestionAttempt.question_id == question_id
+                )
+            )
+            await db.execute(stmt)
         
         # Create new attempt
         attempt = QuestionAttempt(

@@ -33,7 +33,7 @@ async def update_class(db : AsyncSession, updated_class: Class):
     """Update the classes"""
     db.merge(updated_class)
     await db.commit()
-    await db.refresh(Class)
+    await db.refresh(updated_class)
     return updated_class
 
 

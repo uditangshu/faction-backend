@@ -3,6 +3,7 @@
 from typing import AsyncGenerator
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine, async_sessionmaker
 from sqlmodel import SQLModel
+from uuid import uuid4
 
 from app.core.config import settings
 
@@ -17,6 +18,7 @@ if "?sslmode=" in database_url or "&sslmode=" in database_url:
 # Create async engine with SSL configuration
 # Optimized for high RPS (200+ requests/second)
 # Note: max_overflow is ignored with asyncpg, so pool_size is the tal connection limit
+# IMPORTANT: statement_cache_size=0 is REQUIRED for PgBouncer transaction mode
 engine = create_async_engine(
     database_url,
     echo=settings.DB_ECHO,
@@ -30,7 +32,9 @@ engine = create_async_engine(
     connect_args={
         "ssl": "require",  # SSL is required for Aivennigga
         "server_settings": {"application_name": "faction_backend"},
-        "statement_cache_size": 0,  
+        "statement_cache_size": 0,  # Required: disable prepared statement cache
+        "prepared_statement_name_func": lambda: f"__asyncpg_{uuid4()}__",
+
     }
 )
 

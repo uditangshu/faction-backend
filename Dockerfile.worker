@@ -38,5 +38,5 @@ RUN useradd -m -u 1000 appuser && chown -R appuser:appuser /app
 USER appuser
 
 # Run worker
-CMD ["python", "-m", "workers.entry_point"]
+CMD ["python", "workers/entry_point.py"]
 

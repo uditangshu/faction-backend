@@ -46,6 +46,8 @@ services:
       - "8000:8000"
     volumes:
       - .:/app
+    env_file:
+      - .env
     depends_on:
       postgres:
         condition: service_healthy
@@ -53,6 +55,22 @@ services:
         condition: service_healthy
     networks:
       - faction_network
+
+  worker:
+    build:
+      context: .
+      dockerfile: Dockerfile.worker
+    container_name: faction_worker
+    env_file:
+      - .env
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - faction_network
+    restart: unless-stopped
 
 volumes:
   postgres_data:
