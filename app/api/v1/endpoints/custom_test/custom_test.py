@@ -80,7 +80,10 @@ async def generate_custom_test(
                     marks=question.marks,
                     question_image=question.question_image,
                     mcq_options=question.mcq_options,
+                    mcq_correct_option=question.mcq_correct_option,  # Frontend needs this to validate
                     scq_options=question.scq_options,
+                    scq_correct_options=question.scq_correct_options,  # Frontend needs this to validate
+                    integer_answer=question.integer_answer,  # Frontend needs this to validate
                 )
             )
         
@@ -196,9 +199,14 @@ async def get_custom_test_detail(
                     marks=q.marks,
                     question_image=q.question_image,
                     mcq_options=q.mcq_options,
+                    mcq_correct_option=q.mcq_correct_option,  # Correct answers for results
                     scq_options=q.scq_options,
+                    scq_correct_options=q.scq_correct_options,  # Correct answer for results
+                    integer_answer=q.integer_answer,  # Correct answer for integer type
+                    solution_text=q.solution_text,  # Solution explanation
                 )
             )
+
         
         return CustomTestDetailResponse(
             id=test.id,
@@ -286,3 +294,45 @@ async def submit_custom_test(
             detail=f"Failed to submit custom test: {str(e)}"
         )
 
+
+@router.get("/{test_id}/analysis", response_model=CustomTestAnalysisResponse)
+async def get_test_analysis(
+    custom_test_service: CustomTestServiceDep,
+    current_user: CurrentUser,
+    test_id: UUID,
+) -> CustomTestAnalysisResponse:
+    """
+    Get the analysis for a completed custom test.
+    
+    Returns the analysis data including marks obtained, correct/incorrect/unattempted counts.
+    Note: marks_obtained can be negative due to negative marking for incorrect answers.
+    """
+    try:
+        analysis = await custom_test_service.get_test_analysis(
+            test_id=test_id,
+            user_id=current_user.id,
+        )
+        
+        if not analysis:
+            raise NotFoundException(f"Analysis for test {test_id} not found. Test may not be submitted yet.")
+        
+        return CustomTestAnalysisResponse(
+            id=analysis.id,
+            user_id=analysis.user_id,
+            custom_test_id=analysis.custom_test_id,
+            marks_obtained=analysis.marks_obtained,
+            total_marks=analysis.total_marks,
+            total_time_spent=analysis.total_time_spent,
+            correct=analysis.correct,
+            incorrect=analysis.incorrect,
+            unattempted=analysis.unattempted,
+            submitted_at=analysis.submitted_at.isoformat(),
+        )
+        
+    except NotFoundException as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to fetch test analysis: {str(e)}"
+        )
