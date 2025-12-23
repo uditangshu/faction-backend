@@ -98,6 +98,11 @@ class DoubtForumService:
             sort_order=sort_order,
         )
 
+    async def mark_as_solved(self, post_id: UUID) -> Optional[DoubtPost]:
+        """Mark a doubt post as solved"""
+        from app.db.doubt_forum_calls import mark_post_as_solved
+        return await mark_post_as_solved(self.db, post_id)
+
     # ==================== Comment Methods ====================
 
     async def create_comment(

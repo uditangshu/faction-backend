@@ -159,6 +159,22 @@ async def delete_doubt_post(
     return True
 
 
+async def mark_post_as_solved(
+    db: AsyncSession,
+    post_id: UUID,
+) -> Optional[DoubtPost]:
+    """Mark a doubt post as solved"""
+    post = await get_doubt_post_by_id(db, post_id)
+    if not post:
+        return None
+    
+    post.is_solved = True
+    db.add(post)
+    await db.commit()
+    await db.refresh(post)
+    return post
+
+
 # ==================== Comment Functions ====================
 
 async def create_doubt_comment(
