@@ -226,6 +226,29 @@ async def delete_doubt_post(
         raise NotFoundException(f"Post with ID {post_id} not found")
 
 
+@router.patch("/posts/{post_id}/solve", response_model=DoubtPostResponse)
+async def mark_post_as_solved(
+    post_id: UUID,
+    doubt_forum_service: DoubtForumServiceDep,
+    current_user: CurrentUser,
+) -> DoubtPostResponse:
+    """Mark a doubt post as solved (only by the post owner)"""
+    post = await doubt_forum_service.get_post_by_id(post_id)
+    if not post:
+        raise NotFoundException(f"Post with ID {post_id} not found")
+    
+    # Check if user owns the post
+    if post.user_id != current_user.id:
+        raise BadRequestException("Only the post owner can mark it as solved")
+    
+    # Update is_solved to True
+    updated_post = await doubt_forum_service.mark_as_solved(post_id)
+    if not updated_post:
+        raise NotFoundException(f"Post with ID {post_id} not found")
+    
+    return DoubtPostResponse.model_validate(updated_post)
+
+
 # ==================== Comment APIs ====================
 
 @router.post("/comments", response_model=DoubtCommentResponse, status_code=201)
