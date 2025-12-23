@@ -12,6 +12,7 @@ from app.schemas.contest import (
     ContestQuestionResponse,
     ContestSubmissionRequest,
     ContestSubmissionResponse,
+    ContestLeaderboardResponse,
 )
 from app.exceptions.http_exceptions import BadRequestException, NotFoundException
 
@@ -179,4 +180,33 @@ async def submit_contest(
         raise
     except Exception as e:
         raise BadRequestException(f"Failed to submit contest: {str(e)}")
+
+
+@router.get("/{contest_id}/leaderboard/{user_id}", response_model=ContestLeaderboardResponse)
+async def get_contest_leaderboard(
+    contest_id: UUID,
+    user_id: UUID,
+    contest_service: ContestServiceDep,
+) -> ContestLeaderboardResponse:
+    """
+    Get contest leaderboard entry for a specific user and contest.
+    
+    Returns the leaderboard entry containing:
+    - Score and rank
+    - Rating information (before, after, delta)
+    - Submission analytics (accuracy, attempted, correct, incorrect, etc.)
+    
+    Raises NotFoundException if the contest or leaderboard entry doesn't exist.
+    """
+    try:
+        leaderboard_entry = await contest_service.get_contest_leaderboard(
+            contest_id=contest_id,
+            user_id=user_id,
+        )
+        
+        return ContestLeaderboardResponse.model_validate(leaderboard_entry)
+    except (BadRequestException, NotFoundException):
+        raise
+    except Exception as e:
+        raise BadRequestException(f"Failed to fetch contest leaderboard: {str(e)}")
 

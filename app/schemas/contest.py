@@ -91,3 +91,26 @@ class ContestSubmissionResponse(BaseModel):
     submissions_count: int
     queue_name: str
 
+
+class ContestLeaderboardResponse(BaseModel):
+    """Response for contest leaderboard entry"""
+    id: UUID
+    user_id: UUID
+    contest_id: UUID
+    score: float
+    rank: int
+    rating_before: int
+    rating_after: int
+    rating_delta: int
+    missed: bool
+    accuracy: float
+    total_questions: int
+    attempted: int
+    unattempted: int
+    correct: int
+    incorrect: int
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+

@@ -239,3 +239,28 @@ async def get_arena_ranking_by_submissions(
     
     return [(row[0], row[1]) for row in result.all()], total
 
+
+async def get_contest_leaderboard_entry(
+    db: AsyncSession,
+    contest_id: UUID,
+    user_id: UUID,
+) -> Optional[ContestLeaderboard]:
+    """
+    Get contest leaderboard entry for a specific user and contest.
+    
+    Args:
+        db: Database session
+        contest_id: Contest ID
+        user_id: User ID
+    
+    Returns:
+        ContestLeaderboard entry or None if not found
+    """
+    result = await db.execute(
+        select(ContestLeaderboard).where(
+            ContestLeaderboard.contest_id == contest_id,
+            ContestLeaderboard.user_id == user_id
+        )
+    )
+    return result.scalar_one_or_none()
+

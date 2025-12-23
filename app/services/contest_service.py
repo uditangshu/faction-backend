@@ -7,11 +7,12 @@ from sqlalchemy.orm import selectinload
 from typing import List, Dict, Any
 from datetime import datetime
 
-from app.models.contest import Contest, ContestStatus
+from app.models.contest import Contest, ContestStatus, ContestLeaderboard
 from app.models.linking import ContestQuestions
 from app.models.Basequestion import Question
 from app.exceptions.http_exceptions import BadRequestException, NotFoundException
 from app.integrations.redis_client import RedisService
+from app.db.leaderboard_calls import get_contest_leaderboard_entry
 
 class ContestService:
     """Service for contest operations"""
@@ -262,4 +263,45 @@ class ContestService:
         await self.redis_service.push_to_queue(queue_name, user_submission_group)
         
         return queue_name
+
+    async def get_contest_leaderboard(
+        self,
+        contest_id: UUID,
+        user_id: UUID,
+    ) -> ContestLeaderboard:
+        """
+        Get contest leaderboard entry for a specific user and contest.
+        
+        Args:
+            contest_id: Contest ID
+            user_id: User ID
+            
+        Returns:
+            ContestLeaderboard entry
+            
+        Raises:
+            NotFoundException: If contest or leaderboard entry not found
+        """
+        # Verify contest exists
+        contest_result = await self.db.execute(
+            select(Contest).where(Contest.id == contest_id)
+        )
+        contest = contest_result.scalar_one_or_none()
+        
+        if not contest:
+            raise NotFoundException(f"Contest with id {contest_id} not found")
+        
+        # Get leaderboard entry
+        leaderboard_entry = await get_contest_leaderboard_entry(
+            db=self.db,
+            contest_id=contest_id,
+            user_id=user_id,
+        )
+        
+        if not leaderboard_entry:
+            raise NotFoundException(
+                f"Leaderboard entry not found for contest {contest_id} and user {user_id}"
+            )
+        
+        return leaderboard_entry
 
