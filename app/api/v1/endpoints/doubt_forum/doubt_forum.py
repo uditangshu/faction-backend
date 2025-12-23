@@ -123,6 +123,58 @@ async def get_doubt_posts(
     )
 
 
+# ==================== Filter API ====================
+# NOTE: This MUST be defined BEFORE /posts/{post_id} for correct route matching
+
+@router.get("/posts/filter", response_model=DoubtPostListResponse)
+async def filter_doubt_posts(
+    doubt_forum_service: DoubtForumServiceDep,
+    current_user: CurrentUser,
+    content_search: Optional[str] = Query(None, description="Search in title and content"),
+    is_solved: Optional[bool] = Query(None, description="Filter by solved status (true for solved, false for unsolved)"),
+    my_posts_only: bool = Query(False, description="Show only posts created by current user"),
+    bookmarked_only: bool = Query(False, description="Show only bookmarked posts"),
+    skip: int = Query(0, ge=0, description="Number of records to skip (for pagination)"),
+    limit: int = Query(20, ge=1, le=100, description="Maximum number of records"),
+    sort_order: str = Query("latest", description="Sort order: 'latest' or 'oldest'"),
+) -> DoubtPostListResponse:
+    """
+    Filter doubt posts with advanced filters:
+    - content_search: Search in title and content
+    - is_solved: Filter by solved/unsolved status
+    - my_posts_only: Show only posts created by current user
+    - bookmarked_only: Show only bookmarked posts
+    """
+    if sort_order not in ["latest", "oldest"]:
+        raise BadRequestException("sort_order must be 'latest' or 'oldest'")
+    
+    # Get filtered posts - filtered by user's class_id
+    posts = await doubt_forum_service.get_filtered_posts(
+        user_id=current_user.id,
+        class_id=current_user.class_id,
+        content_search=content_search,
+        is_solved=is_solved,
+        my_posts_only=my_posts_only,
+        bookmarked_only=bookmarked_only,
+        skip=skip,
+        limit=limit + 1,  # Fetch one extra to check if there are more
+        sort_order=sort_order,
+    )
+    
+    # Check if there are more posts
+    has_more = len(posts) > limit
+    if has_more:
+        posts = posts[:limit]  # Remove the extra post
+    
+    return DoubtPostListResponse(
+        posts=[DoubtPostResponse.model_validate(p) for p in posts],
+        total=len(posts),
+        skip=skip,
+        limit=limit,
+        has_more=has_more,
+    )
+
+
 @router.get("/posts/{post_id}", response_model=DoubtPostDetailResponse)
 async def get_doubt_post_by_id(
     post_id: UUID,
@@ -272,7 +324,7 @@ async def like_doubt_post(
         if not updated_post:
             raise NotFoundException(f"Post with ID {post_id} not found")
         
-        return DoubtLikeResponse(likes_count=updated_post.likes_count)
+        return DoubtLikeResponse(likes_count=updated_post.likes_count, is_liked=True)
     except NotFoundException:
         raise
     except Exception as e:
@@ -297,7 +349,7 @@ async def dislike_doubt_post(
         if not updated_post:
             raise NotFoundException(f"Post with ID {post_id} not found")
         
-        return DoubtLikeResponse(likes_count=updated_post.likes_count)
+        return DoubtLikeResponse(likes_count=updated_post.likes_count, is_liked=False)
     except NotFoundException:
         raise
     except Exception as e:
@@ -330,55 +382,3 @@ async def toggle_doubt_bookmark(
         raise
     except Exception as e:
         raise BadRequestException(f"Failed to toggle bookmark: {str(e)}")
-
-
-# ==================== Filter API ====================
-
-@router.get("/posts/filter", response_model=DoubtPostListResponse)
-async def filter_doubt_posts(
-    doubt_forum_service: DoubtForumServiceDep,
-    current_user: CurrentUser,
-    content_search: Optional[str] = Query(None, description="Search in title and content"),
-    is_solved: Optional[bool] = Query(None, description="Filter by solved status (true for solved, false for unsolved)"),
-    my_posts_only: bool = Query(False, description="Show only posts created by current user"),
-    bookmarked_only: bool = Query(False, description="Show only bookmarked posts"),
-    skip: int = Query(0, ge=0, description="Number of records to skip (for pagination)"),
-    limit: int = Query(20, ge=1, le=100, description="Maximum number of records"),
-    sort_order: str = Query("latest", description="Sort order: 'latest' or 'oldest'"),
-) -> DoubtPostListResponse:
-    """
-    Filter doubt posts with advanced filters:
-    - content_search: Search in title and content
-    - is_solved: Filter by solved/unsolved status
-    - my_posts_only: Show only posts created by current user
-    - bookmarked_only: Show only bookmarked posts
-    """
-    if sort_order not in ["latest", "oldest"]:
-        raise BadRequestException("sort_order must be 'latest' or 'oldest'")
-    
-    # Get filtered posts - filtered by user's class_id
-    posts = await doubt_forum_service.get_filtered_posts(
-        user_id=current_user.id,
-        class_id=current_user.class_id,
-        content_search=content_search,
-        is_solved=is_solved,
-        my_posts_only=my_posts_only,
-        bookmarked_only=bookmarked_only,
-        skip=skip,
-        limit=limit + 1,  # Fetch one extra to check if there are more
-        sort_order=sort_order,
-    )
-    
-    # Check if there are more posts
-    has_more = len(posts) > limit
-    if has_more:
-        posts = posts[:limit]  # Remove the extra post
-    
-    return DoubtPostListResponse(
-        posts=[DoubtPostResponse.model_validate(p) for p in posts],
-        total=len(posts),
-        skip=skip,
-        limit=limit,
-        has_more=has_more,
-    )
-

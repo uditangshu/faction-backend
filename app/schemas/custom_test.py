@@ -40,12 +40,21 @@ class CustomTestQuestionResponse(BaseModel):
     
     # MCQ fields
     mcq_options: Optional[List[str]] = None
+    mcq_correct_option: Optional[List[int]] = None  # Correct option indices
     
     # SCQ fields
     scq_options: Optional[List[str]] = None
+    scq_correct_options: Optional[int] = None  # Correct option index
+    
+    # Integer type answer
+    integer_answer: Optional[int] = None
+    
+    # Solution
+    solution_text: Optional[str] = None
 
     class Config:
         from_attributes = True
+
 
 
 class CustomTestGenerateResponse(BaseModel):

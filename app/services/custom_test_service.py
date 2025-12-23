@@ -454,3 +454,26 @@ class CustomTestService:
         
         return analysis
 
+    async def get_test_analysis(
+        self,
+        test_id: UUID,
+        user_id: UUID,
+    ) -> Optional[CustomTestAnalysis]:
+        """
+        Get the analysis for a completed test.
+        
+        Args:
+            test_id: Custom test ID
+            user_id: User ID to verify ownership
+            
+        Returns:
+            CustomTestAnalysis if found, None otherwise
+        """
+        result = await self.db.execute(
+            select(CustomTestAnalysis).where(
+                CustomTestAnalysis.custom_test_id == test_id,
+                CustomTestAnalysis.user_id == user_id,
+            )
+        )
+        return result.scalar_one_or_none()
+
