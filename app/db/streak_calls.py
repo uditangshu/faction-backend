@@ -149,18 +149,23 @@ async def get_streak_ranking(
         ]
         user_filters.append(or_(*exam_conditions))
     
+    # Count all active users matching filters (not just those with streak data)
     total_result = await db.execute(
-        select(func.count(UserStudyStats.id))
-        .join(User, UserStudyStats.user_id == User.id)
+        select(func.count(User.id))
         .where(and_(*user_filters))
     )
     total = total_result.scalar() or 0
     
+    # LEFT OUTER JOIN to include ALL users, COALESCE defaults to 0
     result = await db.execute(
-        select(User, UserStudyStats.longest_study_streak, UserStudyStats.current_study_streak)
-        .join(UserStudyStats, User.id == UserStudyStats.user_id)
+        select(
+            User,
+            func.coalesce(UserStudyStats.longest_study_streak, 0),
+            func.coalesce(UserStudyStats.current_study_streak, 0)
+        )
+        .outerjoin(UserStudyStats, User.id == UserStudyStats.user_id)
         .where(and_(*user_filters))
-        .order_by(desc(UserStudyStats.current_study_streak))
+        .order_by(desc(func.coalesce(UserStudyStats.current_study_streak, 0)))
         .offset(skip)
         .limit(limit)
     )
