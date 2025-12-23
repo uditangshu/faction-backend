@@ -74,6 +74,7 @@ DoubtPostDetailResponse.model_rebuild()
 class DoubtLikeResponse(BaseModel):
     """Doubt like response"""
     likes_count: int
+    is_liked: bool
 
 
 # ==================== Doubt Bookmark Schemas ====================
