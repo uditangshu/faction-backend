@@ -25,5 +25,5 @@ class OTPVerification(SQLModel, table=True):
     expires_at: datetime
     verified_at: datetime | None = None
     attempts: int = Field(default=0)
-    created_at: datetime = Field(default_factory=datetime.now)
+    created_at: datetime = Field(default_factory=datetime.utcnow)
 

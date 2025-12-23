@@ -148,7 +148,7 @@ async def update_youtube_video(
     if youtube_url is not None:
         video.youtube_url = youtube_url
     
-    video.updated_at = datetime.now()
+    video.updated_at = datetime.utcnow()
     db.add(video)
     await db.commit()
     await db.refresh(video)

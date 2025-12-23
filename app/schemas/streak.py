@@ -47,9 +47,6 @@ class StudyStatsResponse(BaseModel):
     longest_study_streak: int
     last_study_date: str | None
     
-    # Performance rating (ELO-style)
-    performance_rating: int
-    
     # Subject-wise and difficulty-wise breakdown
     study_activity_graph: Dict[str, SubjectDifficultyStats]
     

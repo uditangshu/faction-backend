@@ -10,6 +10,7 @@ from typing import List
 from app.models.attempt import QuestionAttempt
 from app.models.streak import UserStudyStats, UserDailyStreak
 from app.models.Basequestion import Question, Topic, Chapter, Subject, DifficultyLevel
+from app.models.user import User
 
 
 async def create_attempt(
@@ -80,6 +81,16 @@ async def create_attempt(
                 stats = UserStudyStats(user_id=user_id)
                 db.add(stats)
             
+            # Get user's timezone offset
+            user_result = await db.execute(select(User).where(User.id == user_id))
+            user = user_result.scalar_one_or_none()
+            timezone_offset = user.timezone_offset if user else 330  # Default to IST
+            
+            # Calculate user's local date (UTC + offset)
+            utc_now = datetime.utcnow()
+            user_local_time = utc_now + timedelta(minutes=timezone_offset)
+            user_local_date = user_local_time.date()
+            
             # Initialize study_activity_graph if it doesn't exist
             if not stats.study_activity_graph:
                 stats.study_activity_graph = {}
@@ -126,20 +137,19 @@ async def create_attempt(
                 # Explicitly tell SQLAlchemy that this JSON column has been modified
                 flag_modified(stats, "study_activity_graph")
             
-            today = date.today()
-            
-            # Get or create today's streak record
+            # Get or create today's streak record (using user's local date)
             streak_result = await db.execute(
                 select(UserDailyStreak).where(
-                    and_(UserDailyStreak.user_id == user_id, UserDailyStreak.streak_date == today)
+                    and_(UserDailyStreak.user_id == user_id, UserDailyStreak.streak_date == user_local_date)
                 )
             )
             daily_streak = streak_result.scalar_one_or_none()
             
             if not daily_streak:
+                # Only create new streak if we've passed midnight in user's timezone
                 daily_streak = UserDailyStreak(
                     user_id=user_id,
-                    streak_date=today,
+                    streak_date=user_local_date,
                     problems_solved=1,
                     first_solve_time=datetime.utcnow(),
                     last_solve_time=datetime.utcnow(),
@@ -148,14 +158,15 @@ async def create_attempt(
                 db.add(daily_streak)
                 
                 # Update streak count
-                if stats.last_study_date == today - timedelta(days=1):
+                yesterday_date = user_local_date - timedelta(days=1)
+                if stats.last_study_date == yesterday_date:
                     # Consecutive day
                     stats.current_study_streak += 1
-                elif stats.last_study_date != today:
+                elif stats.last_study_date != user_local_date:
                     # Streak broken, start new
                     stats.current_study_streak = 1
                 
-                stats.last_study_date = today
+                stats.last_study_date = user_local_date
             else:
                 # Update existing daily streak
                 daily_streak.problems_solved += 1

@@ -168,20 +168,30 @@ class QuestionService:
         await self.db.commit()
         return True
 
-    async def get_qotd_questions(self) -> List[Tuple[Question, str]]:
+    async def get_qotd_questions(self, class_id: Optional[UUID] = None) -> List[Tuple[Question, str]]:
         """
         Get Question of the Day: 3 random questions from 3 different subjects.
+        If class_id is provided, only returns questions from subjects belonging to that class.
+        
+        Args:
+            class_id: Optional class ID to filter questions by user's class
         
         Returns:
             List of tuples (question, subject_name), each from a different subject
         """
-        # Get all distinct subjects that have questions
+        # Get all distinct subjects that have questions, optionally filtered by class
         subject_query = (
             select(Chapter.subject_id)
             .join(Topic, Topic.chapter_id == Chapter.id)
             .join(Question, Question.topic_id == Topic.id)
+            .join(Subject, Chapter.subject_id == Subject.id)
             .distinct()
         )
+        
+        # Filter by class_id if provided
+        if class_id is not None:
+            subject_query = subject_query.where(Subject.class_id == class_id)
+        
         subject_result = await self.db.execute(subject_query)
         subject_ids = [row[0] for row in subject_result.all() if row[0] is not None]
         

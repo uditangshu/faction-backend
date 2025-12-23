@@ -4,7 +4,8 @@ from typing import Optional, List, Tuple
 from uuid import UUID
 from datetime import datetime, timedelta
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, func, desc, and_
+from sqlalchemy import select, func, desc, and_, cast, or_
+from sqlalchemy.dialects.postgresql import JSONB
 
 from app.models.user import User
 from app.models.contest import ContestLeaderboard, Contest
@@ -178,6 +179,8 @@ async def get_arena_ranking_by_submissions(
     time_filter: str = "all_time",
     skip: int = 0,
     limit: int = 20,
+    class_id: Optional[UUID] = None,
+    target_exams: Optional[List[str]] = None,
 ) -> Tuple[List[Tuple[User, int]], int]:
     """
     Get arena ranking by maximum submissions solved with time filtering and pagination.
@@ -187,6 +190,8 @@ async def get_arena_ranking_by_submissions(
         time_filter: Time filter - "daily", "weekly", or "all_time"
         skip: Number of records to skip for pagination
         limit: Maximum number of records to return
+        class_id: Optional class ID to filter users by class
+        target_exams: Optional list of target exams to filter users by matching exams
     
     Returns:
         Tuple of (List of tuples (User, question_count), total_count)
@@ -219,10 +224,28 @@ async def get_arena_ranking_by_submissions(
     # Create subquery
     subquery = base_query.subquery()
     
+    # Build user filter conditions
+    user_filters = [User.is_active == True]
+    
+    # Filter by class_id if provided
+    if class_id is not None:
+        user_filters.append(User.class_id == class_id)
+    
+    # Filter by target_exams overlap if provided
+    if target_exams and len(target_exams) > 0:
+        # Check if any of the target_exams exist in the user's target_exams array
+        # Using JSONB contains operator to check for overlap
+        exam_conditions = [
+            cast(User.target_exams, JSONB).contains([exam]) for exam in target_exams
+        ]
+        user_filters.append(or_(*exam_conditions))
+    
     # Count total users for pagination
     count_query = (
         select(func.count(subquery.c.user_id))
         .select_from(subquery)
+        .join(User, subquery.c.user_id == User.id)
+        .where(and_(*user_filters))
     )
     count_result = await db.execute(count_query)
     total = count_result.scalar() or 0
@@ -231,7 +254,7 @@ async def get_arena_ranking_by_submissions(
     result = await db.execute(
         select(User, subquery.c.question_count)
         .join(subquery, User.id == subquery.c.user_id)
-        .where(User.is_active == True)
+        .where(and_(*user_filters))
         .order_by(desc(subquery.c.question_count))
         .offset(skip)
         .limit(limit)
@@ -245,6 +268,8 @@ async def get_contest_ranking_by_filter(
     filter_type: str = "best_rating_first",
     skip: int = 0,
     limit: int = 20,
+    class_id: Optional[UUID] = None,
+    target_exams: Optional[List[str]] = None,
 ) -> Tuple[List[Tuple[ContestLeaderboard, User]], int]:
     """
     Get contest ranking from the most recent contest with filter options.
@@ -254,6 +279,8 @@ async def get_contest_ranking_by_filter(
         filter_type: Filter type - "best_rating_first" or "best_delta_first"
         skip: Number of records to skip for pagination
         limit: Maximum number of records to return
+        class_id: Optional class ID to filter users by class
+        target_exams: Optional list of target exams to filter users by matching exams
     
     Returns:
         Tuple of (List of tuples (ContestLeaderboard, User), total_count)
@@ -271,13 +298,28 @@ async def get_contest_ranking_by_filter(
     
     contest_id = most_recent_contest.id
     
+    # Build user filter conditions
+    user_filters = [User.is_active == True]
+    
+    # Filter by class_id if provided
+    if class_id is not None:
+        user_filters.append(User.class_id == class_id)
+    
+    # Filter by target_exams overlap if provided
+    if target_exams and len(target_exams) > 0:
+        # Check if any of the target_exams exist in the user's target_exams array
+        exam_conditions = [
+            cast(User.target_exams, JSONB).contains([exam]) for exam in target_exams
+        ]
+        user_filters.append(or_(*exam_conditions))
+    
     # Count total leaderboard entries for this contest
     count_result = await db.execute(
         select(func.count(ContestLeaderboard.id))
         .where(
             ContestLeaderboard.contest_id == contest_id,
             ContestLeaderboard.user_id.in_(
-                select(User.id).where(User.is_active == True)
+                select(User.id).where(and_(*user_filters))
             )
         )
     )
@@ -302,7 +344,7 @@ async def get_contest_ranking_by_filter(
         .join(User, ContestLeaderboard.user_id == User.id)
         .where(
             ContestLeaderboard.contest_id == contest_id,
-            User.is_active == True
+            and_(*user_filters)
         )
         .order_by(*order_by_clause)
         .offset(skip)

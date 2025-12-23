@@ -29,9 +29,6 @@ class UserStudyStats(SQLModel, table=True):
     longest_study_streak: int = Field(default=0)
     last_study_date: date | None = None
     
-    # Performance rating (ELO-style)
-    performance_rating: int = Field(default=1200)
-    
     # Calendar data for GitHub-style visualization
     study_activity_graph: Dict[str, Any] = Field(default={}, sa_column=Column(JSON))
     

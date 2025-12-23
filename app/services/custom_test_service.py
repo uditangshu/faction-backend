@@ -428,7 +428,7 @@ class CustomTestService:
             existing_analysis.correct = correct
             existing_analysis.incorrect = incorrect
             existing_analysis.unattempted = unattempted
-            existing_analysis.submitted_at = datetime.now()
+            existing_analysis.submitted_at = datetime.utcnow()
             analysis = existing_analysis
         else:
             # Create new analysis
@@ -446,7 +446,7 @@ class CustomTestService:
         
         # Update test status to finished
         test.status = AttemptStatus.finished
-        test.updated_at = datetime.now()
+        test.updated_at = datetime.utcnow()
         
         # Commit analysis and test status update
         await self.db.commit()

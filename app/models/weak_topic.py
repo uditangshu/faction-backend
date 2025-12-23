@@ -22,7 +22,7 @@ class UserWeakTopic(SQLModel, table=True):
     weakness_score: float = Field(default=0.0, index=True)  # (incorrect/total) * 100
     
     # Timestamps
-    last_updated: datetime = Field(default_factory=datetime.now, index=True)
+    last_updated: datetime = Field(default_factory=datetime.utcnow, index=True)
     
     
     # Composite unique constraint and index

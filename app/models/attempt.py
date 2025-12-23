@@ -21,6 +21,6 @@ class QuestionAttempt(SQLModel, table=True):
     time_taken: int  = Field(default=0)
     
     # Metadata
-    attempted_at: datetime = Field(default_factory=datetime.now)
+    attempted_at: datetime = Field(default_factory=datetime.utcnow)
     explanation_viewed: bool = Field(default=False)
     hint_used: bool = Field(default=True)

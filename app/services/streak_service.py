@@ -8,6 +8,7 @@ from typing import Dict, Any
 
 from app.models.streak import UserStudyStats, UserDailyStreak
 from app.models.attempt import QuestionAttempt
+from app.models.user import User
 
 
 class StreakService:
@@ -40,12 +41,21 @@ class StreakService:
             Updated UserStudyStats
         """
         stats = await self.get_or_create_user_stats(user_id)
-        today = date.today()
+        
+        # Get user's timezone offset
+        user_result = await self.db.execute(select(User).where(User.id == user_id))
+        user = user_result.scalar_one_or_none()
+        timezone_offset = user.timezone_offset if user else 330  # Default to IST
+        
+        # Calculate user's local date (UTC + offset)
+        utc_now = datetime.utcnow()
+        user_local_time = utc_now + timedelta(minutes=timezone_offset)
+        user_local_date = user_local_time.date()
 
-        # Get or create today's streak record
+        # Get or create today's streak record (using user's local date)
         result = await self.db.execute(
             select(UserDailyStreak).where(
-                and_(UserDailyStreak.user_id == user_id, UserDailyStreak.streak_date == today)
+                and_(UserDailyStreak.user_id == user_id, UserDailyStreak.streak_date == user_local_date)
             )
         )
         daily_streak = result.scalar_one_or_none()
@@ -53,7 +63,7 @@ class StreakService:
         if not daily_streak:
             daily_streak = UserDailyStreak(
                 user_id=user_id,
-                streak_date=today,
+                streak_date=user_local_date,
                 problems_solved=1,
                 first_solve_time=datetime.utcnow(),
                 last_solve_time=datetime.utcnow(),
@@ -62,14 +72,15 @@ class StreakService:
             self.db.add(daily_streak)
 
             # Update streak count
-            if stats.last_study_date == today - timedelta(days=1):
+            yesterday_date = user_local_date - timedelta(days=1)
+            if stats.last_study_date == yesterday_date:
                 # Consecutive day
                 stats.current_study_streak += 1
-            elif stats.last_study_date != today:
+            elif stats.last_study_date != user_local_date:
                 # Streak broken, start new
                 stats.current_study_streak = 1
 
-            stats.last_study_date = today
+            stats.last_study_date = user_local_date
         else:
             # Update existing daily streak
             daily_streak.problems_solved += 1
@@ -117,7 +128,7 @@ class StreakService:
         Returns:
             Dict with calendar data and summary
         """
-        end_date = date.today()
+        end_date = datetime.utcnow().date()  # Use UTC date for consistency
         start_date = end_date - timedelta(days=days - 1)
 
         # Get daily streaks for the period
@@ -192,13 +203,23 @@ class StreakService:
             Dict with streak information
         """
         stats = await self.get_or_create_user_stats(user_id)
+        
+        # Get user's timezone offset for streak_active calculation
+        user_result = await self.db.execute(select(User).where(User.id == user_id))
+        user = user_result.scalar_one_or_none()
+        timezone_offset = user.timezone_offset if user else 330
+        
+        # Calculate user's local date
+        utc_now = datetime.utcnow()
+        user_local_time = utc_now + timedelta(minutes=timezone_offset)
+        user_local_date = user_local_time.date()
+        yesterday_date = user_local_date - timedelta(days=1)
 
         return {
             "current_streak": stats.current_study_streak,
             "longest_streak": stats.longest_study_streak,
             "last_study_date": stats.last_study_date.isoformat() if stats.last_study_date else None,
-            "streak_active": stats.last_study_date == date.today()
-            or stats.last_study_date == date.today() - timedelta(days=1),
+            "streak_active": stats.last_study_date == user_local_date or stats.last_study_date == yesterday_date if stats.last_study_date else False,
             "next_milestone": self._calculate_next_milestone(stats.current_study_streak),
             "total_questions_solved": stats.questions_solved,
             "accuracy_rate": round(stats.accuracy_rate, 2),

@@ -25,8 +25,8 @@ class DoubtPost(SQLModel, table=True):
     likes_count: int = Field(default=0)
     
     # Timestamps
-    created_at: datetime = Field(default_factory=datetime.now, index=True)
-    updated_at: datetime = Field(default_factory=datetime.now)
+    created_at: datetime = Field(default_factory=datetime.utcnow, index=True)
+    updated_at: datetime = Field(default_factory=datetime.utcnow)
     
     # Relationships
     comments: List["DoubtComment"] = Relationship(back_populates="post")
@@ -46,8 +46,8 @@ class DoubtComment(SQLModel, table=True):
     image_url: Optional[str] = Field(default=None, max_length=500)
     
     # Timestamps
-    created_at: datetime = Field(default_factory=datetime.now, index=True)
-    updated_at: datetime = Field(default_factory=datetime.now)
+    created_at: datetime = Field(default_factory=datetime.utcnow, index=True)
+    updated_at: datetime = Field(default_factory=datetime.utcnow)
     
     # Relationships
     post: Optional[DoubtPost] = Relationship(back_populates="comments")
@@ -62,5 +62,5 @@ class DoubtBookmark(SQLModel, table=True):
     user_id: UUID = Field(foreign_key="users.id", index=True)
     post_id: UUID = Field(foreign_key="doubt_posts.id", index=True)
     
-    created_at: datetime = Field(default_factory=datetime.now, index=True)
+    created_at: datetime = Field(default_factory=datetime.utcnow, index=True)
 

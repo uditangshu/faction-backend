@@ -28,7 +28,7 @@ async def create_user_weak_topic(
         incorrect_attempts=incorrect_attempts,
         correct_attempts=correct_attempts,
         weakness_score=weakness_score,
-        last_updated=datetime.now(),
+        last_updated=datetime.utcnow(),
     )
     db.add(weak_topic)
     await db.commit()
@@ -101,7 +101,7 @@ async def update_user_weak_topic(
     weak_topic: UserWeakTopic,
 ) -> UserWeakTopic:
     """Update an existing user weak topic"""
-    weak_topic.last_updated = datetime.now()
+    weak_topic.last_updated = datetime.utcnow()
     db.add(weak_topic)
     await db.commit()
     await db.refresh(weak_topic)
@@ -125,7 +125,7 @@ async def upsert_user_weak_topic(
         existing.incorrect_attempts = incorrect_attempts
         existing.correct_attempts = correct_attempts
         existing.weakness_score = weakness_score
-        existing.last_updated = datetime.now()
+        existing.last_updated = datetime.utcnow()
         db.add(existing)
         await db.commit()
         await db.refresh(existing)

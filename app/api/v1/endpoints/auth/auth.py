@@ -63,11 +63,18 @@ async def verify_signup(
     ip_address = http_request.client.host if http_request.client else None
     user_agent = http_request.headers.get("user-agent")
     
+    # Get timezone offset from header (in minutes from UTC), default to 330 (IST)
+    try:
+        timezone_offset = int(http_request.headers.get("X-Timezone-Offset", "330"))
+    except (ValueError, TypeError):
+        timezone_offset = 330  # Default to IST
+    
     result = await auth_service.verify_signup(
         temp_token=verify_request.temp_token,
         otp=verify_request.otp,
         ip_address=ip_address,
         user_agent=user_agent,
+        timezone_offset=timezone_offset,
     )
     
     return {
@@ -90,6 +97,12 @@ async def login(
     ip_address = http_request.client.host if http_request.client else None
     user_agent = http_request.headers.get("user-agent")
     device_info = request.device_info
+    
+    # Get timezone offset from header (in minutes from UTC), default to 330 (IST)
+    try:
+        timezone_offset = int(http_request.headers.get("X-Timezone-Offset", "330"))
+    except (ValueError, TypeError):
+        timezone_offset = 330  # Default to IST
    
     result = await auth_service.login(
         phone_number=request.phone_number,
@@ -100,6 +113,7 @@ async def login(
         os_version=device_info.os_version if device_info else None,
         ip_address=ip_address,
         user_agent=user_agent,
+        timezone_offset=timezone_offset,
     )
     size=len(json.dumps(result).encode("utf-8"))
     print(size)

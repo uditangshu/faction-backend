@@ -219,7 +219,7 @@ async def increment_doubt_post_likes(
         return None
     
     post.likes_count += 1
-    post.updated_at = datetime.now()
+    post.updated_at = datetime.utcnow()
     db.add(post)
     await db.commit()
     await db.refresh(post)
@@ -236,7 +236,7 @@ async def decrement_doubt_post_likes(
         return None
     
     post.likes_count = max(0, post.likes_count - 1)  # Ensure it doesn't go below 0
-    post.updated_at = datetime.now()
+    post.updated_at = datetime.utcnow()
     db.add(post)
     await db.commit()
     await db.refresh(post)

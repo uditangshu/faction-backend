@@ -18,8 +18,8 @@ class CustomTest(SQLModel,table=True):
     questions: list["CustomTestQuestion"] = Relationship(back_populates="test")
     time_assigned: int
     status: AttemptStatus
-    created_at: datetime = Field(default_factory=datetime.now)
-    updated_at: datetime = Field(default_factory=datetime.now)
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    updated_at: datetime = Field(default_factory=datetime.utcnow)
 
 
 
@@ -34,7 +34,7 @@ class CustomTestAnalysis(SQLModel, table=True):
     correct: int
     incorrect: int
     unattempted: int
-    submitted_at: datetime = Field(default_factory=datetime.now)
+    submitted_at: datetime = Field(default_factory=datetime.utcnow)
 
 
 

@@ -45,7 +45,7 @@ async def generate_custom_test(
         # Generate questions
         questions = await custom_test_service.generate_custom_test_questions(
             user_id=current_user.id,
-            exam_type=request.exam_type,
+            exam_type=request.exama_type,
             subject_ids=request.subject_ids,
             chapter_ids=request.chapter_ids,
             number_of_questions=request.number_of_questions,

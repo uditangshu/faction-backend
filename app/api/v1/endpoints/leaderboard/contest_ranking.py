@@ -3,7 +3,7 @@
 from typing import Literal
 from fastapi import APIRouter, Query
 
-from app.api.v1.dependencies import LeaderboardServiceDep
+from app.api.v1.dependencies import LeaderboardServiceDep, CurrentUser
 from app.schemas.leaderboard import ContestRankingResponse
 
 router = APIRouter(prefix="/contest-ranking", tags=["Contest Ranking"])
@@ -12,6 +12,7 @@ router = APIRouter(prefix="/contest-ranking", tags=["Contest Ranking"])
 @router.get("/", response_model=ContestRankingResponse)
 async def get_contest_ranking(
     leaderboard_service: LeaderboardServiceDep,
+    current_user: CurrentUser,
     filter_type: Literal["best_rating_first", "best_delta_first"] = Query(
         "best_rating_first",
         description="Filter by ranking: best_rating_first or best_delta_first"
@@ -22,7 +23,7 @@ async def get_contest_ranking(
     """
     Get contest ranking from the most recent contest.
     
-    Returns paginated list of all users who attended the contest, ranked by:
+    Returns paginated list of all users who attended the contest, filtered by the current user's class and target exams, ranked by:
     - best_rating_first: Highest rating after contest first, then highest delta
     - best_delta_first: Highest rating delta first, then highest rating
     
@@ -32,4 +33,6 @@ async def get_contest_ranking(
         filter_type=filter_type,
         skip=skip,
         limit=limit,
+        class_id=current_user.class_id,
+        target_exams=current_user.target_exams,
     )

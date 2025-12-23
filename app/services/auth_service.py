@@ -100,7 +100,7 @@ class AuthService:
                 raise SMSDeliveryException()
             return temp_token, otp
 
-    async def verify_signup(self, temp_token: str, otp: str, ip_address: str | None = None, user_agent: str | None = None) -> dict:
+    async def verify_signup(self, temp_token: str, otp: str, ip_address: str | None = None, user_agent: str | None = None, timezone_offset: int = 330) -> dict:
         signup_data = await self.otp_service.redis.get_value(f"signup_data:{temp_token}")
         if not signup_data:
             raise UnauthorizedException("Signup session expired")
@@ -124,6 +124,7 @@ class AuthService:
             class_id=UUID(signup_data["class_id"]),
             target_exams=signup_data["target_exams"],
             role=signup_data["role"],
+            timezone_offset=timezone_offset,
         )
         self.db.add(user)
         await self.db.flush()  # Get user.id without commit
@@ -185,6 +186,7 @@ class AuthService:
         os_version: str | None = None,
         ip_address: str | None = None,
         user_agent: str | None = None,
+        timezone_offset: int = 330,
     ) -> dict:
         """Login with phone number and password (yadav)"""
         # Validate phone
@@ -228,7 +230,7 @@ class AuthService:
             ip_address=ip_address,
             user_agent=user_agent,
             refresh_token_hash="placeholder",  # Will update after we have session.id
-            expires_at=datetime.now() + timedelta(days=settings.REFRESH_TOKEN_EXPIRE_DAYS),
+            expires_at=datetime.utcnow() + timedelta(days=settings.REFRESH_TOKEN_EXPIRE_DAYS),
             is_active=True,
         )
         self.db.add(session)
@@ -242,6 +244,8 @@ class AuthService:
         # Invalidate old sessions EXCLUDING the new one - single batch UPDATE (yadav)
         await invalidate_old_sessions(self.db, user.id, exclude_session_id=session.id, commit=False)
         
+        # Update timezone offset
+        user.timezone_offset = timezone_offset
         user.updated_at = datetime.utcnow()
         await self.db.commit()
 

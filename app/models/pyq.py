@@ -16,7 +16,7 @@ class PreviousYearProblems(SQLModel, table=True):
 
     year: int = Field(default=2016)
     exam_detail: List[str] = Field(default=None,sa_column=Column(JSON))
-    created_at: datetime = Field(default_factory=datetime.now)
+    created_at: datetime = Field(default_factory=datetime.utcnow)
 
 
     

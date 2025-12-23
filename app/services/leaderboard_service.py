@@ -146,6 +146,8 @@ class LeaderboardService:
         time_filter: str = "all_time",
         skip: int = 0,
         limit: int = 20,
+        class_id: Optional[UUID] = None,
+        target_exams: Optional[List[str]] = None,
     ) -> ArenaRankingResponse:
         """
         Get arena ranking by maximum submissions solved with time filtering and pagination.
@@ -154,6 +156,8 @@ class LeaderboardService:
             time_filter: Time filter - "daily", "weekly", or "all_time"
             skip: Number of records to skip for pagination
             limit: Maximum number of records to return
+            class_id: Optional class ID to filter users by class
+            target_exams: Optional list of target exams to filter users by matching exams
         
         Returns:
             ArenaRankingResponse with paginated users and their solved counts
@@ -163,6 +167,8 @@ class LeaderboardService:
             time_filter=time_filter,
             skip=skip,
             limit=limit,
+            class_id=class_id,
+            target_exams=target_exams,
         )
         
         users = [
@@ -185,6 +191,8 @@ class LeaderboardService:
         self,
         skip: int = 0,
         limit: int = 20,
+        class_id: Optional[UUID] = None,
+        target_exams: Optional[List[str]] = None,
     ) -> StreakRankingResponse:
         """
         Get streak ranking sorted by longest streak with pagination.
@@ -192,6 +200,8 @@ class LeaderboardService:
         Args:
             skip: Number of records to skip for pagination
             limit: Maximum number of records to return
+            class_id: Optional class ID to filter users by class
+            target_exams: Optional list of target exams to filter users by matching exams
         
         Returns:
             StreakRankingResponse with paginated users and their streak counts
@@ -200,6 +210,8 @@ class LeaderboardService:
             self.db,
             skip=skip,
             limit=limit,
+            class_id=class_id,
+            target_exams=target_exams,
         )
         
         users = [
@@ -237,6 +249,8 @@ class LeaderboardService:
         filter_type: str = "best_rating_first",
         skip: int = 0,
         limit: int = 20,
+        class_id: Optional[UUID] = None,
+        target_exams: Optional[List[str]] = None,
     ) -> ContestRankingResponse:
         """
         Get contest ranking from the most recent contest with filter options.
@@ -245,6 +259,8 @@ class LeaderboardService:
             filter_type: Filter type - "best_rating_first" or "best_delta_first"
             skip: Number of records to skip for pagination
             limit: Maximum number of records to return
+            class_id: Optional class ID to filter users by class
+            target_exams: Optional list of target exams to filter users by matching exams
         
         Returns:
             ContestRankingResponse with paginated users and their contest performance
@@ -254,6 +270,8 @@ class LeaderboardService:
             filter_type=filter_type,
             skip=skip,
             limit=limit,
+            class_id=class_id,
+            target_exams=target_exams,
         )
         
         users = [

@@ -22,7 +22,7 @@ class Contest(SQLModel,table=True):
     starts_at: datetime
     ends_at: datetime 
     
-    created_at: datetime = Field(default_factory=datetime.now)
+    created_at: datetime = Field(default_factory=datetime.utcnow)
 
 class ContestLeaderboard(SQLModel, table=True):
     """Combined model for contest leaderboard and submission analytics"""
@@ -46,4 +46,4 @@ class ContestLeaderboard(SQLModel, table=True):
     correct: int
     incorrect: int
     
-    created_at: datetime = Field(default_factory=datetime.now)
+    created_at: datetime = Field(default_factory=datetime.utcnow)

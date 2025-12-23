@@ -76,6 +76,9 @@ class User(SQLModel, table=True):
     subscription_type: SubscriptionType = Field(default=SubscriptionType.FREE)
     is_active: bool = Field(default=True)
     
-    created_at: datetime = Field(default_factory=datetime.now)
-    updated_at: datetime = Field(default_factory=datetime.now)
+    # Timezone offset from UTC in minutes (e.g., +330 for IST, -300 for EST)
+    timezone_offset: int = Field(default=330, description="Timezone offset from UTC in minutes")
+    
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    updated_at: datetime = Field(default_factory=datetime.utcnow)
 

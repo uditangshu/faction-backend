@@ -13,4 +13,4 @@ class BookMarkedQuestion(SQLModel, table=True):
     user_id: UUID = Field(foreign_key="users.id", index=True)
     question_id: UUID = Field(foreign_key="question.id", index=True)
 
-    created_at: datetime = Field(default_factory=datetime.now, index=True)
+    created_at: datetime = Field(default_factory=datetime.utcnow, index=True)

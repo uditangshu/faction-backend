@@ -78,7 +78,6 @@ async def get_my_study_stats(
     - Question solving stats (questions_solved, total_attempts, accuracy_rate)
     - Difficulty-wise breakdown (easy_solved, medium_solved, hard_solved)
     - Streak information (current_study_streak, longest_study_streak, last_study_date)
-    - Performance rating
     - Subject-wise and difficulty-wise breakdown (study_activity_graph)
     """
     stats = await streak_service.get_or_create_user_stats(current_user.id)
@@ -103,7 +102,6 @@ async def get_my_study_stats(
         current_study_streak=stats.current_study_streak,
         longest_study_streak=stats.longest_study_streak,
         last_study_date=stats.last_study_date.isoformat() if stats.last_study_date else None,
-        performance_rating=stats.performance_rating,
         study_activity_graph=study_graph,
 
     )
