@@ -13,6 +13,7 @@ from app.db.leaderboard_calls import (
     get_user_with_most_questions_solved,
     get_top_users_by_questions_solved,
     get_arena_ranking_by_submissions,
+    get_contest_ranking_by_filter,
 )
 from app.schemas.leaderboard import (
     BestPerformerResponse,
@@ -22,6 +23,8 @@ from app.schemas.leaderboard import (
     ArenaRankingUserResponse,
     StreakRankingResponse,
     StreakRankingUserResponse,
+    ContestRankingResponse,
+    ContestRankingUserResponse,
 )
 from app.db.streak_calls import get_streak_ranking, get_user_with_longest_streak
 from app.schemas.user import UserProfileResponse
@@ -227,5 +230,53 @@ class LeaderboardService:
             user=UserProfileResponse.model_validate(user),
             metric_value=longest_streak,
             metric_type="longest_streak",
+        )
+
+    async def get_contest_ranking(
+        self,
+        filter_type: str = "best_rating_first",
+        skip: int = 0,
+        limit: int = 20,
+    ) -> ContestRankingResponse:
+        """
+        Get contest ranking from the most recent contest with filter options.
+        
+        Args:
+            filter_type: Filter type - "best_rating_first" or "best_delta_first"
+            skip: Number of records to skip for pagination
+            limit: Maximum number of records to return
+        
+        Returns:
+            ContestRankingResponse with paginated users and their contest performance
+        """
+        results, total = await get_contest_ranking_by_filter(
+            self.db,
+            filter_type=filter_type,
+            skip=skip,
+            limit=limit,
+        )
+        
+        users = [
+            ContestRankingUserResponse(
+                user_id=user.id,
+                user_name=user.name,
+                score=leaderboard_entry.score,
+                rank=leaderboard_entry.rank,
+                rating_before=leaderboard_entry.rating_before,
+                rating_after=leaderboard_entry.rating_after,
+                rating_delta=leaderboard_entry.rating_delta,
+                accuracy=leaderboard_entry.accuracy,
+                attempted=leaderboard_entry.attempted,
+                correct=leaderboard_entry.correct,
+                incorrect=leaderboard_entry.incorrect,
+            )
+            for leaderboard_entry, user in results
+        ]
+        
+        return ContestRankingResponse(
+            users=users,
+            total=total,
+            skip=skip,
+            limit=limit,
         )
 

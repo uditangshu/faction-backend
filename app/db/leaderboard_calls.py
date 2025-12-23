@@ -7,7 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func, desc, and_
 
 from app.models.user import User
-from app.models.contest import ContestLeaderboard
+from app.models.contest import ContestLeaderboard, Contest
 from app.models.attempt import QuestionAttempt
 
 
@@ -233,6 +233,78 @@ async def get_arena_ranking_by_submissions(
         .join(subquery, User.id == subquery.c.user_id)
         .where(User.is_active == True)
         .order_by(desc(subquery.c.question_count))
+        .offset(skip)
+        .limit(limit)
+    )
+    
+    return [(row[0], row[1]) for row in result.all()], total
+
+
+async def get_contest_ranking_by_filter(
+    db: AsyncSession,
+    filter_type: str = "best_rating_first",
+    skip: int = 0,
+    limit: int = 20,
+) -> Tuple[List[Tuple[ContestLeaderboard, User]], int]:
+    """
+    Get contest ranking from the most recent contest with filter options.
+    
+    Args:
+        db: Database session
+        filter_type: Filter type - "best_rating_first" or "best_delta_first"
+        skip: Number of records to skip for pagination
+        limit: Maximum number of records to return
+    
+    Returns:
+        Tuple of (List of tuples (ContestLeaderboard, User), total_count)
+    """
+    # Get the most recent contest (by ends_at, then by created_at)
+    most_recent_contest_result = await db.execute(
+        select(Contest)
+        .order_by(desc(Contest.ends_at), desc(Contest.created_at))
+        .limit(1)
+    )
+    most_recent_contest = most_recent_contest_result.scalar_one_or_none()
+    
+    if not most_recent_contest:
+        return [], 0
+    
+    contest_id = most_recent_contest.id
+    
+    # Count total leaderboard entries for this contest
+    count_result = await db.execute(
+        select(func.count(ContestLeaderboard.id))
+        .where(
+            ContestLeaderboard.contest_id == contest_id,
+            ContestLeaderboard.user_id.in_(
+                select(User.id).where(User.is_active == True)
+            )
+        )
+    )
+    total = count_result.scalar() or 0
+    
+    # Build order_by clause based on filter_type
+    if filter_type == "best_delta_first":
+        order_by_clause = [
+            desc(ContestLeaderboard.rating_delta),
+            desc(ContestLeaderboard.rating_after)
+        ]
+    else:  # best_rating_first (default)
+        order_by_clause = [
+            desc(ContestLeaderboard.rating_after),
+            desc(ContestLeaderboard.rating_delta)
+        ]
+    
+    # Get paginated leaderboard entries with ordering
+    # Join with User to get user information
+    result = await db.execute(
+        select(ContestLeaderboard, User)
+        .join(User, ContestLeaderboard.user_id == User.id)
+        .where(
+            ContestLeaderboard.contest_id == contest_id,
+            User.is_active == True
+        )
+        .order_by(*order_by_clause)
         .offset(skip)
         .limit(limit)
     )

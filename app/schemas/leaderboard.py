@@ -62,3 +62,28 @@ class StreakRankingResponse(BaseModel):
     skip: int
     limit: int
 
+
+class ContestRankingUserResponse(BaseModel):
+    """Contest ranking user response with contest performance"""
+    
+    user_id: UUID
+    user_name: str
+    score: float
+    rank: int
+    rating_before: int
+    rating_after: int
+    rating_delta: int
+    accuracy: float
+    attempted: int
+    correct: int
+    incorrect: int
+
+
+class ContestRankingResponse(BaseModel):
+    """Paginated contest ranking response"""
+    
+    users: list[ContestRankingUserResponse]
+    total: int
+    skip: int
+    limit: int
+
