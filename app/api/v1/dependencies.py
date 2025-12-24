@@ -28,6 +28,7 @@ from app.services.filtering_service import FilteringService
 from app.services.leaderboard_service import LeaderboardService
 from app.services.badge_service import BadgeService
 from app.services.youtube_video_service import YouTubeVideoService
+from app.services.bookmarked_video_service import BookmarkedVideoService
 from app.services.weak_topic_service import WeakTopicService
 from app.services.custom_test_service import CustomTestService
 from app.services.contest_service import ContestService
@@ -177,6 +178,14 @@ async def get_youtube_video_service(db: DBSession) -> YouTubeVideoService:
 
 
 YouTubeVideoServiceDep = Annotated[YouTubeVideoService, Depends(get_youtube_video_service)]
+
+
+async def get_bookmarked_video_service(db: DBSession) -> BookmarkedVideoService:
+    """Get bookmarked video service"""
+    return BookmarkedVideoService(db)
+
+
+BookmarkedVideoServiceDep = Annotated[BookmarkedVideoService, Depends(get_bookmarked_video_service)]
 
 
 async def get_weak_topic_service(db: DBSession) -> WeakTopicService:

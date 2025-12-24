@@ -11,7 +11,7 @@ from app.models.pyq import PreviousYearProblems
 from app.models.custom_test import CustomTest, CustomTestAnalysis
 from app.models.linking import CustomTestQuestion
 from app.models.contest import Contest, ContestLeaderboard, ContestQuestions 
-from app.models.youtube_video import YouTubeVideo
+from app.models.youtube_video import YouTubeVideo, BookmarkedVideo
 from app.models.badge import Badge, BadgeCategory
 from app.models.weak_topic import UserWeakTopic
 from app.models.doubt_forum import DoubtPost, DoubtComment, DoubtBookmark
@@ -43,6 +43,7 @@ __all__ = [
     "ContestQuestions",
     "ContestLeaderboard",
     "YouTubeVideo",
+    "BookmarkedVideo",
     "Badge",
     "BadgeCategory",
     "UserWeakTopic",

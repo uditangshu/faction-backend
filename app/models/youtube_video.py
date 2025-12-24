@@ -2,7 +2,9 @@
 
 from datetime import datetime
 from uuid import UUID, uuid4
-from sqlmodel import Field, SQLModel, Relationship
+from sqlmodel import Field, SQLModel, Relationship, Column, UniqueConstraint
+from sqlalchemy import ForeignKey
+import sqlmodel
 from typing import Optional
 
 
@@ -34,3 +36,24 @@ class YouTubeVideo(SQLModel, table=True):
     created_at: datetime = Field(default_factory=datetime.utcnow)
     updated_at: datetime = Field(default_factory=datetime.utcnow)
 
+
+class BookmarkedVideo(SQLModel, table=True):
+    """User bookmarked YouTube video"""
+    
+    __tablename__ = "bookmarked_videos"
+    __table_args__ = (
+        UniqueConstraint("user_id", "youtube_video_id", name="unique_user_video_bookmark"),
+    )
+    
+    id: UUID = Field(default_factory=uuid4, primary_key=True)
+    user_id: UUID = Field(foreign_key="users.id", ondelete="CASCADE", index=True)
+    youtube_video_id: UUID = Field(
+        sa_column=Column(
+            sqlmodel.sql.sqltypes.GUID(),
+            ForeignKey("youtube_videos.id", ondelete="CASCADE"),
+            index=True
+        )
+    )
+    
+    created_at: datetime = Field(default_factory=datetime.utcnow, index=True)
+    

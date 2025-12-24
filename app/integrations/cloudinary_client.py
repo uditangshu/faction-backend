@@ -52,15 +52,26 @@ async def upload_image(file: BinaryIO, folder: str = "avatars", public_id: str |
     file.seek(0)
     file_content = file.read()
 
-    # Upload options
-    upload_options = {
-        "folder": folder,
-        "resource_type": "image",
-        "transformation": [
+    # Upload options with folder-specific transformations
+    if folder == "badges":
+        # For badges, use center gravity instead of face detection
+        transformation = [
+            {"width": 400, "height": 400, "crop": "fill", "gravity": "center"},
+            {"quality": "auto"},
+            {"fetch_format": "auto"}
+        ]
+    else:
+        # For avatars and other images, use face detection
+        transformation = [
             {"width": 400, "height": 400, "crop": "fill", "gravity": "face"},
             {"quality": "auto"},
             {"fetch_format": "auto"}
-        ],
+        ]
+    
+    upload_options = {
+        "folder": folder,
+        "resource_type": "image",
+        "transformation": transformation,
     }
 
     if public_id:
@@ -105,4 +116,24 @@ async def delete_image(public_id: str) -> bool:
         return result.get("result") == "ok"
     except Exception:
         return False
+
+
+def extract_cloudinary_public_id(image_url: str | None) -> str | None:
+    """
+    Extract public_id from Cloudinary URL.
+    URL format: https://res.cloudinary.com/{cloud_name}/image/upload/{folder}/{public_id}.{format}
+    Returns: {folder}/{public_id} (without extension)
+    """
+    if not image_url:
+        return None
+    
+    import re
+    
+    # Pattern to match Cloudinary URL structure
+    pattern = r'/(?:v\d+/)?([^/]+/[^/]+)\.(jpg|jpeg|png|gif|webp|svg)'
+    match = re.search(pattern, image_url)
+    
+    if match:
+        return match.group(1)
+    return None
 
