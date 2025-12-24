@@ -33,6 +33,7 @@ class ArenaRankingUserResponse(BaseModel):
     
     user_id: UUID
     user_name: str
+    avatar_url: str | None
     questions_solved: int
 
 
@@ -50,6 +51,7 @@ class StreakRankingUserResponse(BaseModel):
     
     user_id: UUID
     user_name: str
+    avatar_url: str | None
     longest_streak: int
     current_streak: int
 
@@ -68,6 +70,7 @@ class ContestRankingUserResponse(BaseModel):
     
     user_id: UUID
     user_name: str
+    avatar_url: str | None
     score: float
     rank: int
     rating_before: int

@@ -175,6 +175,7 @@ class LeaderboardService:
             ArenaRankingUserResponse(
                 user_id=user.id,
                 user_name=user.name,
+                avatar_url=user.avatar_url,
                 questions_solved=count,
             )
             for user, count in results
@@ -218,6 +219,7 @@ class LeaderboardService:
             StreakRankingUserResponse(
                 user_id=user.id,
                 user_name=user.name,
+                avatar_url=user.avatar_url,
                 longest_streak=longest_streak,
                 current_streak=current_streak,
             )
@@ -278,6 +280,7 @@ class LeaderboardService:
             ContestRankingUserResponse(
                 user_id=user.id,
                 user_name=user.name,
+                avatar_url=user.avatar_url,
                 score=leaderboard_entry.score,
                 rank=leaderboard_entry.rank,
                 rating_before=leaderboard_entry.rating_before,
