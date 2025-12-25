@@ -8,9 +8,7 @@ services:
     healthCheckPath: /docs
     envVars:
       - key: DATABASE_URL
-        fromDatabase:
-          name: faction-db
-          property: connectionString
+        sync: false  # Set this manually in Render dashboard with your Supabase connection string
       - key: APP_ENV
         value: production
       - key: JWT_SECRET_KEY
@@ -18,9 +16,3 @@ services:
       - key: PORT
         value: 8000
 
-databases:
-  # PostgreSQL Database
-  - name: faction-db
-    databaseName: faction_db
-    user: faction_user
-    plan: free
