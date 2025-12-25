@@ -181,9 +181,9 @@ async def get_youtube_video_service(db: DBSession) -> YouTubeVideoService:
 YouTubeVideoServiceDep = Annotated[YouTubeVideoService, Depends(get_youtube_video_service)]
 
 
-async def get_bookmarked_video_service(db: DBSession) -> BookmarkedVideoService:
-    """Get bookmarked video service"""
-    return BookmarkedVideoService(db)
+async def get_bookmarked_video_service(db: DBSession, redis_service: RedisServiceDep) -> BookmarkedVideoService:
+    """Get bookmarked video service with Redis caching"""
+    return BookmarkedVideoService(db, redis_service)
 
 
 BookmarkedVideoServiceDep = Annotated[BookmarkedVideoService, Depends(get_bookmarked_video_service)]
@@ -221,9 +221,9 @@ async def get_doubt_forum_service(db: DBSession) -> DoubtForumService:
 DoubtForumServiceDep = Annotated[DoubtForumService, Depends(get_doubt_forum_service)]
 
 
-async def get_notification_service(db: DBSession) -> NotificationService:
-    """Get notification service"""
-    return NotificationService(db)
+async def get_notification_service(db: DBSession, redis_service: RedisServiceDep) -> NotificationService:
+    """Get notification service with Redis caching"""
+    return NotificationService(db, redis_service)
 
 
 NotificationServiceDep = Annotated[NotificationService, Depends(get_notification_service)]
