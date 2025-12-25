@@ -320,3 +320,21 @@ class ContestService:
         
         return leaderboard_entry
 
+    async def check_user_has_attempted(self, contest_id: UUID, user_id: UUID) -> bool:
+        """
+        Check if a user has attempted a contest.
+        
+        Args:
+            contest_id: Contest ID
+            user_id: User ID
+            
+        Returns:
+            True if user has attempted the contest, False otherwise
+        """
+        leaderboard_entry = await get_contest_leaderboard_entry(
+            db=self.db,
+            contest_id=contest_id,
+            user_id=user_id,
+        )
+        return leaderboard_entry is not None
+
