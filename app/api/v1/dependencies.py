@@ -33,6 +33,7 @@ from app.services.weak_topic_service import WeakTopicService
 from app.services.custom_test_service import CustomTestService
 from app.services.contest_service import ContestService
 from app.services.doubt_forum_service import DoubtForumService
+from app.services.notification_service import NotificationService
 
 # Database session dependency
 DBSession = Annotated[AsyncSession, Depends(get_db_session)]
@@ -218,6 +219,14 @@ async def get_doubt_forum_service(db: DBSession) -> DoubtForumService:
 
 
 DoubtForumServiceDep = Annotated[DoubtForumService, Depends(get_doubt_forum_service)]
+
+
+async def get_notification_service(db: DBSession) -> NotificationService:
+    """Get notification service"""
+    return NotificationService(db)
+
+
+NotificationServiceDep = Annotated[NotificationService, Depends(get_notification_service)]
 
 
 bearer_scheme = HTTPBearer()
