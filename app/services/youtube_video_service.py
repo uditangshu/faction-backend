@@ -18,6 +18,7 @@ from app.db.youtube_video_calls import (
     get_latest_youtube_video,
     get_chapters_with_youtube_videos,
 )
+from app.utils.youtube_api import extract_video_id, get_metadata_from_url
 
 
 class YouTubeVideoService:
@@ -30,15 +31,39 @@ class YouTubeVideoService:
         self,
         chapter_id: UUID,
         subject_id: UUID,
-        youtube_video_id: str,
         youtube_url: str,
-        title: str,
+        youtube_video_id: Optional[str] = None,
+        title: Optional[str] = None,
         description: Optional[str] = None,
         thumbnail_url: Optional[str] = None,
         duration_seconds: Optional[int] = None,
         order: int = 0,
     ) -> YouTubeVideo:
-        """Create a new YouTube video"""
+        """
+        Create a new YouTube video.
+        
+        If youtube_video_id, title, description, thumbnail_url, or duration_seconds
+        are not provided, they will be auto-fetched from the YouTube API.
+        """
+        # Extract video ID from URL if not provided
+        if not youtube_video_id:
+            youtube_video_id = extract_video_id(youtube_url)
+            if not youtube_video_id:
+                raise ValueError(f"Could not extract video ID from URL: {youtube_url}")
+        
+        # Auto-fetch metadata from YouTube API if any fields are missing
+        if not title or not description or not thumbnail_url or not duration_seconds:
+            metadata = await get_metadata_from_url(youtube_url)
+            if metadata:
+                title = title or metadata.title
+                description = description or metadata.description
+                thumbnail_url = thumbnail_url or metadata.thumbnail_url
+                duration_seconds = duration_seconds or metadata.duration_seconds
+        
+        # Ensure we have at least a title
+        if not title:
+            title = f"YouTube Video {youtube_video_id}"
+        
         return await create_youtube_video(
             db=self.db,
             chapter_id=chapter_id,

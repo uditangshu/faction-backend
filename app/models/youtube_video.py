@@ -46,7 +46,13 @@ class BookmarkedVideo(SQLModel, table=True):
     )
     
     id: UUID = Field(default_factory=uuid4, primary_key=True)
-    user_id: UUID = Field(foreign_key="users.id", ondelete="CASCADE", index=True)
+    user_id: UUID = Field(
+        sa_column=Column(
+            sqlmodel.sql.sqltypes.GUID(),
+            ForeignKey("users.id", ondelete="CASCADE"),
+            index=True
+        )
+    )
     youtube_video_id: UUID = Field(
         sa_column=Column(
             sqlmodel.sql.sqltypes.GUID(),
