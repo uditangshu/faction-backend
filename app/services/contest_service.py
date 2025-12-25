@@ -8,6 +8,7 @@ from typing import List, Dict, Any
 from datetime import datetime
 
 from app.models.contest import Contest, ContestStatus, ContestLeaderboard
+from app.models.user import User
 from app.models.linking import ContestQuestions
 from app.models.Basequestion import Question
 from app.exceptions.http_exceptions import BadRequestException, NotFoundException
@@ -252,6 +253,9 @@ class ContestService:
 
         if not self.redis_service:
             raise BadRequestException("Redis service is not available")
+            
+        # Create placeholder leaderboard entry to immediately prevent re-attempts
+        await self._create_placeholder_leaderboard_entry(contest_id, user_id)
                 
         # Queue name for contest submissions
         queue_name = f"contest:submissions:{contest_id}"
@@ -337,4 +341,54 @@ class ContestService:
             user_id=user_id,
         )
         return leaderboard_entry is not None
+
+    async def _create_placeholder_leaderboard_entry(
+        self,
+        contest_id: UUID,
+        user_id: UUID,
+    ):
+        """
+        Create a placeholder leaderboard entry to prevent re-attempts.
+        Used when pushing submissions to queue so the user is immediately marked as attempted.
+        The worker will update this entry later with actual results.
+        """
+        # Check if entry already exists
+        existing_entry = await get_contest_leaderboard_entry(
+            db=self.db,
+            contest_id=contest_id,
+            user_id=user_id,
+        )
+        
+        if existing_entry:
+            return
+
+        # Get user for current rating
+        result = await self.db.execute(select(User).where(User.id == user_id))
+        user = result.scalar_one_or_none()
+        
+        if not user:
+            # Should not happen as user_id comes from authenticated user
+            return 
+            
+        # Create placeholder entry with 0s
+        # This acts as a lock to prevent re-attempts
+        leaderboard_entry = ContestLeaderboard(
+            user_id=user_id,
+            contest_id=contest_id,
+            score=0,
+            accuracy=0,
+            total_questions=0,
+            attempted=0,
+            unattempted=0,
+            correct=0,
+            incorrect=0,
+            rating_before=user.current_rating,
+            rating_after=user.current_rating,
+            rating_delta=0,
+            rank=0,
+            missed=False,
+        )
+        self.db.add(leaderboard_entry)
+        # Flush to get ID if needed, but we just need it committed
+        await self.db.commit()
 
