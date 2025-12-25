@@ -1,7 +1,7 @@
 """Notification schemas"""
 
 from uuid import UUID
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from typing import List, Optional
 from datetime import datetime
 
@@ -47,3 +47,28 @@ class NotificationCreateRequest(BaseModel):
     message: str
     type: NotificationType = NotificationType.INFO
     data: Optional[str] = None
+
+
+class AdminNotificationRequest(BaseModel):
+    """Admin request to send notification to specific user(s)"""
+    user_ids: List[UUID] = Field(..., description="List of user IDs to send notification to")
+    title: str = Field(..., max_length=200)
+    message: str = Field(..., max_length=1000)
+    type: NotificationType = Field(default=NotificationType.INFO)
+    data: Optional[str] = Field(None, description="Optional JSON metadata")
+
+
+class BroadcastNotificationRequest(BaseModel):
+    """Admin request to broadcast notification to all users"""
+    title: str = Field(..., max_length=200)
+    message: str = Field(..., max_length=1000)
+    type: NotificationType = Field(default=NotificationType.ANNOUNCEMENT)
+    data: Optional[str] = Field(None, description="Optional JSON metadata")
+
+
+class AdminNotificationResponse(BaseModel):
+    """Response after sending admin notification"""
+    success: bool
+    sent_count: int
+    message: str
+
