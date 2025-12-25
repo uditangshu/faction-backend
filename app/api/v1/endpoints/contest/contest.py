@@ -84,14 +84,11 @@ async def get_contest_questions(
     contest_service: ContestServiceDep,
 ) -> ContestQuestionsResponse:
     """
-    Get contest questions with full details.
+    Get contest questions with full details including subject info.
     
-    Fetches all questions for a contest with complete details.
+    Fetches all questions for a contest with complete details including subject_id and subject_name.
     Results are cached in Redis for improved performance.
     On subsequent requests, data is served from cache if available.
-    
-    - First request: Queries database and caches result in Redis
-    - Subsequent requests: Serves from Redis cache (faster response)
     """
     try:
         questions_data = await contest_service.get_contest_questions_with_details(contest_id)
@@ -99,7 +96,6 @@ async def get_contest_questions(
         # Convert dictionary data to response models
         question_responses = []
         for q_data in questions_data:
-            # Convert string UUIDs back to UUID objects
             from app.models.Basequestion import QuestionType, DifficultyLevel
             from app.models.user import TargetExam
             
@@ -107,6 +103,8 @@ async def get_contest_questions(
                 ContestQuestionResponse(
                     id=UUID(q_data["id"]),
                     topic_id=UUID(q_data["topic_id"]),
+                    subject_id=UUID(q_data["subject_id"]) if q_data.get("subject_id") else None,
+                    subject_name=q_data.get("subject_name"),
                     type=QuestionType(q_data["type"]),
                     difficulty=DifficultyLevel(q_data["difficulty"]),
                     exam_type=[TargetExam(exam) for exam in q_data["exam_type"]],

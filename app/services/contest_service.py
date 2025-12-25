@@ -138,14 +138,14 @@ class ContestService:
         cache_ttl: int = 3600,  # 1 hour default
     ) -> List[Dict[str, Any]]:
         """
-        Get contest questions with full details, using Redis caching.
+        Get contest questions with full details including subject info, using Redis caching.
         
         Args:
             contest_id: Contest ID
             cache_ttl: Cache time-to-live in seconds (default: 3600 = 1 hour)
             
         Returns:
-            List of question dictionaries with full details
+            List of question dictionaries with full details including subject_id and subject_name
             
         Raises:
             NotFoundException: If contest not found
@@ -160,12 +160,19 @@ class ContestService:
                 return cached_data
         
         # If not in cache, query database
+        # Load full relationship chain: Contest -> ContestQuestions -> Question -> Topic -> Chapter -> Subject
+        from app.models.Basequestion import Topic, Chapter, Subject
         
-        # Get contest with questions relationship
         result = await self.db.execute(
             select(Contest)
             .where(Contest.id == contest_id)
-            .options(selectinload(Contest.questions).selectinload(ContestQuestions.question))
+            .options(
+                selectinload(Contest.questions)
+                .selectinload(ContestQuestions.question)
+                .selectinload(Question.topic)
+                .selectinload(Topic.chapter)
+                .selectinload(Chapter.subject)
+            )
         )
         contest = result.scalar_one_or_none()
         
@@ -176,13 +183,19 @@ class ContestService:
         questions = []
         for contest_question in contest.questions:
             question = contest_question.question
-            # Convert question to dictionary with all fields
+            
+            # Get subject info through the relationship chain
+            subject_id = None
+            subject_name = None
+            if question.topic and question.topic.chapter and question.topic.chapter.subject:
+                subject = question.topic.chapter.subject
+                subject_id = str(subject.id)
+                subject_name = subject.subject_type.value if hasattr(subject.subject_type, 'value') else str(subject.subject_type)
+            
             # Serialize enums as their string values for JSON compatibility
-            # Handle exam_type: it might be enum objects or strings (from JSON deserialization)
             exam_type_values = []
             if question.exam_type:
                 for exam in question.exam_type:
-                    # If it's already a string, use it directly; otherwise get .value
                     if isinstance(exam, str):
                         exam_type_values.append(exam)
                     else:
@@ -191,6 +204,8 @@ class ContestService:
             question_dict = {
                 "id": str(question.id),
                 "topic_id": str(question.topic_id),
+                "subject_id": subject_id,
+                "subject_name": subject_name,
                 "type": question.type.value if hasattr(question.type, 'value') else str(question.type),
                 "difficulty": question.difficulty.value if hasattr(question.difficulty, 'value') else str(question.difficulty),
                 "exam_type": exam_type_values,

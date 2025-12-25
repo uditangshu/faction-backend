@@ -45,9 +45,11 @@ class ContestListResponse(BaseModel):
 
 
 class ContestQuestionResponse(BaseModel):
-    """Question response with full details for contest"""
+    """Question response with full details for contest including subject info"""
     id: UUID
     topic_id: UUID
+    subject_id: Optional[UUID] = None
+    subject_name: Optional[str] = None
     type: QuestionType
     difficulty: DifficultyLevel
     exam_type: List[TargetExam]
