@@ -3,21 +3,13 @@ services:
   - type: web
     name: faction-backend
     runtime: docker
-    rootDir: faction-backend
-    dockerfile: ./Dockerfile
     plan: free
-    region: singapore
-    numInstances: 1
+    branch: notifications
     healthCheckPath: /docs
     envVars:
       - key: DATABASE_URL
         fromDatabase:
           name: faction-db
-          property: connectionString
-      - key: REDIS_URL
-        fromService:
-          type: redis
-          name: faction-redis
           property: connectionString
       - key: APP_ENV
         value: production
@@ -25,29 +17,6 @@ services:
         generateValue: true
       - key: PORT
         value: 8000
-    startCommand: alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port 8000
-
-  # Worker Service - Background Tasks
-  - type: worker
-    name: faction-worker
-    runtime: docker
-    rootDir: faction-backend
-    dockerfile: ./Dockerfile.worker
-    plan: free
-    region: singapore
-    numInstances: 1
-    envVars:
-      - key: DATABASE_URL
-        fromDatabase:
-          name: faction-db
-          property: connectionString
-      - key: REDIS_URL
-        fromService:
-          type: redis
-          name: faction-redis
-          property: connectionString
-      - key: APP_ENV
-        value: production
 
 databases:
   # PostgreSQL Database
@@ -55,9 +24,3 @@ databases:
     databaseName: faction_db
     user: faction_user
     plan: free
-    region: singapore
-
-  # Redis Instance
-  - name: faction-redis
-    plan: free
-    region: singapore
