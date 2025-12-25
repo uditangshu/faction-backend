@@ -22,7 +22,7 @@ class ContestCreateRequest(BaseModel):
 
 
 class ContestResponse(BaseModel):
-    """Contest response"""
+    """Contest response with optional has_attempted flag"""
     id: UUID
     name: str
     description: str | None
@@ -31,6 +31,7 @@ class ContestResponse(BaseModel):
     starts_at: datetime
     ends_at: datetime
     created_at: datetime
+    has_attempted: bool = False  # True if current user has submitted
 
     class Config:
         from_attributes = True
