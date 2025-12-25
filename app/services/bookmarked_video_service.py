@@ -71,7 +71,7 @@ class BookmarkedVideoService:
         
         # Try cache first
         if self.redis:
-            cached = await self.redis.get_key(cache_key)
+            cached = await self.redis.get_value(cache_key)
             if cached:
                 return json.loads(cached)
         
@@ -84,7 +84,7 @@ class BookmarkedVideoService:
         
         # Cache result
         if self.redis:
-            await self.redis.set_key(cache_key, json.dumps(bookmark_ids), self.CACHE_TTL)
+            await self.redis.set_value(cache_key, json.dumps(bookmark_ids), self.CACHE_TTL)
         
         return bookmark_ids
 

@@ -97,7 +97,7 @@ class NotificationService:
         
         # Try cache first
         if self.redis:
-            cached = await self.redis.get_key(cache_key)
+            cached = await self.redis.get_value(cache_key)
             if cached is not None:
                 return int(cached)
         
@@ -114,7 +114,7 @@ class NotificationService:
         
         # Cache result
         if self.redis:
-            await self.redis.set_key(cache_key, str(count), self.CACHE_TTL)
+            await self.redis.set_value(cache_key, str(count), self.CACHE_TTL)
         
         return count
 
