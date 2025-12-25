@@ -18,6 +18,7 @@ class NotificationType(str, enum.Enum):
     ACHIEVEMENT = "achievement"
     STREAK = "streak"
     SYSTEM = "system"
+    ANNOUNCEMENT = "announcement"
 
 
 class Notification(SQLModel, table=True):
