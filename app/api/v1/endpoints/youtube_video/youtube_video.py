@@ -22,12 +22,18 @@ async def create_video(
     request: YouTubeVideoCreateRequest,
     youtube_video_service: YouTubeVideoServiceDep,
 ) -> YouTubeVideoResponse:
-    """Create a new YouTube video"""
+    """
+    Create a new YouTube video.
+    
+    Only youtube_url, chapter_id, and subject_id are required.
+    Other fields (title, description, thumbnail, duration) will be
+    auto-fetched from the YouTube API if not provided.
+    """
     video = await youtube_video_service.create_video(
         chapter_id=request.chapter_id,
         subject_id=request.subject_id,
-        youtube_video_id=request.youtube_video_id,
         youtube_url=request.youtube_url,
+        youtube_video_id=request.youtube_video_id,
         title=request.title,
         description=request.description,
         thumbnail_url=request.thumbnail_url,

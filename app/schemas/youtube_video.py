@@ -9,17 +9,17 @@ from pydantic import BaseModel, Field, HttpUrl
 class YouTubeVideoBase(BaseModel):
     """Base YouTube video schema"""
     
-    youtube_video_id: str = Field(..., description="YouTube video ID")
+    youtube_video_id: Optional[str] = Field(None, description="YouTube video ID (auto-extracted from URL if not provided)")
     youtube_url: str = Field(..., description="Full YouTube video URL")
-    title: str = Field(..., max_length=200, description="Video title")
-    description: Optional[str] = Field(None, description="Video description")
-    thumbnail_url: Optional[str] = Field(None, description="Video thumbnail URL")
-    duration_seconds: Optional[int] = Field(None, ge=0, description="Video duration in seconds")
+    title: Optional[str] = Field(None, max_length=200, description="Video title (auto-fetched from YouTube if not provided)")
+    description: Optional[str] = Field(None, description="Video description (auto-fetched from YouTube if not provided)")
+    thumbnail_url: Optional[str] = Field(None, description="Video thumbnail URL (auto-fetched from YouTube if not provided)")
+    duration_seconds: Optional[int] = Field(None, ge=0, description="Video duration in seconds (auto-fetched from YouTube if not provided)")
     order: int = Field(default=0, ge=0, description="Order/sequence within chapter")
 
 
 class YouTubeVideoCreateRequest(YouTubeVideoBase):
-    """Request to create a new YouTube video"""
+    """Request to create a new YouTube video - only youtube_url, chapter_id, and subject_id are required"""
     
     chapter_id: UUID = Field(..., description="Chapter ID")
     subject_id: UUID = Field(..., description="Subject ID")
