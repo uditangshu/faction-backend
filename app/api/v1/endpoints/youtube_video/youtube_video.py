@@ -26,18 +26,12 @@ async def create_video(
     Create a new YouTube video.
     
     Only youtube_url, chapter_id, and subject_id are required.
-    Other fields (title, description, thumbnail, duration) will be
-    auto-fetched from the YouTube API if not provided.
+    Title, description, thumbnail, and duration will be auto-fetched from YouTube API.
     """
     video = await youtube_video_service.create_video(
         chapter_id=request.chapter_id,
         subject_id=request.subject_id,
         youtube_url=request.youtube_url,
-        youtube_video_id=request.youtube_video_id,
-        title=request.title,
-        description=request.description,
-        thumbnail_url=request.thumbnail_url,
-        duration_seconds=request.duration_seconds,
         order=request.order,
     )
     return YouTubeVideoResponse.model_validate(video)
