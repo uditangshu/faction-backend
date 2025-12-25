@@ -9,6 +9,14 @@ from app.core.config import settings
 
 # Parse DATABASE_URL and handle SSL
 database_url = settings.DATABASE_URL
+
+# Convert postgresql:// to postgresql+asyncpg:// if needed (for Render/Supabase compatibility)
+# This is REQUIRED because Render/Supabase provide postgresql:// but we need postgresql+asyncpg://
+if database_url.startswith("postgresql://"):
+    database_url = database_url.replace("postgresql://", "postgresql+asyncpg://", 1)
+elif database_url.startswith("postgres://"):
+    database_url = database_url.replace("postgres://", "postgresql+asyncpg://", 1)
+
 # Remove sslmode from URL if present (asyncpg doesn't support it in URL)
 if "?sslmode=" in database_url or "&sslmode=" in database_url:
     import re
