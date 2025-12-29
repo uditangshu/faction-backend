@@ -30,7 +30,8 @@ from app.models import (
     Contest,
     ContestQuestions,
     ContestLeaderboard,
-    YouTubeVideo
+    YouTubeVideo,
+    Treasure
 )
 from app.core.config import settings
 

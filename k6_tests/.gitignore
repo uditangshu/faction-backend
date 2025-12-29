@@ -1,0 +1,12 @@
+# k6 test results
+results/
+*.json
+*.html
+
+# k6 cloud tokens
+.k6/
+
+# OS files
+.DS_Store
+Thumbs.db
+

@@ -15,6 +15,7 @@ from app.api.v1.endpoints.weak_topic import weak_topic
 from app.api.v1.endpoints.custom_test import custom_test
 from app.api.v1.endpoints.contest import contest
 from app.api.v1.endpoints.doubt_forum import doubt_forum
+from app.api.v1.endpoints.treasure import treasure
 
 api_router = APIRouter()
 
@@ -63,3 +64,6 @@ api_router.include_router(contest.router)
 
 # Doubt Forum routes
 api_router.include_router(doubt_forum.router)
+
+# Treasure routes
+api_router.include_router(treasure.router)
