@@ -19,9 +19,9 @@ class Notes(SQLModel, table=True):
     
     # File Information
     file_name: str = Field(..., description="Name of the PDF file")
-    file_id: str = Field(..., description="Google Drive file ID")
-    web_view_link: str = Field(..., description="Google Drive web view link")
-    web_content_link: Optional[str] = Field(None, description="Google Drive web content link")
+    file_id: str = Field(..., description="Supabase Storage file path")
+    web_view_link: str = Field(..., description="Public URL to access the PDF file")
+    web_content_link: Optional[str] = Field(None, description="Public content URL for the PDF file")
     
     # Metadata
     is_active: bool = Field(default=True, index=True, description="Whether note is active")

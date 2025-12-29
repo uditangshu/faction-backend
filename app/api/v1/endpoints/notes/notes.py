@@ -9,10 +9,11 @@ from app.schemas.notes import (
     NotesResponse,
     NotesListResponse,
 )
-from app.integrations.google_drive_client import upload_pdf, delete_pdf
+from app.integrations.supabase_storage_client import upload_pdf, delete_pdf
 from app.exceptions.http_exceptions import NotFoundException, BadRequestException
-from app.models.Basequestion import Subject, Chapter
+from app.models.Basequestion import Subject, Chapter, Class
 from sqlalchemy import select
+from sqlalchemy.orm import selectinload
 
 router = APIRouter(prefix="/notes", tags=["Notes"])
 
@@ -34,12 +35,14 @@ async def upload_note(
         # Validate chapter and subject belong to user's class
         db = notes_service.db
         
-        # Check subject belongs to user's class
+        # Check subject belongs to user's class and eagerly load the class relationship
         subject_result = await db.execute(
-            select(Subject).where(
+            select(Subject)
+            .where(
                 Subject.id == subject_id,
                 Subject.class_id == current_user.class_id
             )
+            .options(selectinload(Subject.subject_class_lvl))
         )
         subject = subject_result.scalar_one_or_none()
         if not subject:
@@ -56,14 +59,24 @@ async def upload_note(
         if not chapter:
             raise BadRequestException("Chapter not found or does not belong to the subject")
         
+        # Get class name - query separately if not loaded
+        if subject.subject_class_lvl:
+            class_name = subject.subject_class_lvl.name
+        else:
+            # Fallback: query class directly
+            class_result = await db.execute(
+                select(Class).where(Class.id == current_user.class_id)
+            )
+            class_obj = class_result.scalar_one_or_none()
+            class_name = class_obj.name if class_obj else f"Class_{current_user.class_id}"
+        
         # Create folder path: Class/Subject/Chapter
-        class_name = subject.subject_class_lvl.name if subject.subject_class_lvl else f"Class_{current_user.class_id}"
         subject_name = subject.subject_type.value
         chapter_name = chapter.name
         
         folder_path = f"{class_name}/{subject_name}/{chapter_name}"
         
-        # Upload PDF to Google Drive
+        # Upload PDF to Supabase Storage
         try:
             upload_result = await upload_pdf(
                 pdf_file.file,
@@ -78,7 +91,7 @@ async def upload_note(
             chapter_id=chapter_id,
             subject_id=subject_id,
             file_name=pdf_file.filename or "note.pdf",
-            file_id=upload_result['file_id'],
+            file_id=upload_result['file_path'],  # Store file_path as file_id
             web_view_link=upload_result['web_view_link'],
             web_content_link=upload_result.get('web_content_link'),
         )
@@ -97,7 +110,7 @@ async def delete_note(
     current_user: CurrentUser,
 ) -> None:
     """Delete a note"""
-    # Get the note first to extract the file_id for deletion from Google Drive
+    # Get the note first to extract the file_path for deletion from Supabase Storage
     note = await notes_service.get_note_by_id(note_id)
     if not note:
         raise NotFoundException(f"Note with ID {note_id} not found")
@@ -106,19 +119,21 @@ async def delete_note(
     db = notes_service.db
     
     subject_result = await db.execute(
-        select(Subject).where(
+        select(Subject)
+        .where(
             Subject.id == note.subject_id,
             Subject.class_id == current_user.class_id
         )
+        .options(selectinload(Subject.subject_class_lvl))
     )
     subject = subject_result.scalar_one_or_none()
     if not subject:
         raise NotFoundException(f"Note with ID {note_id} not found")
     
-    # Delete the file from Google Drive
+    # Delete the file from Supabase Storage
     if note.file_id:
         try:
-            await delete_pdf(note.file_id)
+            await delete_pdf(note.file_id)  # file_id contains the file_path
         except Exception:
             # Log error but continue with database deletion
             pass
