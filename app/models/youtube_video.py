@@ -53,7 +53,6 @@ class BookmarkedVideo(SQLModel, table=True):
             index=True
         )
     )
-    
     youtube_video_id: UUID = Field(
         sa_column=Column(
             sqlmodel.sql.sqltypes.GUID(),
