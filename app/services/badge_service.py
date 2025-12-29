@@ -7,7 +7,7 @@ from sqlalchemy import select, delete
 from typing import List, Optional
 
 from app.models.badge import Badge, BadgeCategory
-
+from app.models.user_badge import UserBadge
 
 class BadgeService:
     """Service for badge operations"""
@@ -15,12 +15,65 @@ class BadgeService:
     def __init__(self, db: AsyncSession):
         self.db = db
 
-    async def get_all_badges(self) -> List[Badge]:
-        """Get all badges"""
+    async def get_all_badges(self, user_id: Optional[UUID] = None) -> List[dict]:
+        """Get all badges, optionally with user progress"""
+        # Get all badges
         result = await self.db.execute(
             select(Badge).order_by(Badge.created_at.desc())
         )
-        return list(result.scalars().all())
+        badges = result.scalars().all()
+        
+        # If no user, return badges as is (with default unearned status)
+        if not user_id:
+            return badges
+            
+        # Get user earned badges
+        user_badges_result = await self.db.execute(
+            select(UserBadge).where(UserBadge.user_id == user_id)
+        )
+        user_badges_map = {ub.badge_id: ub for ub in user_badges_result.scalars().all()}
+        
+        # Merge data
+        enhanced_badges = []
+        for badge in badges:
+            user_badge = user_badges_map.get(badge.id)
+            badge_dict = badge.model_dump()
+            
+            if user_badge:
+                badge_dict["is_earned"] = True
+                badge_dict["earned_at"] = user_badge.earned_at
+                badge_dict["progress"] = user_badge.progress
+            else:
+                badge_dict["is_earned"] = False
+                badge_dict["progress"] = 0
+                
+            enhanced_badges.append(badge_dict)
+            
+        return enhanced_badges
+
+    async def award_badge(self, user_id: UUID, badge_id: UUID, progress: int = 100) -> bool:
+        """Award a badge to a user if not already earned"""
+        # Check if already earned
+        existing = await self.db.execute(
+            select(UserBadge).where(
+                UserBadge.user_id == user_id,
+                UserBadge.badge_id == badge_id
+            )
+        )
+        if existing.scalar_one_or_none():
+            return False
+            
+        # Award badge
+        user_badge = UserBadge(
+            user_id=user_id,
+            badge_id=badge_id,
+            progress=progress,
+            earned_at=datetime.utcnow(),
+            is_seen=False
+        )
+        self.db.add(user_badge)
+        await self.db.commit()
+        return True
 
     async def get_badge_by_id(self, badge_id: UUID) -> Optional[Badge]:
         """Get badge by ID"""

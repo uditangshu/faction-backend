@@ -8,7 +8,9 @@ from typing import Dict, Any
 
 from app.models.streak import UserStudyStats, UserDailyStreak
 from app.models.attempt import QuestionAttempt
+from app.models.attempt import QuestionAttempt
 from app.models.user import User
+from app.services.badge_rules import BadgeAwardingService
 
 
 class StreakService:
@@ -105,6 +107,13 @@ class StreakService:
 
         await self.db.commit()
         await self.db.refresh(stats)
+        
+        # Check for streak badges
+        try:
+            badge_service = BadgeAwardingService(self.db)
+            await badge_service.check_streak_badges(user_id, stats.current_study_streak)
+        except Exception as e:
+            print(f"Error checking streak badges: {e}")
 
         return stats
 

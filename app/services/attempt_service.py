@@ -7,6 +7,9 @@ from typing import List, Optional, Tuple
 
 from app.models.attempt import QuestionAttempt
 
+from app.models.attempt import QuestionAttempt
+from app.services.badge_rules import BadgeAwardingService
+
 from app.db.attempt_calls import create_attempt, remove_attempt, update_attempt
 
 class AttemptService:
@@ -27,6 +30,19 @@ class AttemptService:
     ) -> QuestionAttempt:
         """Create a new question attempt"""
         result = await create_attempt(self.db, user_id, question_id, user_answer, is_correct, marks_obtained, time_taken, hint_used)
+        
+        # Check for practice badges if answer is correct
+        if is_correct:
+            try:
+                # specific logic to get total unique solved count
+                solved_data = await self.get_user_solved_count(user_id)
+                total_solved = solved_data.get("total_solved", 0)
+                
+                badge_service = BadgeAwardingService(self.db)
+                await badge_service.check_practice_badges(user_id, total_solved)
+            except Exception as e:
+                print(f"Error checking practice badges: {e}")
+                
         return result
 
     async def get_attempt_by_id(self, attempt_id: UUID) -> Optional[QuestionAttempt]:

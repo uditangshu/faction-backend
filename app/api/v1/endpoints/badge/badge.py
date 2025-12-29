@@ -4,7 +4,9 @@ from uuid import UUID
 from fastapi import APIRouter, File, UploadFile, Form
 from typing import Optional
 
-from app.api.v1.dependencies import BadgeServiceDep
+from app.api.v1.dependencies import BadgeServiceDep, CurrentUserDep
+from typing import Optional, Union
+from app.models.user import User
 from app.schemas.badge import (
     BadgeResponse,
     BadgeListResponse,
@@ -19,9 +21,10 @@ router = APIRouter(prefix="/badges", tags=["Badges"])
 @router.get("/", response_model=BadgeListResponse)
 async def get_all_badges(
     badge_service: BadgeServiceDep,
+    current_user: CurrentUserDep,
 ) -> BadgeListResponse:
-    """Get all badges"""
-    badges = await badge_service.get_all_badges()
+    """Get all badges with earned status for current user"""
+    badges = await badge_service.get_all_badges(user_id=current_user.id)
     
     return BadgeListResponse(
         badges=[BadgeResponse.model_validate(badge) for badge in badges],

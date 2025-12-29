@@ -18,6 +18,8 @@ from app.models.doubt_forum import DoubtPost, DoubtComment, DoubtBookmark
 from app.models.notification import Notification, NotificationType
 from app.models.treasure import Treasure
 from app.models.notes import Notes
+from app.models.user_badge import UserBadge
+
 __all__ = [
     "User",
     "UserRole",
@@ -57,5 +59,6 @@ __all__ = [
     "NotificationType",
     "Treasure",
     "Notes",
+    "UserBadge",
 ]
 

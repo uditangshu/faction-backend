@@ -33,6 +33,11 @@ class BadgeResponse(BaseModel):
     is_active: bool
     created_at: datetime
     updated_at: datetime
+    
+    # User specific fields (optional, populated if user is logged in)
+    is_earned: bool = False
+    earned_at: Optional[datetime] = None
+    progress: int = 0
 
     class Config:
         from_attributes = True
