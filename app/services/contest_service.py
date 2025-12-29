@@ -8,6 +8,7 @@ from typing import List, Dict, Any
 from datetime import datetime
 
 from app.models.contest import Contest, ContestStatus, ContestLeaderboard
+from app.models.user import User
 from app.models.linking import ContestQuestions
 from app.models.Basequestion import Question
 from app.exceptions.http_exceptions import BadRequestException, NotFoundException
@@ -138,14 +139,14 @@ class ContestService:
         cache_ttl: int = 3600,  # 1 hour default
     ) -> List[Dict[str, Any]]:
         """
-        Get contest questions with full details, using Redis caching.
+        Get contest questions with full details including subject info, using Redis caching.
         
         Args:
             contest_id: Contest ID
             cache_ttl: Cache time-to-live in seconds (default: 3600 = 1 hour)
             
         Returns:
-            List of question dictionaries with full details
+            List of question dictionaries with full details including subject_id and subject_name
             
         Raises:
             NotFoundException: If contest not found
@@ -160,12 +161,19 @@ class ContestService:
                 return cached_data
         
         # If not in cache, query database
+        # Load full relationship chain: Contest -> ContestQuestions -> Question -> Topic -> Chapter -> Subject
+        from app.models.Basequestion import Topic, Chapter, Subject
         
-        # Get contest with questions relationship
         result = await self.db.execute(
             select(Contest)
             .where(Contest.id == contest_id)
-            .options(selectinload(Contest.questions).selectinload(ContestQuestions.question))
+            .options(
+                selectinload(Contest.questions)
+                .selectinload(ContestQuestions.question)
+                .selectinload(Question.topic)
+                .selectinload(Topic.chapter)
+                .selectinload(Chapter.subject)
+            )
         )
         contest = result.scalar_one_or_none()
         
@@ -176,13 +184,19 @@ class ContestService:
         questions = []
         for contest_question in contest.questions:
             question = contest_question.question
-            # Convert question to dictionary with all fields
+            
+            # Get subject info through the relationship chain
+            subject_id = None
+            subject_name = None
+            if question.topic and question.topic.chapter and question.topic.chapter.subject:
+                subject = question.topic.chapter.subject
+                subject_id = str(subject.id)
+                subject_name = subject.subject_type.value if hasattr(subject.subject_type, 'value') else str(subject.subject_type)
+            
             # Serialize enums as their string values for JSON compatibility
-            # Handle exam_type: it might be enum objects or strings (from JSON deserialization)
             exam_type_values = []
             if question.exam_type:
                 for exam in question.exam_type:
-                    # If it's already a string, use it directly; otherwise get .value
                     if isinstance(exam, str):
                         exam_type_values.append(exam)
                     else:
@@ -191,6 +205,8 @@ class ContestService:
             question_dict = {
                 "id": str(question.id),
                 "topic_id": str(question.topic_id),
+                "subject_id": subject_id,
+                "subject_name": subject_name,
                 "type": question.type.value if hasattr(question.type, 'value') else str(question.type),
                 "difficulty": question.difficulty.value if hasattr(question.difficulty, 'value') else str(question.difficulty),
                 "exam_type": exam_type_values,
@@ -237,6 +253,9 @@ class ContestService:
 
         if not self.redis_service:
             raise BadRequestException("Redis service is not available")
+            
+        # Create placeholder leaderboard entry to immediately prevent re-attempts
+        await self._create_placeholder_leaderboard_entry(contest_id, user_id)
                 
         # Queue name for contest submissions
         queue_name = f"contest:submissions:{contest_id}"
@@ -304,4 +323,72 @@ class ContestService:
             )
         
         return leaderboard_entry
+
+    async def check_user_has_attempted(self, contest_id: UUID, user_id: UUID) -> bool:
+        """
+        Check if a user has attempted a contest.
+        
+        Args:
+            contest_id: Contest ID
+            user_id: User ID
+            
+        Returns:
+            True if user has attempted the contest, False otherwise
+        """
+        leaderboard_entry = await get_contest_leaderboard_entry(
+            db=self.db,
+            contest_id=contest_id,
+            user_id=user_id,
+        )
+        return leaderboard_entry is not None
+
+    async def _create_placeholder_leaderboard_entry(
+        self,
+        contest_id: UUID,
+        user_id: UUID,
+    ):
+        """
+        Create a placeholder leaderboard entry to prevent re-attempts.
+        Used when pushing submissions to queue so the user is immediately marked as attempted.
+        The worker will update this entry later with actual results.
+        """
+        # Check if entry already exists
+        existing_entry = await get_contest_leaderboard_entry(
+            db=self.db,
+            contest_id=contest_id,
+            user_id=user_id,
+        )
+        
+        if existing_entry:
+            return
+
+        # Get user for current rating
+        result = await self.db.execute(select(User).where(User.id == user_id))
+        user = result.scalar_one_or_none()
+        
+        if not user:
+            # Should not happen as user_id comes from authenticated user
+            return 
+            
+        # Create placeholder entry with 0s
+        # This acts as a lock to prevent re-attempts
+        leaderboard_entry = ContestLeaderboard(
+            user_id=user_id,
+            contest_id=contest_id,
+            score=0,
+            accuracy=0,
+            total_questions=0,
+            attempted=0,
+            unattempted=0,
+            correct=0,
+            incorrect=0,
+            rating_before=user.current_rating,
+            rating_after=user.current_rating,
+            rating_delta=0,
+            rank=0,
+            missed=False,
+        )
+        self.db.add(leaderboard_entry)
+        # Flush to get ID if needed, but we just need it committed
+        await self.db.commit()
 

@@ -51,13 +51,15 @@ async def create_contest(
 @router.get("/", response_model=ContestListResponse)
 async def get_contests(
     contest_service: ContestServiceDep,
+    current_user: CurrentUser,
     type: str = Query(..., description="Type of contests: 'upcoming' or 'past'"),
 ) -> ContestListResponse:
     """
-    Get contests by type.
+    Get contests by type with has_attempted status for current user.
     
     Fetches either upcoming contests (contests that haven't started yet) 
-    or past contests (contests that have ended).
+    or past contests (contests that have ended). Each contest includes
+    has_attempted flag indicating if current user has already submitted.
     
     - type='upcoming': Returns contests that haven't started yet, ordered by start time (ascending)
     - type='past': Returns contests that have ended, ordered by end time (descending)
@@ -70,7 +72,17 @@ async def get_contests(
         else:
             raise BadRequestException("Type must be either 'upcoming' or 'past'")
         
-        contest_responses = [ContestResponse.model_validate(contest) for contest in contests]
+        # Check has_attempted for each contest
+        contest_responses = []
+        for contest in contests:
+            has_attempted = await contest_service.check_user_has_attempted(
+                contest_id=contest.id,
+                user_id=current_user.id,
+            )
+            response = ContestResponse.model_validate(contest)
+            response.has_attempted = has_attempted
+            contest_responses.append(response)
+        
         return ContestListResponse(contests=contest_responses)
     except (BadRequestException, NotFoundException):
         raise
@@ -84,14 +96,11 @@ async def get_contest_questions(
     contest_service: ContestServiceDep,
 ) -> ContestQuestionsResponse:
     """
-    Get contest questions with full details.
+    Get contest questions with full details including subject info.
     
-    Fetches all questions for a contest with complete details.
+    Fetches all questions for a contest with complete details including subject_id and subject_name.
     Results are cached in Redis for improved performance.
     On subsequent requests, data is served from cache if available.
-    
-    - First request: Queries database and caches result in Redis
-    - Subsequent requests: Serves from Redis cache (faster response)
     """
     try:
         questions_data = await contest_service.get_contest_questions_with_details(contest_id)
@@ -99,7 +108,6 @@ async def get_contest_questions(
         # Convert dictionary data to response models
         question_responses = []
         for q_data in questions_data:
-            # Convert string UUIDs back to UUID objects
             from app.models.Basequestion import QuestionType, DifficultyLevel
             from app.models.user import TargetExam
             
@@ -107,6 +115,8 @@ async def get_contest_questions(
                 ContestQuestionResponse(
                     id=UUID(q_data["id"]),
                     topic_id=UUID(q_data["topic_id"]),
+                    subject_id=UUID(q_data["subject_id"]) if q_data.get("subject_id") else None,
+                    subject_name=q_data.get("subject_name"),
                     type=QuestionType(q_data["type"]),
                     difficulty=DifficultyLevel(q_data["difficulty"]),
                     exam_type=[TargetExam(exam) for exam in q_data["exam_type"]],
@@ -209,4 +219,28 @@ async def get_contest_leaderboard(
         raise
     except Exception as e:
         raise BadRequestException(f"Failed to fetch contest leaderboard: {str(e)}")
+
+
+@router.get("/{contest_id}/has-attempted", response_model=dict)
+async def check_has_attempted(
+    contest_id: UUID,
+    current_user: CurrentUser,
+    contest_service: ContestServiceDep,
+) -> dict:
+    """
+    Check if the current user has already attempted this contest.
+    
+    Returns:
+    - has_attempted: boolean indicating if user has submitted to this contest
+    - Can be used to prevent re-attempts
+    """
+    try:
+        has_attempted = await contest_service.check_user_has_attempted(
+            contest_id=contest_id,
+            user_id=current_user.id,
+        )
+        return {"has_attempted": has_attempted}
+    except Exception as e:
+        raise BadRequestException(f"Failed to check attempt status: {str(e)}")
+
 

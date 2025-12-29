@@ -13,6 +13,7 @@ from app.models.pyq import PreviousYearProblems
 from app.models.streak import UserStudyStats, UserDailyStreak
 from app.models.doubt_forum import DoubtPost, DoubtComment, DoubtBookmark
 from app.models.youtube_video import YouTubeVideo, BookmarkedVideo
+from app.models.notes import Notes
 
 __all__ = [
     "SQLModel",
@@ -34,5 +35,6 @@ __all__ = [
     "DoubtBookmark",
     "YouTubeVideo",
     "BookmarkedVideo",
+    "Notes",
 ]
 

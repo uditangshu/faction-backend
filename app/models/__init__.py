@@ -15,6 +15,9 @@ from app.models.youtube_video import YouTubeVideo, BookmarkedVideo
 from app.models.badge import Badge, BadgeCategory
 from app.models.weak_topic import UserWeakTopic
 from app.models.doubt_forum import DoubtPost, DoubtComment, DoubtBookmark
+from app.models.notification import Notification, NotificationType
+from app.models.treasure import Treasure
+from app.models.notes import Notes
 __all__ = [
     "User",
     "UserRole",
@@ -50,5 +53,9 @@ __all__ = [
     "DoubtPost",
     "DoubtComment",
     "DoubtBookmark",
+    "Notification",
+    "NotificationType",
+    "Treasure",
+    "Notes",
 ]
 

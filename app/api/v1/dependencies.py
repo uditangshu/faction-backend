@@ -33,6 +33,9 @@ from app.services.weak_topic_service import WeakTopicService
 from app.services.custom_test_service import CustomTestService
 from app.services.contest_service import ContestService
 from app.services.doubt_forum_service import DoubtForumService
+from app.services.notification_service import NotificationService
+from app.services.treasure_service import TreasureService
+from app.services.notes_service import NotesService
 
 # Database session dependency
 DBSession = Annotated[AsyncSession, Depends(get_db_session)]
@@ -180,9 +183,9 @@ async def get_youtube_video_service(db: DBSession) -> YouTubeVideoService:
 YouTubeVideoServiceDep = Annotated[YouTubeVideoService, Depends(get_youtube_video_service)]
 
 
-async def get_bookmarked_video_service(db: DBSession) -> BookmarkedVideoService:
-    """Get bookmarked video service"""
-    return BookmarkedVideoService(db)
+async def get_bookmarked_video_service(db: DBSession, redis_service: RedisServiceDep) -> BookmarkedVideoService:
+    """Get bookmarked video service with Redis caching"""
+    return BookmarkedVideoService(db, redis_service)
 
 
 BookmarkedVideoServiceDep = Annotated[BookmarkedVideoService, Depends(get_bookmarked_video_service)]
@@ -218,6 +221,30 @@ async def get_doubt_forum_service(db: DBSession) -> DoubtForumService:
 
 
 DoubtForumServiceDep = Annotated[DoubtForumService, Depends(get_doubt_forum_service)]
+
+
+async def get_notification_service(db: DBSession, redis_service: RedisServiceDep) -> NotificationService:
+    """Get notification service with Redis caching"""
+    return NotificationService(db, redis_service)
+
+
+NotificationServiceDep = Annotated[NotificationService, Depends(get_notification_service)]
+
+
+async def get_treasure_service(db: DBSession) -> TreasureService:
+    """Get treasure service"""
+    return TreasureService(db)
+
+
+TreasureServiceDep = Annotated[TreasureService, Depends(get_treasure_service)]
+
+
+async def get_notes_service(db: DBSession) -> NotesService:
+    """Get notes service"""
+    return NotesService(db)
+
+
+NotesServiceDep = Annotated[NotesService, Depends(get_notes_service)]
 
 
 bearer_scheme = HTTPBearer()

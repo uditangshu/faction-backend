@@ -22,7 +22,7 @@ class ContestCreateRequest(BaseModel):
 
 
 class ContestResponse(BaseModel):
-    """Contest response"""
+    """Contest response with optional has_attempted flag"""
     id: UUID
     name: str
     description: str | None
@@ -31,6 +31,7 @@ class ContestResponse(BaseModel):
     starts_at: datetime
     ends_at: datetime
     created_at: datetime
+    has_attempted: bool = False  # True if current user has submitted
 
     class Config:
         from_attributes = True
@@ -45,9 +46,11 @@ class ContestListResponse(BaseModel):
 
 
 class ContestQuestionResponse(BaseModel):
-    """Question response with full details for contest"""
+    """Question response with full details for contest including subject info"""
     id: UUID
     topic_id: UUID
+    subject_id: Optional[UUID] = None
+    subject_name: Optional[str] = None
     type: QuestionType
     difficulty: DifficultyLevel
     exam_type: List[TargetExam]
