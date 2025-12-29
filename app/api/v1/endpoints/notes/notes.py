@@ -18,6 +18,46 @@ from sqlalchemy.orm import selectinload
 router = APIRouter(prefix="/notes", tags=["Notes"])
 
 
+@router.get("/", response_model=NotesListResponse)
+async def get_notes(
+    notes_service: NotesServiceDep,
+    current_user: CurrentUser,
+    class_id: UUID = Query(..., description="Class ID to filter notes"),
+    subject_id: Optional[UUID] = Query(None, description="Filter by subject ID"),
+    chapter_id: Optional[UUID] = Query(None, description="Filter by chapter ID"),
+    sort_order: str = Query("latest", description="Sort order: 'latest' or 'oldest'"),
+    skip: int = Query(0, ge=0, description="Number of records to skip"),
+    limit: int = Query(100, ge=1, le=100, description="Maximum number of records"),
+) -> NotesListResponse:
+    """
+    Get notes filtered by class_id, optionally by subject and chapter.
+    
+    The notes are automatically filtered by the provided class_id. You can further filter by:
+    - subject_id: Filter by specific subject
+    - chapter_id: Filter by specific chapter (requires subject_id to be in the class)
+    """
+    if sort_order not in ["latest", "oldest"]:
+        raise BadRequestException("sort_order must be 'latest' or 'oldest'")
+    
+    # Get notes filtered by class_id
+    notes = await notes_service.get_notes_by_user_class(
+        class_id=class_id,
+        subject_id=subject_id,
+        chapter_id=chapter_id,
+        sort_order=sort_order,
+        skip=skip,
+        limit=limit,
+    )
+    
+    return NotesListResponse(
+        notes=[NotesResponse.model_validate(n) for n in notes],
+        total=len(notes),
+        class_id=class_id,
+        subject_id=subject_id,
+        chapter_id=chapter_id,
+    )
+
+
 @router.post("/", response_model=NotesResponse, status_code=201)
 async def upload_note(
     notes_service: NotesServiceDep,
@@ -142,44 +182,3 @@ async def delete_note(
     deleted = await notes_service.delete_note(note_id)
     if not deleted:
         raise NotFoundException(f"Note with ID {note_id} not found")
-
-
-@router.get("/", response_model=NotesListResponse)
-async def get_notes(
-    notes_service: NotesServiceDep,
-    current_user: CurrentUser,
-    class_id: UUID = Query(..., description="Class ID to filter notes"),
-    subject_id: Optional[UUID] = Query(None, description="Filter by subject ID"),
-    chapter_id: Optional[UUID] = Query(None, description="Filter by chapter ID"),
-    sort_order: str = Query("latest", description="Sort order: 'latest' or 'oldest'"),
-    skip: int = Query(0, ge=0, description="Number of records to skip"),
-    limit: int = Query(100, ge=1, le=100, description="Maximum number of records"),
-) -> NotesListResponse:
-    """
-    Get notes filtered by class_id, optionally by subject and chapter.
-    
-    The notes are automatically filtered by the provided class_id. You can further filter by:
-    - subject_id: Filter by specific subject
-    - chapter_id: Filter by specific chapter (requires subject_id to be in the class)
-    """
-    if sort_order not in ["latest", "oldest"]:
-        raise BadRequestException("sort_order must be 'latest' or 'oldest'")
-    
-    # Get notes filtered by class_id
-    notes = await notes_service.get_notes_by_user_class(
-        class_id=class_id,
-        subject_id=subject_id,
-        chapter_id=chapter_id,
-        sort_order=sort_order,
-        skip=skip,
-        limit=limit,
-    )
-    
-    return NotesListResponse(
-        notes=[NotesResponse.model_validate(n) for n in notes],
-        total=len(notes),
-        class_id=class_id,
-        subject_id=subject_id,
-        chapter_id=chapter_id,
-    )
-
