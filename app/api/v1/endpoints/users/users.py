@@ -6,16 +6,14 @@ from uuid import UUID
 
 from fastapi import APIRouter, Depends, File, Form, Query, UploadFile, status
 
-from app.api.v1.dependencies import CurrentUser, UserServiceDep, DBSession
+from app.api.v1.dependencies import CurrentUser, UserServiceDep
 from app.schemas.user import (
     UserProfileResponse,
     UserRatingResponse,
     UserRatingUpdateRequest,
     RatingFluctuationResponse,
-    RatingFluctuationEntry,
     TargetExam
 )
-from app.db.user_calls import get_user_rating_fluctuation
 from app.utils.exceptions import ForbiddenException, BadRequestException
 
 router = APIRouter(prefix="/users", tags=["Users"])
@@ -232,9 +230,9 @@ async def update_user_rating(
 
 
 @router.get("/me/rating/graph", response_model=RatingFluctuationResponse)
-async def get_my_rating_fluctuation(
+async def get_my_rating_graph(
     current_user: CurrentUser,
-    db: DBSession,
+    user_service: UserServiceDep,
 ) -> RatingFluctuationResponse:
     """
     Get current user's rating fluctuation history from all contests.
@@ -246,57 +244,17 @@ async def get_my_rating_fluctuation(
     - Rank and score in each contest
     - Date of the contest
     """
-    results = await get_user_rating_fluctuation(db, current_user.id)
-    
-    fluctuations = [
-        RatingFluctuationEntry(
-            contest_id=contest.id,
-            contest_name=contest.name,
-            rating_before=leaderboard_entry.rating_before,
-            rating_after=leaderboard_entry.rating_after,
-            rating_delta=leaderboard_entry.rating_delta,
-            rank=leaderboard_entry.rank,
-            score=leaderboard_entry.score,
-            created_at=leaderboard_entry.created_at,
-        )
-        for leaderboard_entry, contest in results
-    ]
-    
-    return RatingFluctuationResponse(
-        user_id=current_user.id,
-        total_contests=len(fluctuations),
-        fluctuations=fluctuations,
-    )
+    return await user_service.get_user_rating_fluctuation(current_user.id)
 
 
 @router.get("/{user_id}/rating/graph", response_model=RatingFluctuationResponse)
-async def get_user_rating_fluctuation(
+async def get_user_rating_graph(
     user_id: UUID,
-    db: DBSession,
+    user_service: UserServiceDep,
 ) -> RatingFluctuationResponse:
     """
     Get a user's rating fluctuation history from all contests by user ID.
     Public endpoint - anyone can view rating history.
     """
-    results = await get_user_rating_fluctuation(db, user_id)
-    
-    fluctuations = [
-        RatingFluctuationEntry(
-            contest_id=contest.id,
-            contest_name=contest.name,
-            rating_before=leaderboard_entry.rating_before,
-            rating_after=leaderboard_entry.rating_after,
-            rating_delta=leaderboard_entry.rating_delta,
-            rank=leaderboard_entry.rank,
-            score=leaderboard_entry.score,
-            created_at=leaderboard_entry.created_at,
-        )
-        for leaderboard_entry, contest in results
-    ]
-    
-    return RatingFluctuationResponse(
-        user_id=user_id,
-        total_contests=len(fluctuations),
-        fluctuations=fluctuations,
-    )
+    return await user_service.get_user_rating_fluctuation(user_id)
 

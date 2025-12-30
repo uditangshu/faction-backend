@@ -7,11 +7,13 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, or_, func
 
 from app.models.user import User, UserRole, TargetExam, SubscriptionType, ContestRank
+from app.schemas.user import RatingFluctuationResponse, RatingFluctuationEntry
 from app.db.user_calls import (
     get_user_by_id as db_get_user_by_id,
     get_user_by_phone as db_get_user_by_phone,
     create_user as db_create_user,
     update_user as db_update_user,
+    get_user_rating_fluctuation as db_get_user_rating_fluctuation,
 )
 from app.core.security import hash_password, verify_password
 from app.utils.exceptions import (
@@ -269,4 +271,44 @@ class UserService:
             return ContestRank.SPECIALIST
         else:
             return ContestRank.NEWBIE
+
+    async def get_user_rating_fluctuation(self, user_id: UUID) -> RatingFluctuationResponse:
+        """
+        Get user's rating fluctuation history from all contests.
+        
+        Args:
+            user_id: User UUID to get rating history for
+            
+        Returns:
+            RatingFluctuationResponse with rating history from all contests
+            
+        Raises:
+            NotFoundException: If user not found
+        """
+        # Verify user exists
+        await self.get_user_by_id(user_id)
+        
+        # Get rating fluctuation data from database
+        results = await db_get_user_rating_fluctuation(self.db, user_id)
+        
+        # Build response
+        fluctuations = [
+            RatingFluctuationEntry(
+                contest_id=contest.id,
+                contest_name=contest.name,
+                rating_before=leaderboard_entry.rating_before,
+                rating_after=leaderboard_entry.rating_after,
+                rating_delta=leaderboard_entry.rating_delta,
+                rank=leaderboard_entry.rank,
+                score=leaderboard_entry.score,
+                created_at=leaderboard_entry.created_at,
+            )
+            for leaderboard_entry, contest in results
+        ]
+        
+        return RatingFluctuationResponse(
+            user_id=user_id,
+            total_contests=len(fluctuations),
+            fluctuations=fluctuations,
+        )
 
