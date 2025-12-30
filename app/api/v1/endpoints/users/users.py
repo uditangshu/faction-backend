@@ -231,7 +231,7 @@ async def update_user_rating(
     )
 
 
-@router.get("/me/rating/fluctuation", response_model=RatingFluctuationResponse)
+@router.get("/me/rating/graph", response_model=RatingFluctuationResponse)
 async def get_my_rating_fluctuation(
     current_user: CurrentUser,
     db: DBSession,
@@ -269,7 +269,7 @@ async def get_my_rating_fluctuation(
     )
 
 
-@router.get("/{user_id}/rating/fluctuation", response_model=RatingFluctuationResponse)
+@router.get("/{user_id}/rating/graph", response_model=RatingFluctuationResponse)
 async def get_user_rating_fluctuation(
     user_id: UUID,
     db: DBSession,
