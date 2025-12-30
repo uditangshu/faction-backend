@@ -167,7 +167,9 @@ async def get_latest_youtube_video(
     if class_id or target_exams:
         # Join strategies:
         # YouTubeVideo -> Chapter -> Subject
-        query = query.join(YouTubeVideo.chapter).join(Chapter.subject)
+        # Explicit joins using Foreign Keys
+        query = query.join(Chapter, YouTubeVideo.chapter_id == Chapter.id)
+        query = query.join(Subject, Chapter.subject_id == Subject.id)
         
         if class_id:
             query = query.where(Subject.class_id == class_id)
