@@ -1,6 +1,7 @@
 """Doubt forum endpoints"""
 
 from uuid import UUID
+from datetime import timedelta
 from fastapi import APIRouter, Query, File, UploadFile, Form
 from typing import Optional
 import re
@@ -166,9 +167,35 @@ async def filter_doubt_posts(
     if has_more:
         posts = posts[:limit]  # Remove the extra post
     
+    # Get user's timezone offset (in minutes from UTC)
+    timezone_offset = current_user.timezone_offset or 330  # Default to IST if None
+    
+    # Adjust datetime fields using user's timezone offset
+    adjusted_posts = []
+    for post in posts:
+        # Convert post to dict and adjust datetime fields
+        post_dict = post.model_dump() if hasattr(post, 'model_dump') else {
+            'id': post.id,
+            'user_id': post.user_id,
+            'class_id': post.class_id,
+            'title': post.title,
+            'content': post.content,
+            'image_url': post.image_url,
+            'is_solved': post.is_solved,
+            'likes_count': post.likes_count,
+            'created_at': post.created_at,
+            'updated_at': post.updated_at,
+        }
+        # Adjust created_at and updated_at with timezone offset
+        if post_dict.get('created_at'):
+            post_dict['created_at'] = post_dict['created_at'] + timedelta(minutes=timezone_offset)
+        if post_dict.get('updated_at'):
+            post_dict['updated_at'] = post_dict['updated_at'] + timedelta(minutes=timezone_offset)
+        adjusted_posts.append(DoubtPostResponse.model_validate(post_dict))
+    
     return DoubtPostListResponse(
-        posts=[DoubtPostResponse.model_validate(p) for p in posts],
-        total=len(posts),
+        posts=adjusted_posts,
+        total=len(adjusted_posts),
         skip=skip,
         limit=limit,
         has_more=has_more,
