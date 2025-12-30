@@ -32,14 +32,15 @@ engine = create_async_engine(
     echo=settings.DB_ECHO,
     future=True,
     pool_pre_ping=True,  # Verify connections before using them
-    pool_size=30,  # Increased for high RPS - ensure PostgreSQL max_connections >= 250
-    max_overflow=0,  # Not used with asyncpg, but kept for clarity
+    pool_size=60,  # Increased for high RPS - ensure PostgreSQL max_connections >= 250
+    max_overflow=5,  # Not used with asyncpg, but kept for clarity
     pool_recycle=3600,  # Recycle connections after 1 hour to prevent stale connections
     execution_options={"compiled_cache": None}, 
     pool_timeout=30,  # Wait up to 30 seconds for a connection from the pool
     connect_args={
         "ssl": "require",  # SSL is required for Aivennigga
         "server_settings": {"application_name": "faction_backend"},
+        "prepared_statement_cache_size": 0,
         "statement_cache_size": 0,  # Required: disable prepared statement cache
         "prepared_statement_name_func": lambda: f"__asyncpg_{uuid4()}__",
 

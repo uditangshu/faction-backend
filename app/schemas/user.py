@@ -84,3 +84,30 @@ class UserRatingResponse(BaseModel):
     class Config:
         from_attributes = True
 
+
+class RatingFluctuationEntry(BaseModel):
+    """Single rating fluctuation entry from a contest"""
+    
+    contest_id: UUID
+    contest_name: str
+    rating_before: int
+    rating_after: int
+    rating_delta: int
+    rank: int
+    score: float
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
+class RatingFluctuationResponse(BaseModel):
+    """User rating fluctuation history response"""
+    
+    user_id: UUID
+    total_contests: int
+    fluctuations: list[RatingFluctuationEntry]
+
+    class Config:
+        from_attributes = True
+

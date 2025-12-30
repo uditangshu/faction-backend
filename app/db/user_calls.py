@@ -1,11 +1,12 @@
 """User database calls"""
 
-from typing import Optional
+from typing import Optional, List, Tuple
 from uuid import UUID
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
+from sqlalchemy import select, desc
 
 from app.models.user import User
+from app.models.contest import ContestLeaderboard, Contest
 
 
 async def get_user_by_id(db: AsyncSession, user_id: UUID) -> Optional[User]:
@@ -39,4 +40,28 @@ async def update_user(db: AsyncSession, user: User) -> User:
     await db.commit()
     await db.refresh(user)
     return user
+
+
+async def get_user_rating_fluctuation(
+    db: AsyncSession,
+    user_id: UUID,
+) -> List[Tuple[ContestLeaderboard, Contest]]:
+    """
+    Get user's rating fluctuation history from all contests.
+    
+    Args:
+        db: Database session
+        user_id: User ID to get rating history for
+    
+    Returns:
+        List of tuples (ContestLeaderboard, Contest) ordered by created_at descending
+    """
+    result = await db.execute(
+        select(ContestLeaderboard, Contest)
+        .join(Contest, ContestLeaderboard.contest_id == Contest.id)
+        .where(ContestLeaderboard.user_id == user_id)
+        .order_by(desc(ContestLeaderboard.created_at))
+    )
+    
+    return [(row[0], row[1]) for row in result.all()]
 
