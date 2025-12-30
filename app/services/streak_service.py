@@ -137,7 +137,15 @@ class StreakService:
         Returns:
             Dict with calendar data and summary
         """
-        end_date = datetime.utcnow().date()  # Use UTC date for consistency
+        # Get user's timezone offset
+        user_result = await self.db.execute(select(User).where(User.id == user_id))
+        user = user_result.scalar_one_or_none()
+        timezone_offset = user.timezone_offset if user else 330  # Default to IST
+        
+        # Calculate user's local date (UTC + offset)
+        utc_now = datetime.utcnow()
+        user_local_time = utc_now + timedelta(minutes=timezone_offset)
+        end_date = user_local_time.date()  # Use user's local date
         start_date = end_date - timedelta(days=days - 1)
 
         # Get daily streaks for the period
