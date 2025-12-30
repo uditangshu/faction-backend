@@ -5,6 +5,8 @@ from uuid import UUID
 from sqlalchemy.ext.asyncio import AsyncSession
 import json
 
+from app.core.config import settings
+
 from app.models.user import User
 from app.integrations.redis_client import RedisService
 from app.db.leaderboard_calls import (
