@@ -1,6 +1,7 @@
 """Custom Test endpoints"""
 
 from uuid import UUID
+from datetime import timedelta
 from fastapi import APIRouter, HTTPException, Query
 
 from app.api.v1.dependencies import CurrentUser, CustomTestServiceDep
@@ -121,6 +122,7 @@ async def get_my_custom_tests(
     Get all custom tests for the current user with pagination.
     
     Returns a paginated list of custom tests with basic information.
+    Timestamps are adjusted to the user's timezone offset.
     """
     try:
         tests, total = await custom_test_service.get_user_custom_tests(
@@ -129,10 +131,17 @@ async def get_my_custom_tests(
             limit=limit,
         )
         
+        # Get user's timezone offset (in minutes from UTC)
+        timezone_offset = current_user.timezone_offset or 330  # Default to IST if None
+        
         # Get question count for each test
         test_responses = []
         for test in tests:
             question_count = await custom_test_service.get_test_question_count(test.id)
+            
+            # Adjust timestamps with user's timezone offset
+            created_at_adjusted = test.created_at + timedelta(minutes=timezone_offset)
+            updated_at_adjusted = test.updated_at + timedelta(minutes=timezone_offset)
             
             test_responses.append(
                 CustomTestListResponse(
@@ -140,8 +149,8 @@ async def get_my_custom_tests(
                     user_id=test.user_id,
                     status=test.status.value,
                     time_assigned=test.time_assigned,
-                    created_at=test.created_at.isoformat(),
-                    updated_at=test.updated_at.isoformat(),
+                    created_at=created_at_adjusted.isoformat(),
+                    updated_at=updated_at_adjusted.isoformat(),
                     question_count=question_count,
                 )
             )
