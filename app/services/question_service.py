@@ -1,13 +1,15 @@
 """Question bank service"""
 
 import random
+from datetime import datetime, timedelta, time
 from uuid import UUID
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, func, delete
-from typing import List, Optional, Tuple
+from sqlalchemy import select, func, delete, and_
+from typing import List, Optional, Tuple, Dict, Any
 
 from app.models.Basequestion import Topic, Question, QuestionType, DifficultyLevel, Chapter, Subject
 from app.models.user import TargetExam
+from app.models.qotd import QOTD
 
 
 class QuestionService:
@@ -168,29 +170,142 @@ class QuestionService:
         await self.db.commit()
         return True
 
-    async def get_qotd_questions(self, class_id: Optional[UUID] = None) -> List[Tuple[Question, str]]:
+    async def get_qotd_questions(
+        self, 
+        class_id: UUID, 
+        timezone_offset: int
+    ) -> List[Tuple[Question, str]]:
         """
         Get Question of the Day: 3 random questions from 3 different subjects.
-        If class_id is provided, only returns questions from subjects belonging to that class.
+        Checks if QOTD exists for today (in user's timezone) before creating a new one.
         
         Args:
-            class_id: Optional class ID to filter questions by user's class
+            class_id: Class ID to filter questions by user's class
+            timezone_offset: User's timezone offset in minutes from UTC
         
         Returns:
             List of tuples (question, subject_name), each from a different subject
         """
-        # Get all distinct subjects that have questions, optionally filtered by class
+        # Calculate user's local time
+        utc_now = datetime.utcnow()
+        user_local_time = utc_now + timedelta(minutes=timezone_offset)
+        user_local_date = user_local_time.date()
+        
+        # Calculate the start of today in user's timezone (00:00:00) converted to UTC
+        today_start_utc = datetime.combine(user_local_date, time(0, 0, 0)) - timedelta(minutes=timezone_offset)
+        # Calculate the start of tomorrow in user's timezone (00:00:00) converted to UTC
+        tomorrow_start_utc = today_start_utc + timedelta(days=1)
+        
+        # Check if current UTC time is before tomorrow's midnight in user's timezone
+        # This means we're still in the same day, so check for existing QOTD
+        is_before_midnight = utc_now < tomorrow_start_utc
+        
+        # Only check for existing QOTD if we're still in the same day (before midnight)
+        if is_before_midnight:
+            # Check for QOTD created today (in user's timezone) for this class_id
+            qotd_query = (
+                select(QOTD)
+                .where(
+                    and_(
+                        QOTD.class_id == class_id,
+                        QOTD.created_at >= today_start_utc
+                    )
+                )
+                .order_by(QOTD.created_at.desc())
+                .limit(1)
+            )
+            qotd_result = await self.db.execute(qotd_query)
+            existing_qotd = qotd_result.scalar_one_or_none()
+            
+            if existing_qotd and existing_qotd.questions:
+                # Return questions from existing QOTD
+                # Need to fetch Question objects from the stored IDs
+                question_ids = [UUID(q.get("id")) for q in existing_qotd.questions if q.get("id")]
+                if question_ids:
+                    questions_result = await self.db.execute(
+                        select(Question).where(Question.id.in_(question_ids))
+                    )
+                    questions = list(questions_result.scalars().all())
+                    
+                    # Map questions to their subject names from stored data
+                    qotd_questions = []
+                    for q_data in existing_qotd.questions:
+                        q_id = UUID(q_data.get("id"))
+                        subject_name = q_data.get("subject_name", "")
+                        # Find matching question
+                        question = next((q for q in questions if q.id == q_id), None)
+                        if question:
+                            qotd_questions.append((question, subject_name))
+                    
+                    if qotd_questions:
+                        return qotd_questions
+            
+            # If time is before midnight and QOTD does not exist, create one, store it, and return
+            # Generate new QOTD questions
+            qotd_questions = await self._generate_qotd_questions(class_id)
+            
+            # Store in database
+            if qotd_questions:
+                # Convert questions to JSON format
+                questions_json = []
+                for question, subject_name in qotd_questions:
+                    # Get question details as dict with JSON serialization mode to convert UUIDs to strings
+                    from app.schemas.question import QuestionDetailedResponse
+                    question_dict = QuestionDetailedResponse.model_validate(question).model_dump(mode='json')
+                    question_dict["subject_name"] = subject_name
+                    questions_json.append(question_dict)
+                
+                new_qotd = QOTD(
+                    class_id=class_id,
+                    questions=questions_json
+                )
+                self.db.add(new_qotd)
+                await self.db.commit()
+            
+            return qotd_questions
+        
+        # If past midnight (new day), generate new QOTD questions
+        qotd_questions = await self._generate_qotd_questions(class_id)
+        
+        # Store in database
+        if qotd_questions:
+            # Convert questions to JSON format
+            questions_json = []
+            for question, subject_name in qotd_questions:
+                # Get question details as dict with JSON serialization mode to convert UUIDs to strings
+                from app.schemas.question import QuestionDetailedResponse
+                question_dict = QuestionDetailedResponse.model_validate(question).model_dump(mode='json')
+                question_dict["subject_name"] = subject_name
+                questions_json.append(question_dict)
+            
+            new_qotd = QOTD(
+                class_id=class_id,
+                questions=questions_json
+            )
+            self.db.add(new_qotd)
+            await self.db.commit()
+        
+        return qotd_questions
+    
+    async def _generate_qotd_questions(self, class_id: UUID) -> List[Tuple[Question, str]]:
+        """
+        Generate Question of the Day: 3 random questions from 3 different subjects.
+        
+        Args:
+            class_id: Class ID to filter questions by user's class
+        
+        Returns:
+            List of tuples (question, subject_name), each from a different subject
+        """
+        # Get all distinct subjects that have questions, filtered by class
         subject_query = (
             select(Chapter.subject_id)
             .join(Topic, Topic.chapter_id == Chapter.id)
             .join(Question, Question.topic_id == Topic.id)
             .join(Subject, Chapter.subject_id == Subject.id)
+            .where(Subject.class_id == class_id)
             .distinct()
         )
-        
-        # Filter by class_id if provided
-        if class_id is not None:
-            subject_query = subject_query.where(Subject.class_id == class_id)
         
         subject_result = await self.db.execute(subject_query)
         subject_ids = [row[0] for row in subject_result.all() if row[0] is not None]

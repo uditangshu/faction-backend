@@ -95,33 +95,33 @@ async def get_user_service(db: DBSession) -> UserService:
 UserServiceDep = Annotated[UserService, Depends(get_user_service)]
 
 
-async def get_class_service(db: DBSession) -> ClassService:
-    """Get class service"""
-    return ClassService(db)
+async def get_class_service(db: DBSession, redis_service: RedisServiceDep) -> ClassService:
+    """Get class service with Redis caching"""
+    return ClassService(db, redis_service)
 
 
 ClassServiceDep = Annotated[ClassService, Depends(get_class_service)]
 
 
-async def get_subject_service(db: DBSession) -> SubjectService:
-    """Get subject service"""
-    return SubjectService(db)
+async def get_subject_service(db: DBSession, redis_service: RedisServiceDep) -> SubjectService:
+    """Get subject service with Redis caching"""
+    return SubjectService(db, redis_service)
 
 
 SubjectServiceDep = Annotated[SubjectService, Depends(get_subject_service)]
 
 
-async def get_chapter_service(db: DBSession) -> ChapterService:
-    """Get chapter service"""
-    return ChapterService(db)
+async def get_chapter_service(db: DBSession, redis_service: RedisServiceDep) -> ChapterService:
+    """Get chapter service with Redis caching"""
+    return ChapterService(db, redis_service)
 
 
 ChapterServiceDep = Annotated[ChapterService, Depends(get_chapter_service)]
 
 
-async def get_topic_service(db: DBSession) -> TopicService:
-    """Get topic service"""
-    return TopicService(db)
+async def get_topic_service(db: DBSession, redis_service: RedisServiceDep) -> TopicService:
+    """Get topic service with Redis caching"""
+    return TopicService(db, redis_service)
 
 
 TopicServiceDep = Annotated[TopicService, Depends(get_topic_service)]
@@ -143,9 +143,9 @@ async def get_attempt_service(db: DBSession) -> AttemptService:
 AttemptServiceDep = Annotated[AttemptService, Depends(get_attempt_service)]
 
 
-async def get_pyq_service(db: DBSession) -> PYQService:
-    """Get PYQ service"""
-    return PYQService(db)
+async def get_pyq_service(db: DBSession, redis_service: RedisServiceDep) -> PYQService:
+    """Get PYQ service with Redis caching"""
+    return PYQService(db, redis_service)
 
 
 PYQServiceDep = Annotated[PYQService, Depends(get_pyq_service)]
@@ -159,9 +159,9 @@ async def get_filtering_service(db: DBSession) -> FilteringService:
 FilteringServiceDep = Annotated[FilteringService, Depends(get_filtering_service)]
 
 
-async def get_leaderboard_service(db: DBSession) -> LeaderboardService:
-    """Get leaderboard service"""
-    return LeaderboardService(db)
+async def get_leaderboard_service(db: DBSession, redis_service: RedisServiceDep) -> LeaderboardService:
+    """Get leaderboard service with Redis caching"""
+    return LeaderboardService(db, redis_service)
 
 
 LeaderboardServiceDep = Annotated[LeaderboardService, Depends(get_leaderboard_service)]
@@ -199,9 +199,9 @@ async def get_weak_topic_service(db: DBSession) -> WeakTopicService:
 WeakTopicServiceDep = Annotated[WeakTopicService, Depends(get_weak_topic_service)]
 
 
-async def get_custom_test_service(db: DBSession) -> CustomTestService:
-    """Get custom test service"""
-    return CustomTestService(db)
+async def get_custom_test_service(db: DBSession, redis_service: RedisServiceDep) -> CustomTestService:
+    """Get custom test service with Redis caching"""
+    return CustomTestService(db, redis_service)
 
 
 CustomTestServiceDep = Annotated[CustomTestService, Depends(get_custom_test_service)]
@@ -215,9 +215,9 @@ async def get_contest_service(db: DBSession, redis_service: RedisServiceDep) -> 
 ContestServiceDep = Annotated[ContestService, Depends(get_contest_service)]
 
 
-async def get_doubt_forum_service(db: DBSession) -> DoubtForumService:
-    """Get doubt forum service"""
-    return DoubtForumService(db)
+async def get_doubt_forum_service(db: DBSession, redis_service: RedisServiceDep) -> DoubtForumService:
+    """Get doubt forum service with Redis caching"""
+    return DoubtForumService(db, redis_service)
 
 
 DoubtForumServiceDep = Annotated[DoubtForumService, Depends(get_doubt_forum_service)]
@@ -231,17 +231,17 @@ async def get_notification_service(db: DBSession, redis_service: RedisServiceDep
 NotificationServiceDep = Annotated[NotificationService, Depends(get_notification_service)]
 
 
-async def get_treasure_service(db: DBSession) -> TreasureService:
-    """Get treasure service"""
-    return TreasureService(db)
+async def get_treasure_service(db: DBSession, redis_service: RedisServiceDep) -> TreasureService:
+    """Get treasure service with Redis caching"""
+    return TreasureService(db, redis_service)
 
 
 TreasureServiceDep = Annotated[TreasureService, Depends(get_treasure_service)]
 
 
-async def get_notes_service(db: DBSession) -> NotesService:
-    """Get notes service"""
-    return NotesService(db)
+async def get_notes_service(db: DBSession, redis_service: RedisServiceDep) -> NotesService:
+    """Get notes service with Redis caching"""
+    return NotesService(db, redis_service)
 
 
 NotesServiceDep = Annotated[NotesService, Depends(get_notes_service)]

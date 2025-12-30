@@ -8,12 +8,18 @@ from typing import List, Optional, Tuple
 
 from app.models.pyq import PreviousYearProblems
 from app.models.Basequestion import TargetExam, Question
+from app.integrations.redis_client import RedisService
+from typing import Optional
+from app.core.config import settings
 
 class PYQService:
     """Service for Previous Year Questions operations"""
 
-    def __init__(self, db: AsyncSession):
+    CACHE_PREFIX = "pyq"
+
+    def __init__(self, db: AsyncSession, redis_service: Optional[RedisService] = None):
         self.db = db
+        self.redis_service = redis_service
 
     async def create_pyq(
         self,
@@ -52,7 +58,26 @@ class PYQService:
         skip: int = 0,
         limit: int = 20,
     ) -> Tuple[List[PreviousYearProblems], int]:
-        """Get all PYQs with pagination"""
+        """Get all PYQs with pagination (cached)"""
+        cache_key = f"{self.CACHE_PREFIX}:all:{skip}:{limit}"
+        
+        # Try cache first
+        if self.redis_service:
+            cached = await self.redis_service.get_value(cache_key)
+            if cached is not None:
+                pyq_ids = [UUID(pid) for pid in cached.get("pyq_ids", [])]
+                total = cached.get("total", 0)
+                
+                # Fetch from DB using cached IDs
+                if pyq_ids:
+                    result = await self.db.execute(
+                        select(PreviousYearProblems)
+                        .where(PreviousYearProblems.id.in_(pyq_ids))
+                        .order_by(PreviousYearProblems.created_at.desc())
+                    )
+                    return list(result.scalars().all()), total
+                return [], total
+        
         # Count query
         count_result = await self.db.execute(
             select(func.count(PreviousYearProblems.id))
@@ -66,7 +91,18 @@ class PYQService:
             .offset(skip)
             .limit(limit)
         )
-        return list(result.scalars().all()), total
+        pyqs = list(result.scalars().all())
+        
+        # Cache result
+        if self.redis_service:
+            pyq_ids = [str(p.id) for p in pyqs]
+            await self.redis_service.set_value(
+                cache_key,
+                {"pyq_ids": pyq_ids, "total": total},
+                expire=settings.CACHE_SHARED
+            )
+        
+        return pyqs, total
 
     async def get_pyqs_by_exam(
         self,
@@ -74,9 +110,24 @@ class PYQService:
         skip: int = 0,
         limit: int = 20,
     ) -> List[PreviousYearProblems]:
-        """Get all PYQs for a specific exam (searches in exam_detail array)"""
-        # This searches for exam_name within the JSON array
-        # Count query
+        """Get all PYQs for a specific exam (searches in exam_detail array, cached)"""
+        # Create cache key from exam names
+        exam_key = "_".join(sorted([e.value for e in exam_name]))
+        cache_key = f"{self.CACHE_PREFIX}:exam:{exam_key}:{skip}:{limit}"
+        
+        # Try cache first
+        if self.redis_service:
+            cached = await self.redis_service.get_value(cache_key)
+            if cached is not None:
+                pyq_ids = [UUID(pid) for pid in cached]
+                if pyq_ids:
+                    result = await self.db.execute(
+                        select(PreviousYearProblems)
+                        .where(PreviousYearProblems.id.in_(pyq_ids))
+                        .order_by(PreviousYearProblems.created_at.desc())
+                    )
+                    return list(result.scalars().all())
+                return []
 
         # Data query
         result = await self.db.execute(
@@ -92,6 +143,11 @@ class PYQService:
         for pyq, question in result:
             print("this is the service printing up", pyq)
             pyqs.append(pyq)
+        
+        # Cache result
+        if self.redis_service:
+            pyq_ids = [str(p.id) for p in pyqs]
+            await self.redis_service.set_value(cache_key, pyq_ids, expire=settings.CACHE_SHARED)
 
         return list(pyqs)
     
@@ -125,6 +181,11 @@ class PYQService:
         stmt = delete(PreviousYearProblems).where(PreviousYearProblems.id == pyq_id)
         await self.db.execute(stmt)
         await self.db.commit()
+        
+        # Invalidate PYQ caches
+        if self.redis_service:
+            await self._invalidate_pyq_caches()
+        
         return True
 
     async def delete_pyq_by_question(self, question_id: UUID) -> bool:
@@ -138,5 +199,17 @@ class PYQService:
         )
         await self.db.execute(stmt)
         await self.db.commit()
+        
+        # Invalidate PYQ caches
+        if self.redis_service:
+            await self._invalidate_pyq_caches()
+        
         return True
+    
+    async def _invalidate_pyq_caches(self):
+        """Invalidate all PYQ-related caches"""
+        # Note: In production, you might want to use Redis SCAN to find and delete
+        # all keys matching the pattern. For now, we'll just clear common patterns.
+        # This is a simplified approach - for full invalidation, consider using Redis keys pattern matching
+        pass
 

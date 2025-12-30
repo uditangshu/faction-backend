@@ -134,7 +134,10 @@ async def get_qotd(
     current_user: CurrentUser,
 ) -> QOTDResponse:
     """Get Question of the Day: 3 random questions from 3 different subjects from the user's class"""
-    questions_with_subjects = await question_service.get_qotd_questions(class_id=current_user.class_id)
+    questions_with_subjects = await question_service.get_qotd_questions(
+        class_id=current_user.class_id,
+        timezone_offset=current_user.timezone_offset
+    )
     questions = [
         QOTDQuestionResponse(
             **QuestionDetailedResponse.model_validate(question).model_dump(),

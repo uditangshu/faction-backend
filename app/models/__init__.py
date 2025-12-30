@@ -19,6 +19,7 @@ from app.models.notification import Notification, NotificationType
 from app.models.treasure import Treasure
 from app.models.notes import Notes
 from app.models.user_badge import UserBadge
+from app.models.qotd import QOTD
 
 __all__ = [
     "User",
@@ -60,5 +61,6 @@ __all__ = [
     "Treasure",
     "Notes",
     "UserBadge",
+    "QOTD",
 ]
 

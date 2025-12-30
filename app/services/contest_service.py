@@ -14,6 +14,7 @@ from app.models.Basequestion import Question
 from app.exceptions.http_exceptions import BadRequestException, NotFoundException
 from app.integrations.redis_client import RedisService
 from app.db.leaderboard_calls import get_contest_leaderboard_entry
+from app.core.config import settings
 
 class ContestService:
     """Service for contest operations"""
@@ -99,13 +100,34 @@ class ContestService:
         await self.db.refresh(contest)
         return contest
 
-    async def get_upcoming_contests(self) -> List[Contest]:
+    async def get_upcoming_contests(self, cache_ttl: int | None = None) -> List[Contest]:
         """
         Get all upcoming contests (contests that haven't started yet).
+        Results are cached in Redis for improved performance.
+        
+        Args:
+            cache_ttl: Cache time-to-live in seconds (defaults to CACHE_SHARED from config)
         
         Returns:
             List of upcoming Contest instances
         """
+        if cache_ttl is None:
+            cache_ttl = settings.CACHE_SHARED
+        
+        cache_key = "contests:upcoming"
+        
+        # Try to get from Redis cache first
+        if self.redis_service:
+            cached_data = await self.redis_service.get_value(cache_key)
+            if cached_data is not None:
+                # Deserialize contest IDs and fetch from DB (lightweight)
+                contest_ids = [UUID(cid) for cid in cached_data]
+                result = await self.db.execute(
+                    select(Contest).where(Contest.id.in_(contest_ids))
+                    .order_by(Contest.starts_at.asc())
+                )
+                return list(result.scalars().all())
+        
         from datetime import datetime as dt
         
         now = dt.now()
@@ -114,15 +136,43 @@ class ContestService:
             .where(Contest.starts_at > now)
             .order_by(Contest.starts_at.asc())
         )
-        return list(result.scalars().all())
+        contests = list(result.scalars().all())
+        
+        # Cache contest IDs
+        if self.redis_service:
+            contest_ids = [str(c.id) for c in contests]
+            await self.redis_service.set_value(cache_key, contest_ids, expire=cache_ttl)
+        
+        return contests
 
-    async def get_past_contests(self) -> List[Contest]:
+    async def get_past_contests(self, cache_ttl: int | None = None) -> List[Contest]:
         """
         Get all past contests (contests that have ended).
+        Results are cached in Redis for improved performance.
+        
+        Args:
+            cache_ttl: Cache time-to-live in seconds (defaults to CACHE_SHARED from config)
         
         Returns:
             List of past Contest instances
         """
+        if cache_ttl is None:
+            cache_ttl = settings.CACHE_SHARED
+        
+        cache_key = "contests:past"
+        
+        # Try to get from Redis cache first
+        if self.redis_service:
+            cached_data = await self.redis_service.get_value(cache_key)
+            if cached_data is not None:
+                # Deserialize contest IDs and fetch from DB (lightweight)
+                contest_ids = [UUID(cid) for cid in cached_data]
+                result = await self.db.execute(
+                    select(Contest).where(Contest.id.in_(contest_ids))
+                    .order_by(Contest.ends_at.desc())
+                )
+                return list(result.scalars().all())
+        
         from datetime import datetime as dt
         
         now = dt.now()
@@ -131,19 +181,26 @@ class ContestService:
             .where(Contest.ends_at < now)
             .order_by(Contest.ends_at.desc())
         )
-        return list(result.scalars().all())
+        contests = list(result.scalars().all())
+        
+        # Cache contest IDs
+        if self.redis_service:
+            contest_ids = [str(c.id) for c in contests]
+            await self.redis_service.set_value(cache_key, contest_ids, expire=cache_ttl)
+        
+        return contests
 
     async def get_contest_questions_with_details(
         self,
         contest_id: UUID,
-        cache_ttl: int = 3600,  # 1 hour default
+        cache_ttl: int | None = None,
     ) -> List[Dict[str, Any]]:
         """
         Get contest questions with full details including subject info, using Redis caching.
         
         Args:
             contest_id: Contest ID
-            cache_ttl: Cache time-to-live in seconds (default: 3600 = 1 hour)
+            cache_ttl: Cache time-to-live in seconds (defaults to CACHE_SHARED from config)
             
         Returns:
             List of question dictionaries with full details including subject_id and subject_name
@@ -151,6 +208,9 @@ class ContestService:
         Raises:
             NotFoundException: If contest not found
         """
+        if cache_ttl is None:
+            cache_ttl = settings.CACHE_SHARED
+        
         # Redis cache key
         cache_key = f"contest:questions:{contest_id}"
         

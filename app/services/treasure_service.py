@@ -14,13 +14,18 @@ from app.db.treasure_calls import (
     get_treasures_by_user_class,
     update_treasure,
 )
+from app.integrations.redis_client import RedisService
+from app.core.config import settings
 
 
 class TreasureService:
     """Service for managing treasures (mindmap images)"""
 
-    def __init__(self, db: AsyncSession):
+    CACHE_PREFIX = "treasures"
+
+    def __init__(self, db: AsyncSession, redis_service: Optional[RedisService] = None):
         self.db = db
+        self.redis_service = redis_service
 
     async def create_treasure(
         self,
@@ -31,8 +36,8 @@ class TreasureService:
         description: Optional[str] = None,
         order: int = 0,
     ) -> Treasure:
-        """Create a new treasure"""
-        return await create_treasure(
+        """Create a new treasure and invalidate related caches"""
+        treasure = await create_treasure(
             db=self.db,
             chapter_id=chapter_id,
             subject_id=subject_id,
@@ -41,6 +46,35 @@ class TreasureService:
             description=description,
             order=order,
         )
+        
+        # Invalidate all treasures caches
+        if self.redis_service:
+            await self._invalidate_treasures_cache()
+        
+        return treasure
+    
+    async def _invalidate_treasures_cache(self):
+        """Invalidate all treasures caches by deleting all keys matching the pattern"""
+        if not self.redis_service:
+            return
+        
+        # Use Redis SCAN to find and delete all keys matching treasures:*
+        # This is more efficient than deleting individual keys
+        cursor = 0
+        pattern = f"{self.CACHE_PREFIX}:*"
+        deleted_count = 0
+        
+        while True:
+            # SCAN returns (cursor, [keys])
+            cursor, keys = await self.redis_service.client.scan(cursor, match=pattern, count=100)
+            
+            if keys:
+                # Delete all matching keys
+                deleted = await self.redis_service.client.delete(*keys)
+                deleted_count += deleted
+            
+            if cursor == 0:
+                break
 
     async def get_treasure_by_id(self, treasure_id: UUID) -> Optional[Treasure]:
         """Get a treasure by ID"""
@@ -76,7 +110,7 @@ class TreasureService:
         limit: int = 100,
     ) -> List[Treasure]:
         """
-        Get treasures filtered by user's class, optionally by subject and chapter
+        Get treasures filtered by user's class, optionally by subject and chapter (cached globally)
         
         Args:
             class_id: User's class ID
@@ -89,7 +123,39 @@ class TreasureService:
         Returns:
             List of treasures
         """
-        return await get_treasures_by_user_class(
+        # Build cache key from all filter parameters
+        cache_key_parts = [
+            self.CACHE_PREFIX,
+            str(class_id),
+            str(subject_id) if subject_id else "all",
+            str(chapter_id) if chapter_id else "all",
+            sort_order,
+            str(skip),
+            str(limit),
+        ]
+        cache_key = ":".join(cache_key_parts)
+        
+        # Try cache first
+        if self.redis_service:
+            cached = await self.redis_service.get_value(cache_key)
+            if cached is not None:
+                treasure_ids = [UUID(tid) for tid in cached]
+                if treasure_ids:
+                    from sqlalchemy import select
+                    result = await self.db.execute(
+                        select(Treasure).where(Treasure.id.in_(treasure_ids))
+                    )
+                    treasures = list(result.scalars().all())
+                    # Sort based on sort_order
+                    if sort_order == "latest":
+                        treasures.sort(key=lambda t: t.created_at, reverse=True)
+                    else:
+                        treasures.sort(key=lambda t: t.created_at)
+                    return treasures
+                return []
+        
+        # Fetch from database
+        treasures = await get_treasures_by_user_class(
             db=self.db,
             class_id=class_id,
             subject_id=subject_id,
@@ -98,6 +164,17 @@ class TreasureService:
             skip=skip,
             limit=limit,
         )
+        
+        # Cache result
+        if self.redis_service:
+            treasure_ids = [str(t.id) for t in treasures]
+            await self.redis_service.set_value(
+                cache_key,
+                treasure_ids,
+                expire=settings.LONG_TERM_CACHE_TTL
+            )
+        
+        return treasures
 
     async def update_treasure(
         self,

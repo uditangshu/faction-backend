@@ -7,13 +7,18 @@ from typing import List, Optional
 
 from app.models.Basequestion import Topic
 from app.db.question_calls import create_topic, delete_topic, get_nested_topics
+from app.integrations.redis_client import RedisService
+from app.core.config import settings
 
 
 class TopicService:
     """Service for managing topics"""
 
-    def __init__(self, db: AsyncSession):
+    CACHE_PREFIX = "topics"
+
+    def __init__(self, db: AsyncSession, redis_service: Optional[RedisService] = None):
         self.db = db
+        self.redis_service = redis_service
 
     async def create_topic(self, name: str, chapter_id: UUID) -> Topic:
         """Create a new topic"""
@@ -26,16 +31,54 @@ class TopicService:
         return result.scalar_one_or_none()
 
     async def get_all_topics(self) -> List[Topic]:
-        """Get all topics"""
+        """Get all topics (cached)"""
+        cache_key = f"{self.CACHE_PREFIX}:all"
+        
+        # Try cache first
+        if self.redis_service:
+            cached = await self.redis_service.get_value(cache_key)
+            if cached is not None:
+                topic_ids = [UUID(tid) for tid in cached]
+                result = await self.db.execute(
+                    select(Topic).where(Topic.id.in_(topic_ids))
+                )
+                return list(result.scalars().all())
+        
         query = select(Topic)
         result = await self.db.execute(query)
-        return list(result.scalars().all())
+        topics = list(result.scalars().all())
+        
+        # Cache result
+        if self.redis_service:
+            topic_ids = [str(t.id) for t in topics]
+            await self.redis_service.set_value(cache_key, topic_ids, expire=settings.CACHE_SHARED)
+        
+        return topics
 
     async def get_topics_by_chapter(self, chapter_id: UUID) -> List[Topic]:
-        """Get all topics for a specific chapter"""
+        """Get all topics for a specific chapter (cached)"""
+        cache_key = f"{self.CACHE_PREFIX}:chapter:{chapter_id}"
+        
+        # Try cache first
+        if self.redis_service:
+            cached = await self.redis_service.get_value(cache_key)
+            if cached is not None:
+                topic_ids = [UUID(tid) for tid in cached]
+                result = await self.db.execute(
+                    select(Topic).where(Topic.id.in_(topic_ids))
+                )
+                return list(result.scalars().all())
+        
         query = select(Topic).where(Topic.chapter_id == chapter_id)
         result = await self.db.execute(query)
-        return list(result.scalars().all())
+        topics = list(result.scalars().all())
+        
+        # Cache result
+        if self.redis_service:
+            topic_ids = [str(t.id) for t in topics]
+            await self.redis_service.set_value(cache_key, topic_ids, expire=settings.CACHE_SHARED)
+        
+        return topics
 
     async def get_topic_with_questions(self, topic_id: UUID) -> Optional[Topic]:
         """Get topic with all its questions"""

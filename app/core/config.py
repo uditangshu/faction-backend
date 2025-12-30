@@ -72,6 +72,10 @@ class Settings(BaseSettings):
     SUPABASE_SERVICE_ROLE_KEY: str | None = None
     SUPABASE_STORAGE_BUCKET: str = "notes"  # Default bucket name for notes
 
+    # Redis Cache TTL (in seconds)
+    CACHE_SHARED: int = 600  # 10 minutes default for shared/public API caches
+    LONG_TERM_CACHE_TTL: int = 3600  # 1 hour default for long-term caches (notes, treasure)
+
     model_config = SettingsConfigDict(
         env_file=str(ENV_FILE),
         env_file_encoding="utf-8",

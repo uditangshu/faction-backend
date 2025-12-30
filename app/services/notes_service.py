@@ -11,13 +11,18 @@ from app.db.notes_calls import (
     get_note_by_id,
     get_notes_by_user_class,
 )
+from app.integrations.redis_client import RedisService
+from app.core.config import settings
 
 
 class NotesService:
     """Service for managing notes (PDF files)"""
 
-    def __init__(self, db: AsyncSession):
+    CACHE_PREFIX = "notes"
+
+    def __init__(self, db: AsyncSession, redis_service: Optional[RedisService] = None):
         self.db = db
+        self.redis_service = redis_service
 
     async def create_note(
         self,
@@ -28,8 +33,8 @@ class NotesService:
         web_view_link: str,
         web_content_link: Optional[str] = None,
     ) -> Notes:
-        """Create a new note"""
-        return await create_note(
+        """Create a new note and invalidate related caches"""
+        note = await create_note(
             db=self.db,
             chapter_id=chapter_id,
             subject_id=subject_id,
@@ -38,6 +43,35 @@ class NotesService:
             web_view_link=web_view_link,
             web_content_link=web_content_link,
         )
+        
+        # Invalidate all notes caches for this class/subject/chapter
+        if self.redis_service:
+            await self._invalidate_notes_cache()
+        
+        return note
+    
+    async def _invalidate_notes_cache(self):
+        """Invalidate all notes caches by deleting all keys matching the pattern"""
+        if not self.redis_service:
+            return
+        
+        # Use Redis SCAN to find and delete all keys matching notes:*
+        # This is more efficient than deleting individual keys
+        cursor = 0
+        pattern = f"{self.CACHE_PREFIX}:*"
+        deleted_count = 0
+        
+        while True:
+            # SCAN returns (cursor, [keys])
+            cursor, keys = await self.redis_service.client.scan(cursor, match=pattern, count=100)
+            
+            if keys:
+                # Delete all matching keys
+                deleted = await self.redis_service.client.delete(*keys)
+                deleted_count += deleted
+            
+            if cursor == 0:
+                break
 
     async def get_note_by_id(self, note_id: UUID) -> Optional[Notes]:
         """Get a note by ID"""
@@ -57,7 +91,7 @@ class NotesService:
         limit: int = 100,
     ) -> List[Notes]:
         """
-        Get notes filtered by user's class, optionally by subject and chapter
+        Get notes filtered by user's class, optionally by subject and chapter (cached globally)
         
         Args:
             class_id: User's class ID
@@ -70,7 +104,39 @@ class NotesService:
         Returns:
             List of notes
         """
-        return await get_notes_by_user_class(
+        # Build cache key from all filter parameters
+        cache_key_parts = [
+            self.CACHE_PREFIX,
+            str(class_id),
+            str(subject_id) if subject_id else "all",
+            str(chapter_id) if chapter_id else "all",
+            sort_order,
+            str(skip),
+            str(limit),
+        ]
+        cache_key = ":".join(cache_key_parts)
+        
+        # Try cache first
+        if self.redis_service:
+            cached = await self.redis_service.get_value(cache_key)
+            if cached is not None:
+                note_ids = [UUID(nid) for nid in cached]
+                if note_ids:
+                    from sqlalchemy import select
+                    result = await self.db.execute(
+                        select(Notes).where(Notes.id.in_(note_ids))
+                    )
+                    notes = list(result.scalars().all())
+                    # Sort based on sort_order
+                    if sort_order == "latest":
+                        notes.sort(key=lambda n: n.created_at, reverse=True)
+                    else:
+                        notes.sort(key=lambda n: n.created_at)
+                    return notes
+                return []
+        
+        # Fetch from database
+        notes = await get_notes_by_user_class(
             db=self.db,
             class_id=class_id,
             subject_id=subject_id,
@@ -79,4 +145,15 @@ class NotesService:
             skip=skip,
             limit=limit,
         )
+        
+        # Cache result
+        if self.redis_service:
+            note_ids = [str(n.id) for n in notes]
+            await self.redis_service.set_value(
+                cache_key,
+                note_ids,
+                expire=settings.LONG_TERM_CACHE_TTL
+            )
+        
+        return notes
 

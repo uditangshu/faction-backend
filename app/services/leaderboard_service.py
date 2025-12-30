@@ -3,8 +3,10 @@
 from typing import Optional, List
 from uuid import UUID
 from sqlalchemy.ext.asyncio import AsyncSession
+import json
 
 from app.models.user import User
+from app.integrations.redis_client import RedisService
 from app.db.leaderboard_calls import (
     get_user_with_max_rating,
     get_top_users_by_rating,
@@ -33,24 +35,53 @@ from app.schemas.user import UserProfileResponse
 class LeaderboardService:
     """Service for leaderboard and best performers operations"""
 
-    def __init__(self, db: AsyncSession):
+    CACHE_PREFIX = "leaderboard"
+
+    def __init__(self, db: AsyncSession, redis_service: Optional[RedisService] = None):
         self.db = db
+        self.redis_service = redis_service
 
     async def get_best_by_rating(self) -> Optional[BestPerformerResponse]:
-        """Get user with highest maximum rating"""
+        """Get user with highest maximum rating (cached)"""
+        cache_key = f"{self.CACHE_PREFIX}:best:rating"
+        
+        # Try cache first
+        if self.redis_service:
+            cached = await self.redis_service.get_value(cache_key)
+            if cached is not None:
+                return BestPerformerResponse(**cached)
+        
         result = await get_user_with_max_rating(self.db)
         if not result:
             return None
         
         user, max_rating = result
-        return BestPerformerResponse(
+        response = BestPerformerResponse(
             user=UserProfileResponse.model_validate(user),
             metric_value=max_rating,
             metric_type="max_rating",
         )
+        
+        # Cache result
+        if self.redis_service:
+            await self.redis_service.set_value(
+                cache_key,
+                response.model_dump(),
+                expire=settings.CACHE_SHARED
+            )
+        
+        return response
 
     async def get_top_by_rating(self, limit: int = 10) -> BestPerformersListResponse:
-        """Get top N users by maximum rating"""
+        """Get top N users by maximum rating (cached)"""
+        cache_key = f"{self.CACHE_PREFIX}:top:rating:{limit}"
+        
+        # Try cache first
+        if self.redis_service:
+            cached = await self.redis_service.get_value(cache_key)
+            if cached is not None:
+                return BestPerformersListResponse(**cached)
+        
         results = await get_top_users_by_rating(self.db, limit)
         
         performers = [
@@ -62,10 +93,20 @@ class LeaderboardService:
             for user, rating in results
         ]
         
-        return BestPerformersListResponse(
+        response = BestPerformersListResponse(
             performers=performers,
             total=len(performers),
         )
+        
+        # Cache result
+        if self.redis_service:
+            await self.redis_service.set_value(
+                cache_key,
+                response.model_dump(),
+                expire=settings.CACHE_SHARED
+            )
+        
+        return response
 
     async def get_best_by_delta(self) -> Optional[BestPerformerResponse]:
         """Get user with highest rating delta from contests"""
@@ -130,16 +171,34 @@ class LeaderboardService:
         )
 
     async def get_top_performers_all_categories(self) -> TopPerformersResponse:
-        """Get best performers in all categories"""
+        """Get best performers in all categories (cached)"""
+        cache_key = f"{self.CACHE_PREFIX}:top:all"
+        
+        # Try cache first
+        if self.redis_service:
+            cached = await self.redis_service.get_value(cache_key)
+            if cached is not None:
+                return TopPerformersResponse(**cached)
+        
         highest_rating = await self.get_best_by_rating()
         highest_delta = await self.get_best_by_delta()
         most_questions = await self.get_best_by_questions_solved()
         
-        return TopPerformersResponse(
+        response = TopPerformersResponse(
             highest_rating=highest_rating,
             highest_delta=highest_delta,
             most_questions_solved=most_questions,
         )
+        
+        # Cache result
+        if self.redis_service:
+            await self.redis_service.set_value(
+                cache_key,
+                response.model_dump(),
+                expire=settings.CACHE_SHARED
+            )
+        
+        return response
 
     async def get_arena_ranking(
         self,

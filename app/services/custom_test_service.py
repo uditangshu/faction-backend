@@ -249,7 +249,30 @@ class CustomTestService:
         
         await self.db.commit()
         await self.db.refresh(test)
+        
+        # Invalidate user's custom tests cache when new test is created
+        if self.redis_service:
+            await self._invalidate_user_tests_cache(user_id)
+        
         return test
+    
+    async def _invalidate_user_tests_cache(self, user_id: UUID):
+        """Invalidate all custom tests caches for a user"""
+        if not self.redis_service:
+            return
+        
+        # Use Redis SCAN to find and delete all keys matching custom_tests:user:{user_id}:*
+        cursor = 0
+        pattern = f"{self.CACHE_PREFIX}:user:{user_id}:*"
+        
+        while True:
+            cursor, keys = await self.redis_service.client.scan(cursor, match=pattern, count=100)
+            
+            if keys:
+                await self.redis_service.client.delete(*keys)
+            
+            if cursor == 0:
+                break
 
     async def get_custom_test_by_id(
         self,
@@ -283,7 +306,7 @@ class CustomTestService:
         limit: int = 20,
     ) -> tuple[List[CustomTest], int]:
         """
-        Get all custom tests for a user with pagination.
+        Get all custom tests for a user with pagination (cached globally).
         
         Args:
             user_id: User ID
@@ -293,6 +316,26 @@ class CustomTestService:
         Returns:
             Tuple of (list of tests, total count)
         """
+        # Build cache key
+        cache_key = f"{self.CACHE_PREFIX}:user:{user_id}:{skip}:{limit}"
+        
+        # Try cache first
+        if self.redis_service:
+            cached = await self.redis_service.get_value(cache_key)
+            if cached is not None:
+                test_ids = [UUID(tid) for tid in cached.get("test_ids", [])]
+                total = cached.get("total", 0)
+                
+                if test_ids:
+                    result = await self.db.execute(
+                        select(CustomTest)
+                        .where(CustomTest.id.in_(test_ids))
+                        .order_by(CustomTest.created_at.desc())
+                    )
+                    tests = list(result.scalars().all())
+                    return tests, total
+                return [], total
+        
         # Count query
         count_result = await self.db.execute(
             select(func.count(CustomTest.id))
@@ -309,6 +352,15 @@ class CustomTestService:
             .limit(limit)
         )
         tests = list(result.scalars().all())
+        
+        # Cache result
+        if self.redis_service:
+            test_ids = [str(t.id) for t in tests]
+            await self.redis_service.set_value(
+                cache_key,
+                {"test_ids": test_ids, "total": total},
+                expire=settings.LONG_TERM_CACHE_TTL
+            )
         
         return tests, total
 
