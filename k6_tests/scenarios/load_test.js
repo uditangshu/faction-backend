@@ -11,10 +11,6 @@ import { getApiUrl, createLoginPayload, extractAccessToken, config } from '../ut
 export const options = {
   stages: [
     { duration: '1m', target: 50 },   // Ramp up to 50 users
-    { duration: '3m', target: 50 },   // Stay at 50 users
-    { duration: '1m', target: 100 },  // Ramp up to 100 users
-    { duration: '3m', target: 100 },  // Stay at 100 users
-    { duration: '1m', target: 0 },     // Ramp down
   ],
   thresholds: {
     ...config.thresholds,

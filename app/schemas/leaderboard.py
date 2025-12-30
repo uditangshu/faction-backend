@@ -90,3 +90,23 @@ class ContestRankingResponse(BaseModel):
     skip: int
     limit: int
 
+
+class RatingRankingUserResponse(BaseModel):
+    """Rating ranking user response with rating information"""
+    
+    user_id: UUID
+    user_name: str
+    avatar_url: str | None
+    current_rating: int
+    max_rating: int
+    title: str | None
+
+
+class RatingRankingResponse(BaseModel):
+    """Paginated rating ranking response"""
+    
+    users: list[RatingRankingUserResponse]
+    total: int
+    skip: int
+    limit: int
+

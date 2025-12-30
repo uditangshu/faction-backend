@@ -354,6 +354,59 @@ async def get_contest_ranking_by_filter(
     return [(row[0], row[1]) for row in result.all()], total
 
 
+async def get_contest_ranking_by_contest_id(
+    db: AsyncSession,
+    contest_id: UUID,
+    filter_type: str = "best_rating_first",
+    skip: int = 0,
+    limit: int = 20,
+) -> Tuple[List[Tuple[ContestLeaderboard, User]], int]:
+    """
+    Get contest ranking for a specific contest by contest_id with filter options.
+    
+    Args:
+        db: Database session
+        contest_id: Contest ID to get ranking for
+        filter_type: Filter type - "best_rating_first" or "best_delta_first"
+        skip: Number of records to skip for pagination
+        limit: Maximum number of records to return
+    
+    Returns:
+        Tuple of (List of tuples (ContestLeaderboard, User), total_count)
+    """
+    # Count total leaderboard entries for this contest
+    count_result = await db.execute(
+        select(func.count(ContestLeaderboard.id))
+        .where(ContestLeaderboard.contest_id == contest_id)
+    )
+    total = count_result.scalar() or 0
+    
+    # Build order_by clause based on filter_type
+    if filter_type == "best_delta_first":
+        order_by_clause = [
+            desc(ContestLeaderboard.rating_delta),
+            desc(ContestLeaderboard.rating_after)
+        ]
+    else:  # best_rating_first (default)
+        order_by_clause = [
+            desc(ContestLeaderboard.rating_after),
+            desc(ContestLeaderboard.rating_delta)
+        ]
+    
+    # Get paginated leaderboard entries with ordering
+    # Join with User to get user information
+    result = await db.execute(
+        select(ContestLeaderboard, User)
+        .join(User, ContestLeaderboard.user_id == User.id)
+        .where(ContestLeaderboard.contest_id == contest_id)
+        .order_by(*order_by_clause)
+        .offset(skip)
+        .limit(limit)
+    )
+    
+    return [(row[0], row[1]) for row in result.all()], total
+
+
 async def get_contest_leaderboard_entry(
     db: AsyncSession,
     contest_id: UUID,
@@ -377,4 +430,57 @@ async def get_contest_leaderboard_entry(
         )
     )
     return result.scalar_one_or_none()
+
+
+async def get_rating_ranking_by_filter(
+    db: AsyncSession,
+    skip: int = 0,
+    limit: int = 20,
+    class_id: Optional[UUID] = None,
+    target_exams: Optional[List[str]] = None,
+) -> Tuple[List[User], int]:
+    """
+    Get rating ranking filtered by class_id and target_exams.
+    
+    Args:
+        db: Database session
+        skip: Number of records to skip for pagination
+        limit: Maximum number of records to return
+        class_id: Optional class ID to filter users by class
+        target_exams: Optional list of target exams to filter users by matching exams
+    
+    Returns:
+        Tuple of (List of Users, total_count) ordered by current_rating descending
+    """
+    # Build user filter conditions
+    user_filters = [User.is_active == True]
+    
+    # Filter by class_id if provided
+    if class_id is not None:
+        user_filters.append(User.class_id == class_id)
+    
+    # Filter by target_exams overlap if provided
+    if target_exams and len(target_exams) > 0:
+        # Check if any of the target_exams exist in the user's target_exams array
+        # Using JSONB contains operator to check for overlap
+        exam_conditions = [
+            cast(User.target_exams, JSONB).contains([exam]) for exam in target_exams
+        ]
+        user_filters.append(or_(*exam_conditions))
+    
+    # Count total users for pagination
+    count_query = select(func.count(User.id)).where(and_(*user_filters))
+    count_result = await db.execute(count_query)
+    total = count_result.scalar() or 0
+    
+    # Get paginated results ordered by current_rating descending, then max_rating descending
+    result = await db.execute(
+        select(User)
+        .where(and_(*user_filters))
+        .order_by(desc(User.current_rating), desc(User.max_rating))
+        .offset(skip)
+        .limit(limit)
+    )
+    
+    return result.scalars().all(), total
 

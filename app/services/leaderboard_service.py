@@ -16,6 +16,8 @@ from app.db.leaderboard_calls import (
     get_top_users_by_questions_solved,
     get_arena_ranking_by_submissions,
     get_contest_ranking_by_filter,
+    get_contest_ranking_by_contest_id,
+    get_rating_ranking_by_filter,
 )
 from app.schemas.leaderboard import (
     BestPerformerResponse,
@@ -27,9 +29,12 @@ from app.schemas.leaderboard import (
     StreakRankingUserResponse,
     ContestRankingResponse,
     ContestRankingUserResponse,
+    RatingRankingResponse,
+    RatingRankingUserResponse,
 )
 from app.db.streak_calls import get_streak_ranking, get_user_with_longest_streak
 from app.schemas.user import UserProfileResponse
+from app.core.config import settings
 
 
 class LeaderboardService:
@@ -66,7 +71,7 @@ class LeaderboardService:
         if self.redis_service:
             await self.redis_service.set_value(
                 cache_key,
-                response.model_dump(),
+                response.model_dump(mode='json'),
                 expire=settings.CACHE_SHARED
             )
         
@@ -102,7 +107,7 @@ class LeaderboardService:
         if self.redis_service:
             await self.redis_service.set_value(
                 cache_key,
-                response.model_dump(),
+                response.model_dump(mode='json'),
                 expire=settings.CACHE_SHARED
             )
         
@@ -194,7 +199,7 @@ class LeaderboardService:
         if self.redis_service:
             await self.redis_service.set_value(
                 cache_key,
-                response.model_dump(),
+                response.model_dump(mode='json'),
                 expire=settings.CACHE_SHARED
             )
         
@@ -359,4 +364,123 @@ class LeaderboardService:
             skip=skip,
             limit=limit,
         )
+
+    async def get_contest_ranking_by_contest_id(
+        self,
+        contest_id: UUID,
+        filter_type: str = "best_rating_first",
+        skip: int = 0,
+        limit: int = 20,
+    ) -> ContestRankingResponse:
+        """
+        Get contest ranking for a specific contest by contest_id with filter options.
+        
+        Args:
+            contest_id: Contest ID to get ranking for
+            filter_type: Filter type - "best_rating_first" or "best_delta_first"
+            skip: Number of records to skip for pagination
+            limit: Maximum number of records to return
+        
+        Returns:
+            ContestRankingResponse with paginated users and their contest performance
+        """
+        results, total = await get_contest_ranking_by_contest_id(
+            self.db,
+            contest_id=contest_id,
+            filter_type=filter_type,
+            skip=skip,
+            limit=limit,
+        )
+        
+        users = [
+            ContestRankingUserResponse(
+                user_id=user.id,
+                user_name=user.name,
+                avatar_url=user.avatar_url,
+                score=leaderboard_entry.score,
+                rank=leaderboard_entry.rank,
+                rating_before=leaderboard_entry.rating_before,
+                rating_after=leaderboard_entry.rating_after,
+                rating_delta=leaderboard_entry.rating_delta,
+                accuracy=leaderboard_entry.accuracy,
+                attempted=leaderboard_entry.attempted,
+                correct=leaderboard_entry.correct,
+                incorrect=leaderboard_entry.incorrect,
+            )
+            for leaderboard_entry, user in results
+        ]
+        
+        return ContestRankingResponse(
+            users=users,
+            total=total,
+            skip=skip,
+            limit=limit,
+        )
+
+    async def get_rating_ranking(
+        self,
+        skip: int = 0,
+        limit: int = 20,
+        class_id: Optional[UUID] = None,
+        target_exams: Optional[List[str]] = None,
+    ) -> RatingRankingResponse:
+        """
+        Get rating ranking filtered by class_id and target_exams (cached).
+        
+        Args:
+            skip: Number of records to skip for pagination
+            limit: Maximum number of records to return
+            class_id: Optional class ID to filter users by class
+            target_exams: Optional list of target exams to filter users by matching exams
+        
+        Returns:
+            RatingRankingResponse with paginated users and their rating information
+        """
+        # Create cache key based on class_id, target_exams (sorted), skip, and limit
+        target_exams_str = ":".join(sorted(target_exams)) if target_exams else "none"
+        class_id_str = str(class_id) if class_id else "none"
+        cache_key = f"{self.CACHE_PREFIX}:rating_ranking:{class_id_str}:{target_exams_str}:{skip}:{limit}"
+        
+        # Try cache first
+        if self.redis_service:
+            cached = await self.redis_service.get_value(cache_key)
+            if cached is not None:
+                return RatingRankingResponse(**cached)
+        
+        results, total = await get_rating_ranking_by_filter(
+            self.db,
+            skip=skip,
+            limit=limit,
+            class_id=class_id,
+            target_exams=target_exams,
+        )
+        
+        users = [
+            RatingRankingUserResponse(
+                user_id=user.id,
+                user_name=user.name,
+                avatar_url=user.avatar_url,
+                current_rating=user.current_rating,
+                max_rating=user.max_rating,
+                title=user.title.value if user.title else None,
+            )
+            for user in results
+        ]
+        
+        response = RatingRankingResponse(
+            users=users,
+            total=total,
+            skip=skip,
+            limit=limit,
+        )
+        
+        # Cache result
+        if self.redis_service:
+            await self.redis_service.set_value(
+                cache_key,
+                response.model_dump(mode='json'),
+                expire=settings.LONG_TERM_CACHE_TTL
+            )
+        
+        return response
 

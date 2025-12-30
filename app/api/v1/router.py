@@ -8,7 +8,7 @@ from app.api.v1.endpoints.curriculum import questions, classes, subjects, chapte
 from app.api.v1.endpoints.analysis import analysis
 from app.api.v1.endpoints.attempt import attempt
 from app.api.v1.endpoints.pyq import pyq, filtering
-from app.api.v1.endpoints.leaderboard import leaderboard, arena_ranking, streak_ranking, contest_ranking
+from app.api.v1.endpoints.leaderboard import leaderboard, arena_ranking, streak_ranking, contest_ranking, rating_ranking
 from app.api.v1.endpoints.youtube_video import youtube_video, video_embed, bookmarked_video
 from app.api.v1.endpoints.badge import badge
 from app.api.v1.endpoints.weak_topic import weak_topic
@@ -46,6 +46,7 @@ api_router.include_router(leaderboard.router)
 api_router.include_router(arena_ranking.router)
 api_router.include_router(streak_ranking.router)
 api_router.include_router(contest_ranking.router)
+api_router.include_router(rating_ranking.router)
 
 # YouTube Video routes
 api_router.include_router(youtube_video.router)
