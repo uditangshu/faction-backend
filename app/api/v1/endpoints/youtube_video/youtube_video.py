@@ -4,7 +4,7 @@ from uuid import UUID
 from fastapi import APIRouter, Query
 from typing import Optional, List
 
-from app.api.v1.dependencies import YouTubeVideoServiceDep
+from app.api.v1.dependencies import YouTubeVideoServiceDep, CurrentUserDep
 from app.schemas.youtube_video import (
     YouTubeVideoCreateRequest,
     YouTubeVideoResponse,
@@ -100,9 +100,13 @@ async def get_videos(
 @router.get("/latest", response_model=YouTubeVideoResponse)
 async def get_latest_video(
     youtube_video_service: YouTubeVideoServiceDep,
+    current_user: CurrentUserDep,
 ) -> YouTubeVideoResponse:
-    """Get the latest YouTube video"""
-    video = await youtube_video_service.get_latest_video()
+    """Get the latest YouTube video filtered by user's class and exam"""
+    video = await youtube_video_service.get_latest_video(
+        class_id=current_user.class_id,
+        target_exams=current_user.target_exams
+    )
     if not video:
         raise NotFoundException("No videos available")
     return YouTubeVideoResponse.model_validate(video)

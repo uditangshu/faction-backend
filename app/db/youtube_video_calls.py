@@ -3,13 +3,13 @@
 from typing import List, Optional
 from uuid import UUID
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, delete, func, desc
+from sqlalchemy import select, delete, func, desc, or_
 from sqlalchemy.orm import selectinload
 import random
 from datetime import datetime
 
 from app.models.youtube_video import YouTubeVideo
-from app.models.Basequestion import Chapter
+from app.models.Basequestion import Chapter, Subject
 
 
 async def create_youtube_video(
@@ -157,13 +157,30 @@ async def update_youtube_video(
 
 async def get_latest_youtube_video(
     db: AsyncSession,
+    class_id: Optional[UUID] = None,
+    target_exams: Optional[List[str]] = None,
 ) -> Optional[YouTubeVideo]:
-    """Get the latest YouTube video by created_at"""
+    """Get the latest YouTube video by created_at, optionally filtered by class and exam"""
+    query = select(YouTubeVideo).where(YouTubeVideo.is_active == True)
+    
+    # Apply filters if provided
+    if class_id or target_exams:
+        # Join strategies:
+        # YouTubeVideo -> Chapter -> Subject
+        query = query.join(YouTubeVideo.chapter).join(Chapter.subject)
+        
+        if class_id:
+            query = query.where(Subject.class_id == class_id)
+            
+        if target_exams and len(target_exams) > 0:
+            # Filter subjects that match ANY of the user's target exams
+            # Subject.exam_type is a JSON column (list of strings)
+            # We check if it contains any of the target exams
+            conditions = [Subject.exam_type.contains(exam) for exam in target_exams]
+            query = query.where(or_(*conditions))
+
     result = await db.execute(
-        select(YouTubeVideo)
-        .where(YouTubeVideo.is_active == True)
-        .order_by(desc(YouTubeVideo.created_at))
-        .limit(1)
+        query.order_by(desc(YouTubeVideo.created_at)).limit(1)
     )
     return result.scalar_one_or_none()
 

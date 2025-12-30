@@ -121,9 +121,17 @@ class YouTubeVideoService:
         """Get all videos for a chapter"""
         return await get_videos_by_chapter(self.db, chapter_id)
 
-    async def get_latest_video(self) -> Optional[YouTubeVideo]:
+    async def get_latest_video(
+        self,
+        class_id: Optional[UUID] = None,
+        target_exams: Optional[List[str]] = None,
+    ) -> Optional[YouTubeVideo]:
         """Get the latest YouTube video"""
-        return await get_latest_youtube_video(self.db)
+        return await get_latest_youtube_video(
+            self.db,
+            class_id=class_id,
+            target_exams=target_exams
+        )
 
     async def get_random_video(self) -> Optional[YouTubeVideo]:
         """Get a random active video"""
