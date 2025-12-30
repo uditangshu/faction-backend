@@ -3,7 +3,8 @@
 from typing import List, Optional
 from uuid import UUID
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, delete, func, desc, or_
+from sqlalchemy import select, delete, func, desc, or_, cast
+from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import selectinload
 import random
 from datetime import datetime
@@ -177,9 +178,11 @@ async def get_latest_youtube_video(
         if target_exams and len(target_exams) > 0:
             # Filter subjects that match ANY of the user's target exams
             # Subject.exam_type is a JSON column (list of strings)
-            # We check if it contains any of the target exams
-            conditions = [Subject.exam_type.contains(exam) for exam in target_exams]
-            query = query.where(or_(*conditions))
+            # We need to cast to JSONB and check if it contains any of the target exams
+            exam_conditions = [
+                cast(Subject.exam_type, JSONB).contains([exam]) for exam in target_exams
+            ]
+            query = query.where(or_(*exam_conditions))
 
     result = await db.execute(
         query.order_by(desc(YouTubeVideo.created_at)).limit(1)
