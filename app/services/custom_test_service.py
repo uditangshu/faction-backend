@@ -15,6 +15,8 @@ from app.models.custom_test import CustomTest, AttemptStatus, CustomTestAnalysis
 from app.models.linking import CustomTestQuestion
 from app.exceptions.http_exceptions import BadRequestException, NotFoundException
 from app.db.attempt_calls import create_attempt
+from app.integrations.redis_client import RedisService
+from app.core.config import settings
 from sqlalchemy.orm import selectinload
 from datetime import datetime
 
@@ -22,8 +24,11 @@ from datetime import datetime
 class CustomTestService:
     """Service for custom test operations"""
 
-    def __init__(self, db: AsyncSession):
+    CACHE_PREFIX = "custom_tests"
+
+    def __init__(self, db: AsyncSession, redis_service: Optional[RedisService] = None):
         self.db = db
+        self.redis_service = redis_service
 
     async def generate_custom_test_questions(
         self,

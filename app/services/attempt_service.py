@@ -6,10 +6,7 @@ from sqlalchemy import select, delete, func
 from typing import List, Optional, Tuple
 
 from app.models.attempt import QuestionAttempt
-
-from app.models.attempt import QuestionAttempt
 from app.services.badge_rules import BadgeAwardingService
-
 from app.db.attempt_calls import create_attempt, remove_attempt, update_attempt
 
 class AttemptService:
