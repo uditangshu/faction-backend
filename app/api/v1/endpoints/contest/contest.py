@@ -13,6 +13,8 @@ from app.schemas.contest import (
     ContestSubmissionRequest,
     ContestSubmissionResponse,
     ContestLeaderboardResponse,
+    ScholarshipRankingResponse,
+    ScholarshipRankingUserResponse,
 )
 from app.exceptions.http_exceptions import BadRequestException, NotFoundException
 
@@ -39,6 +41,7 @@ async def create_contest(
             status=request.status,
             starts_at=request.starts_at,
             ends_at=request.ends_at,
+            isScholarship=request.isScholarship,
         )
         return ContestResponse.model_validate(contest)
     except (BadRequestException, NotFoundException):
@@ -242,5 +245,61 @@ async def check_has_attempted(
         return {"has_attempted": has_attempted}
     except Exception as e:
         raise BadRequestException(f"Failed to check attempt status: {str(e)}")
+
+
+@router.get("/{contest_id}/scholarship/ranking", response_model=ScholarshipRankingResponse)
+async def get_scholarship_ranking(
+    contest_id: UUID,
+    contest_service: ContestServiceDep,
+    skip: int = Query(0, ge=0, description="Number of records to skip"),
+    limit: int = Query(20, ge=1, le=100, description="Maximum number of records"),
+) -> ScholarshipRankingResponse:
+    """
+    Get scholarship contest ranking ordered by score and total_time.
+    
+    Fetches leaderboard entries for a specific scholarship contest (isScholarship=True),
+    ranked by:
+    - Highest score first
+    - For same score, lowest total_time first (faster completion is better)
+    
+    Returns paginated list of users with their scholarship contest performance.
+    
+    Raises NotFoundException if contest not found or BadRequestException if contest is not a scholarship contest.
+    """
+    try:
+        result = await contest_service.get_scholarship_ranking(
+            contest_id=contest_id,
+            skip=skip,
+            limit=limit,
+        )
+        
+        users = []
+        for leaderboard_entry, user, contest in result["results"]:
+            users.append(
+                ScholarshipRankingUserResponse(
+                    user_id=user.id,
+                    user_name=user.name,
+                    avatar_url=user.avatar_url,
+                    score=leaderboard_entry.score,
+                    total_time=leaderboard_entry.total_time,
+                    accuracy=leaderboard_entry.accuracy,
+                    attempted=leaderboard_entry.attempted,
+                    correct=leaderboard_entry.correct,
+                    incorrect=leaderboard_entry.incorrect,
+                    contest_id=contest.id,
+                    contest_name=contest.name,
+                )
+            )
+        
+        return ScholarshipRankingResponse(
+            users=users,
+            total=result["total"],
+            skip=result["skip"],
+            limit=result["limit"],
+        )
+    except (BadRequestException, NotFoundException):
+        raise
+    except Exception as e:
+        raise BadRequestException(f"Failed to fetch scholarship ranking: {str(e)}")
 
 

@@ -21,6 +21,7 @@ class Contest(SQLModel,table=True):
     status: ContestStatus
     starts_at: datetime
     ends_at: datetime 
+    isScholarship: bool = Field(default=False)
     
     created_at: datetime = Field(default_factory=datetime.utcnow)
 
@@ -45,5 +46,6 @@ class ContestLeaderboard(SQLModel, table=True):
     unattempted: int
     correct: int
     incorrect: int
+    total_time: int  # Total time taken by user in seconds
     
     created_at: datetime = Field(default_factory=datetime.utcnow)

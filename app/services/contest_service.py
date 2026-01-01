@@ -13,7 +13,7 @@ from app.models.linking import ContestQuestions
 from app.models.Basequestion import Question
 from app.exceptions.http_exceptions import BadRequestException, NotFoundException
 from app.integrations.redis_client import RedisService
-from app.db.leaderboard_calls import get_contest_leaderboard_entry
+from app.db.leaderboard_calls import get_contest_leaderboard_entry, get_scholarship_ranking
 from app.core.config import settings
 
 class ContestService:
@@ -32,6 +32,7 @@ class ContestService:
         status: ContestStatus,
         starts_at: datetime,
         ends_at: datetime,
+        isScholarship: bool = False,
     ) -> Contest:
         """
         Create a contest with questions in the database.
@@ -82,6 +83,7 @@ class ContestService:
             status=status,
             starts_at=starts_at,
             ends_at=ends_at,
+            isScholarship=isScholarship,
         )
         self.db.add(contest)
         await self.db.flush()  # Get the contest ID
@@ -442,6 +444,7 @@ class ContestService:
             unattempted=0,
             correct=0,
             incorrect=0,
+            total_time=0,
             rating_before=user.current_rating,
             rating_after=user.current_rating,
             rating_delta=0,
@@ -451,4 +454,54 @@ class ContestService:
         self.db.add(leaderboard_entry)
         # Flush to get ID if needed, but we just need it committed
         await self.db.commit()
+
+    async def get_scholarship_ranking(
+        self,
+        contest_id: UUID,
+        skip: int = 0,
+        limit: int = 20,
+    ) -> Dict[str, Any]:
+        """
+        Get scholarship contest ranking ordered by score (desc) and total_time (asc).
+        
+        Fetches leaderboard entries for a specific scholarship contest, ordered by:
+        - Highest score first
+        - For same score, lowest total_time first
+        
+        Args:
+            contest_id: Contest ID to get ranking for (must be a scholarship contest)
+            skip: Number of records to skip for pagination
+            limit: Maximum number of records to return
+            
+        Returns:
+            Dictionary with users list and pagination info
+            
+        Raises:
+            NotFoundException: If contest not found or not a scholarship contest
+        """
+        # Verify contest exists and is a scholarship contest
+        result = await self.db.execute(
+            select(Contest).where(Contest.id == contest_id)
+        )
+        contest = result.scalar_one_or_none()
+        
+        if not contest:
+            raise NotFoundException(f"Contest with id {contest_id} not found")
+        
+        if not contest.isScholarship:
+            raise BadRequestException(f"Contest with id {contest_id} is not a scholarship contest")
+        
+        results, total = await get_scholarship_ranking(
+            db=self.db,
+            contest_id=contest_id,
+            skip=skip,
+            limit=limit,
+        )
+        
+        return {
+            "results": results,
+            "total": total,
+            "skip": skip,
+            "limit": limit,
+        }
 

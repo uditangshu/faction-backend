@@ -19,6 +19,7 @@ class ContestCreateRequest(BaseModel):
     status: ContestStatus = Field(..., description="Contest status")
     starts_at: datetime = Field(..., description="Contest start datetime")
     ends_at: datetime = Field(..., description="Contest end datetime")
+    isScholarship: bool = Field(default=False, description="Whether this is a scholarship contest")
 
 
 class ContestResponse(BaseModel):
@@ -30,6 +31,7 @@ class ContestResponse(BaseModel):
     status: ContestStatus
     starts_at: datetime
     ends_at: datetime
+    isScholarship: bool
     created_at: datetime
     has_attempted: bool = False  # True if current user has submitted
 
@@ -112,8 +114,32 @@ class ContestLeaderboardResponse(BaseModel):
     unattempted: int
     correct: int
     incorrect: int
+    total_time: int
     created_at: datetime
 
     class Config:
         from_attributes = True
+
+
+class ScholarshipRankingUserResponse(BaseModel):
+    """Scholarship ranking user response with contest performance"""
+    user_id: UUID
+    user_name: str
+    avatar_url: str | None
+    score: float
+    total_time: int
+    accuracy: float
+    attempted: int
+    correct: int
+    incorrect: int
+    contest_id: UUID
+    contest_name: str
+
+
+class ScholarshipRankingResponse(BaseModel):
+    """Paginated scholarship ranking response"""
+    users: List[ScholarshipRankingUserResponse]
+    total: int
+    skip: int
+    limit: int
 

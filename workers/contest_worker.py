@@ -219,6 +219,7 @@ class ContestSubmissionWorker:
             correct_count = 0
             incorrect_count = 0
             attempted_count = 0
+            total_time = 0  # Total time taken across all submissions
             
             # Get contest and total questions count
             contest_result = await db.execute(
@@ -290,6 +291,7 @@ class ContestSubmissionWorker:
                     # Update local analytics
                     total_score += marks_obtained
                     attempted_count += 1
+                    total_time += submission.get("time_taken", 0)  # Sum up time taken for all submissions
                     if is_correct:
                         correct_count += 1
                     else:
@@ -315,6 +317,7 @@ class ContestSubmissionWorker:
                     attempted_count=attempted_count,
                     correct_count=correct_count,
                     incorrect_count=incorrect_count,
+                    total_time=total_time,
                 )
                 # Commit leaderboard update
                 await db.commit()
@@ -344,6 +347,7 @@ class ContestSubmissionWorker:
         attempted_count: int,
         correct_count: int,
         incorrect_count: int,
+        total_time: int,
     ):
         """
         Populate or update contest leaderboard entry for a user with single DB call.
@@ -357,6 +361,7 @@ class ContestSubmissionWorker:
             attempted_count: Number of questions attempted
             correct_count: Number of correct answers
             incorrect_count: Number of incorrect answers
+            total_time: Total time taken by user in seconds
         """
         try:
             # Get user's current rating
@@ -397,6 +402,7 @@ class ContestSubmissionWorker:
                 leaderboard_entry.unattempted = unattempted
                 leaderboard_entry.correct = correct_count
                 leaderboard_entry.incorrect = incorrect_count
+                leaderboard_entry.total_time = total_time
                 leaderboard_entry.rating_before = rating_before
                 leaderboard_entry.rating_after = rating_after
                 leaderboard_entry.rating_delta = rating_delta
@@ -414,6 +420,7 @@ class ContestSubmissionWorker:
                     unattempted=unattempted,
                     correct=correct_count,
                     incorrect=incorrect_count,
+                    total_time=total_time,
                     rating_before=rating_before,
                     rating_after=rating_after,
                     rating_delta=rating_delta,
