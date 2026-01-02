@@ -10,6 +10,8 @@ from sqlalchemy.dialects.postgresql import JSONB
 from app.models.user import User
 from app.models.contest import ContestLeaderboard, Contest
 from app.models.attempt import QuestionAttempt
+from app.integrations.redis_client import RedisService
+from app.core.config import settings
 
 
 async def get_user_with_max_rating(db: AsyncSession) -> Optional[Tuple[User, int]]:
@@ -270,6 +272,7 @@ async def get_contest_ranking_by_filter(
     limit: int = 20,
     class_id: Optional[UUID] = None,
     target_exams: Optional[List[str]] = None,
+    redis_service: Optional[RedisService] = None,
 ) -> Tuple[List[Tuple[ContestLeaderboard, User]], int]:
     """
     Get contest ranking from the most recent contest with filter options.
@@ -281,22 +284,44 @@ async def get_contest_ranking_by_filter(
         limit: Maximum number of records to return
         class_id: Optional class ID to filter users by class
         target_exams: Optional list of target exams to filter users by matching exams
+        redis_service: Optional Redis service for caching most recent contest
     
     Returns:
         Tuple of (List of tuples (ContestLeaderboard, User), total_count)
     """
-    # Get the most recent contest (by ends_at, then by created_at)
-    most_recent_contest_result = await db.execute(
-        select(Contest)
-        .order_by(desc(Contest.ends_at), desc(Contest.created_at))
-        .limit(1)
-    )
-    most_recent_contest = most_recent_contest_result.scalar_one_or_none()
+    # Cache the most recent contest ID lookup
+    cache_key = "leaderboard:most_recent_contest_id"
+    contest_id = None
     
-    if not most_recent_contest:
-        return [], 0
+    if redis_service:
+        cached_contest_id = await redis_service.get_value(cache_key)
+        if cached_contest_id:
+            try:
+                contest_id = UUID(cached_contest_id)
+            except (ValueError, TypeError):
+                contest_id = None
     
-    contest_id = most_recent_contest.id
+    # If not cached, query for most recent contest
+    if not contest_id:
+        most_recent_contest_result = await db.execute(
+            select(Contest)
+            .order_by(desc(Contest.ends_at), desc(Contest.created_at))
+            .limit(1)
+        )
+        most_recent_contest = most_recent_contest_result.scalar_one_or_none()
+        
+        if not most_recent_contest:
+            return [], 0
+        
+        contest_id = most_recent_contest.id
+        
+        # Cache the contest ID for 5 minutes
+        if redis_service:
+            await redis_service.set_value(
+                cache_key,
+                str(contest_id),
+                expire=300  # 5 minutes
+            )
     
     # Build user filter conditions
     user_filters = [User.is_active == True]
@@ -308,6 +333,7 @@ async def get_contest_ranking_by_filter(
     # Filter by target_exams overlap if provided
     if target_exams and len(target_exams) > 0:
         # Check if any of the target_exams exist in the user's target_exams array
+        # Using JSONB contains operator to check for overlap
         exam_conditions = [
             cast(User.target_exams, JSONB).contains([exam]) for exam in target_exams
         ]

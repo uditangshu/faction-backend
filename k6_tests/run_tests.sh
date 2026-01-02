@@ -70,6 +70,9 @@ case "$TEST_TYPE" in
     comprehensive)
         run_test "./scripts/comprehensive_test.js" "comprehensive"
         ;;
+    ranking)
+        run_test "./scripts/ranking_apis_test.js" "ranking_apis"
+        ;;
     all)
         echo -e "${YELLOW}Running all tests...${NC}"
         run_test "./scenarios/smoke_test.js" "smoke"
@@ -79,7 +82,7 @@ case "$TEST_TYPE" in
         run_test "./scripts/stress_test.js" "stress"
         ;;
     *)
-        echo "Usage: $0 [smoke|load|stress|spike|auth|authenticated|all]"
+        echo "Usage: $0 [smoke|load|stress|spike|auth|authenticated|treasure|comprehensive|ranking|all]"
         echo ""
         echo "Test Types:"
         echo "  smoke         - Quick smoke test (1 user, 30s)"
@@ -90,6 +93,7 @@ case "$TEST_TYPE" in
         echo "  authenticated - Authenticated endpoints test"
         echo "  treasure      - Treasure endpoints test"
         echo "  comprehensive - Comprehensive multi-endpoint test"
+        echo "  ranking       - Ranking APIs test (contests, arena, streak, contest-ranking)"
         echo "  all           - Run smoke, load, and stress tests"
         echo ""
         echo "Environment Variables:"

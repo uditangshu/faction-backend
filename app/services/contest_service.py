@@ -404,6 +404,35 @@ class ContestService:
         )
         return leaderboard_entry is not None
 
+    async def batch_check_user_has_attempted(
+        self,
+        contest_ids: List[UUID],
+        user_id: UUID,
+    ) -> set[UUID]:
+        """
+        Batch check if a user has attempted multiple contests in a single query.
+        This is much more efficient than calling check_user_has_attempted in a loop.
+        
+        Args:
+            contest_ids: List of contest IDs to check
+            user_id: User ID
+            
+        Returns:
+            Set of contest IDs that the user has attempted
+        """
+        if not contest_ids:
+            return set()
+        
+        result = await self.db.execute(
+            select(ContestLeaderboard.contest_id)
+            .where(
+                ContestLeaderboard.contest_id.in_(contest_ids),
+                ContestLeaderboard.user_id == user_id
+            )
+        )
+        attempted_contest_ids = {row[0] for row in result.all()}
+        return attempted_contest_ids
+
     async def _create_placeholder_leaderboard_entry(
         self,
         contest_id: UUID,

@@ -5,7 +5,7 @@
 
 export const config = {
   // Base URL - can be overridden via environment variable
-  baseUrl: 'http://localhost:8000',
+  baseUrl: __ENV.BASE_URL || 'http://localhost:8000',
   
   // API version prefix
   apiPrefix: '/api/v1',

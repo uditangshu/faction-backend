@@ -75,15 +75,18 @@ async def get_contests(
         else:
             raise BadRequestException("Type must be either 'upcoming' or 'past'")
         
-        # Check has_attempted for each contest
+        # Batch check has_attempted for all contests in a single query (fixes N+1 problem)
+        contest_ids = [contest.id for contest in contests]
+        attempted_contest_ids = await contest_service.batch_check_user_has_attempted(
+            contest_ids=contest_ids,
+            user_id=current_user.id,
+        )
+        
+        # Build responses
         contest_responses = []
         for contest in contests:
-            has_attempted = await contest_service.check_user_has_attempted(
-                contest_id=contest.id,
-                user_id=current_user.id,
-            )
             response = ContestResponse.model_validate(contest)
-            response.has_attempted = has_attempted
+            response.has_attempted = contest.id in attempted_contest_ids
             contest_responses.append(response)
         
         return ContestListResponse(contests=contest_responses)

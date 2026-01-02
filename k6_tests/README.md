@@ -132,6 +132,21 @@ k6 run scripts/auth_test.js
 k6 run scripts/authenticated_test.js
 ```
 
+### 7. Ranking APIs Test (`scripts/ranking_apis_test.js`)
+- **Purpose**: Test all ranking/leaderboard endpoints
+- **Load**: 20-100 users with gradual ramp-up
+- **Endpoints**: 
+  - `GET /contests/` (with type=upcoming or type=past)
+  - `GET /arena-ranking/` (with time_filter parameter)
+  - `GET /streak-ranking/` (with pagination)
+  - `GET /contest-ranking/` (with filter_type and pagination)
+- **Use Case**: Validate ranking API performance under load
+
+```bash
+k6 run scripts/ranking_apis_test.js
+./run_tests.sh ranking
+```
+
 ## Configuration
 
 ### Environment Variables
@@ -322,6 +337,8 @@ k6_tests/
 ├── scripts/              # Main test scripts
 │   ├── auth_test.js      # Authentication endpoint test
 │   ├── authenticated_test.js  # Authenticated endpoints test
+│   ├── ranking_apis_test.js   # Ranking APIs test (contests, arena, streak, contest-ranking)
+│   ├── rating_ranking_test.js # Rating ranking endpoint test
 │   └── stress_test.js    # Stress test
 ├── scenarios/            # Test scenarios
 │   ├── smoke_test.js     # Quick smoke test

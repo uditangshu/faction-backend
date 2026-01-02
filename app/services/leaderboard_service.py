@@ -216,7 +216,7 @@ class LeaderboardService:
         target_exams: Optional[List[str]] = None,
     ) -> ArenaRankingResponse:
         """
-        Get arena ranking by maximum submissions solved with time filtering and pagination.
+        Get arena ranking by maximum submissions solved with time filtering and pagination (cached).
         
         Args:
             time_filter: Time filter - "daily", "weekly", or "all_time"
@@ -228,6 +228,17 @@ class LeaderboardService:
         Returns:
             ArenaRankingResponse with paginated users and their solved counts
         """
+        # Create cache key based on all parameters
+        target_exams_str = ":".join(sorted(target_exams)) if target_exams else "none"
+        class_id_str = str(class_id) if class_id else "none"
+        cache_key = f"{self.CACHE_PREFIX}:arena_ranking:{time_filter}:{class_id_str}:{target_exams_str}:{skip}:{limit}"
+        
+        # Try cache first
+        if self.redis_service:
+            cached = await self.redis_service.get_value(cache_key)
+            if cached is not None:
+                return ArenaRankingResponse(**cached)
+        
         results, total = await get_arena_ranking_by_submissions(
             self.db,
             time_filter=time_filter,
@@ -247,12 +258,22 @@ class LeaderboardService:
             for user, count in results
         ]
         
-        return ArenaRankingResponse(
+        response = ArenaRankingResponse(
             users=users,
             total=total,
             skip=skip,
             limit=limit,
         )
+        
+        # Cache result
+        if self.redis_service:
+            await self.redis_service.set_value(
+                cache_key,
+                response.model_dump(mode='json'),
+                expire=settings.CACHE_SHARED
+            )
+        
+        return response
 
     async def get_streak_ranking(
         self,
@@ -262,7 +283,7 @@ class LeaderboardService:
         target_exams: Optional[List[str]] = None,
     ) -> StreakRankingResponse:
         """
-        Get streak ranking sorted by longest streak with pagination.
+        Get streak ranking sorted by longest streak with pagination (cached).
         
         Args:
             skip: Number of records to skip for pagination
@@ -273,6 +294,17 @@ class LeaderboardService:
         Returns:
             StreakRankingResponse with paginated users and their streak counts
         """
+        # Create cache key based on all parameters
+        target_exams_str = ":".join(sorted(target_exams)) if target_exams else "none"
+        class_id_str = str(class_id) if class_id else "none"
+        cache_key = f"{self.CACHE_PREFIX}:streak_ranking:{class_id_str}:{target_exams_str}:{skip}:{limit}"
+        
+        # Try cache first
+        if self.redis_service:
+            cached = await self.redis_service.get_value(cache_key)
+            if cached is not None:
+                return StreakRankingResponse(**cached)
+        
         results, total = await get_streak_ranking(
             self.db,
             skip=skip,
@@ -292,12 +324,22 @@ class LeaderboardService:
             for user, longest_streak, current_streak in results
         ]
         
-        return StreakRankingResponse(
+        response = StreakRankingResponse(
             users=users,
             total=total,
             skip=skip,
             limit=limit,
         )
+        
+        # Cache result
+        if self.redis_service:
+            await self.redis_service.set_value(
+                cache_key,
+                response.model_dump(mode='json'),
+                expire=settings.CACHE_SHARED
+            )
+        
+        return response
 
     async def get_best_by_longest_streak(self) -> Optional[BestPerformerResponse]:
         """Get user with longest study streak"""
@@ -321,7 +363,7 @@ class LeaderboardService:
         target_exams: Optional[List[str]] = None,
     ) -> ContestRankingResponse:
         """
-        Get contest ranking from the most recent contest with filter options.
+        Get contest ranking from the most recent contest with filter options (cached).
         
         Args:
             filter_type: Filter type - "best_rating_first" or "best_delta_first"
@@ -333,6 +375,17 @@ class LeaderboardService:
         Returns:
             ContestRankingResponse with paginated users and their contest performance
         """
+        # Create cache key based on all parameters
+        target_exams_str = ":".join(sorted(target_exams)) if target_exams else "none"
+        class_id_str = str(class_id) if class_id else "none"
+        cache_key = f"{self.CACHE_PREFIX}:contest_ranking:{filter_type}:{class_id_str}:{target_exams_str}:{skip}:{limit}"
+        
+        # Try cache first
+        if self.redis_service:
+            cached = await self.redis_service.get_value(cache_key)
+            if cached is not None:
+                return ContestRankingResponse(**cached)
+        
         results, total = await get_contest_ranking_by_filter(
             self.db,
             filter_type=filter_type,
@@ -340,6 +393,7 @@ class LeaderboardService:
             limit=limit,
             class_id=class_id,
             target_exams=target_exams,
+            redis_service=self.redis_service,
         )
         
         users = [
@@ -360,12 +414,22 @@ class LeaderboardService:
             for leaderboard_entry, user in results
         ]
         
-        return ContestRankingResponse(
+        response = ContestRankingResponse(
             users=users,
             total=total,
             skip=skip,
             limit=limit,
         )
+        
+        # Cache result
+        if self.redis_service:
+            await self.redis_service.set_value(
+                cache_key,
+                response.model_dump(mode='json'),
+                expire=settings.CACHE_SHARED
+            )
+        
+        return response
 
     async def get_contest_ranking_by_contest_id(
         self,
