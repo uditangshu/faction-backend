@@ -10,13 +10,18 @@ redis_client: aioredis.Redis | None = None
 
 
 async def get_redis() -> aioredis.Redis:
-    """Get Redis client instance"""
+    """Get Redis client instance with optimized connection pooling"""
     global redis_client
     if redis_client is None:
         redis_client = await aioredis.from_url(
             settings.REDIS_URL,
             encoding="utf-8",
             decode_responses=True,
+            socket_connect_timeout=5,  # Fast connection timeout
+            socket_timeout=5,  # Fast operation timeout
+            max_connections=50,  # Connection pool size
+            retry_on_timeout=True,
+            health_check_interval=30,  # Health check every 30s
         )
     return redis_client
 

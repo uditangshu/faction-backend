@@ -17,6 +17,7 @@ from app.core.config import settings
 async def get_user_with_max_rating(db: AsyncSession) -> Optional[Tuple[User, int]]:
     """
     Get user with maximum contest rating.
+    Optimized to use index on (is_active, max_rating).
     
     Returns:
         Tuple of (User, max_rating) or None if no users found
@@ -39,6 +40,7 @@ async def get_top_users_by_rating(
 ) -> List[Tuple[User, int]]:
     """
     Get top N users by maximum rating.
+    Optimized to use index on (is_active, max_rating).
     
     Returns:
         List of tuples (User, max_rating)

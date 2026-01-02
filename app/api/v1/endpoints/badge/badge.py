@@ -26,8 +26,9 @@ async def get_all_badges(
     """Get all badges with earned status for current user"""
     badges = await badge_service.get_all_badges(user_id=current_user.id)
     
+    # Directly use dicts - no need for model validation since they're already serialized
     return BadgeListResponse(
-        badges=[BadgeResponse.model_validate(badge) for badge in badges],
+        badges=[BadgeResponse(**badge) for badge in badges],
         total=len(badges),
     )
 

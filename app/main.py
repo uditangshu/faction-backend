@@ -7,6 +7,7 @@ from app.core.config import settings
 from app.db.session import init_db, close_db, engine
 from app.integrations.redis_client import get_redis, close_redis
 from app.api.v1.router import api_router
+from app.middleware.timing_middleware import TimingMiddleware
 
 
 @asynccontextmanager
@@ -61,6 +62,9 @@ app = FastAPI(
     redoc_url="/redoc",
     lifespan=lifespan,
 )
+
+# Add timing middleware (first, so it wraps everything)
+app.add_middleware(TimingMiddleware)
 
 # Configure CORS
 app.add_middleware(

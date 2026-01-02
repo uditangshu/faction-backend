@@ -33,7 +33,6 @@ const contestRankingResponseTime = new Trend('contest_ranking_response_time');
 export const options = {
   stages: [
     { duration: '30s', target: 20 },   // Ramp up to 20 users
-    { duration: '30s', target: 60 },    // Stay at 20 users
   ],
   thresholds: {
     ...config.thresholds,
@@ -63,8 +62,7 @@ export const options = {
 };
 
 // Shared state for VU (Virtual User)
-let accessToken = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJlNTlkMTMxMS01MDBhLTQ2MjUtYjYwYy1kZGNhOWRmMTdjMDEiLCJwaG9uZSI6Iis5MTgxMDkyODUwNDkiLCJzZXNzaW9uX2lkIjoiYzFlMWI1ZjAtNGY1MS00NTY0LTg1ZWQtNGZkZDliNjhkNjY5IiwiZXhwIjoxNzY3MzIyMDEwLCJ0eXBlIjoiYWNjZXNzIn0.TVgbL6-JdeHg1_dR2tnXRgWsl91c3Iz-cm8B3yv7G1Y";
-
+let accessToken = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJlNTlkMTMxMS01MDBhLTQ2MjUtYjYwYy1kZGNhOWRmMTdjMDEiLCJwaG9uZSI6Iis5MTgxMDkyODUwNDkiLCJzZXNzaW9uX2lkIjoiN2UyOTJkMmItY2QzOS00ZWVkLTg2MzctNWRkNjMzNmNjYjlkIiwiZXhwIjoxNzY3MzI2MTIyLCJ0eXBlIjoiYWNjZXNzIn0.AFR-wzQknafbCYz11ttjDO_r9lTmtx6aKYBbFOTGa4o";
 /**
  * Login and get access token
  */

@@ -74,7 +74,7 @@ class LeaderboardService:
             await self.redis_service.set_value(
                 cache_key,
                 response.model_dump(mode='json'),
-                expire=settings.CACHE_SHARED
+                expire=settings.CACHE_LEADER_TTL
             )
         
         return response
@@ -110,26 +110,52 @@ class LeaderboardService:
             await self.redis_service.set_value(
                 cache_key,
                 response.model_dump(mode='json'),
-                expire=settings.CACHE_SHARED
+                expire=settings.CACHE_LEADER_TTL
             )
         
         return response
 
     async def get_best_by_delta(self) -> Optional[BestPerformerResponse]:
-        """Get user with highest rating delta from contests"""
+        """Get user with highest rating delta from contests (cached)"""
+        cache_key = f"{self.CACHE_PREFIX}:best:delta"
+        
+        # Try cache first
+        if self.redis_service:
+            cached = await self.redis_service.get_value(cache_key)
+            if cached is not None:
+                return BestPerformerResponse(**cached)
+        
         result = await get_user_with_max_delta(self.db)
         if not result:
             return None
         
         user, max_delta = result
-        return BestPerformerResponse(
+        response = BestPerformerResponse(
             user=UserProfileResponse.model_validate(user),
             metric_value=max_delta,
             metric_type="max_delta",
         )
+        
+        # Cache result
+        if self.redis_service:
+            await self.redis_service.set_value(
+                cache_key,
+                response.model_dump(mode='json'),
+                expire=settings.CACHE_LEADER_TTL
+            )
+        
+        return response
 
     async def get_top_by_delta(self, limit: int = 10) -> BestPerformersListResponse:
-        """Get top N users by maximum rating delta"""
+        """Get top N users by maximum rating delta (cached)"""
+        cache_key = f"{self.CACHE_PREFIX}:top:delta:{limit}"
+        
+        # Try cache first
+        if self.redis_service:
+            cached = await self.redis_service.get_value(cache_key)
+            if cached is not None:
+                return BestPerformersListResponse(**cached)
+        
         results = await get_top_users_by_delta(self.db, limit)
         
         performers = [
@@ -141,26 +167,62 @@ class LeaderboardService:
             for user, delta in results
         ]
         
-        return BestPerformersListResponse(
+        response = BestPerformersListResponse(
             performers=performers,
             total=len(performers),
         )
+        
+        # Cache result
+        if self.redis_service:
+            await self.redis_service.set_value(
+                cache_key,
+                response.model_dump(mode='json'),
+                expire=settings.CACHE_LEADER_TTL
+            )
+        
+        return response
 
     async def get_best_by_questions_solved(self) -> Optional[BestPerformerResponse]:
-        """Get user with most correct questions solved"""
+        """Get user with most correct questions solved (cached)"""
+        cache_key = f"{self.CACHE_PREFIX}:best:questions"
+        
+        # Try cache first
+        if self.redis_service:
+            cached = await self.redis_service.get_value(cache_key)
+            if cached is not None:
+                return BestPerformerResponse(**cached)
+        
         result = await get_user_with_most_questions_solved(self.db)
         if not result:
             return None
         
         user, question_count = result
-        return BestPerformerResponse(
+        response = BestPerformerResponse(
             user=UserProfileResponse.model_validate(user),
             metric_value=question_count,
             metric_type="max_questions_solved",
         )
+        
+        # Cache result
+        if self.redis_service:
+            await self.redis_service.set_value(
+                cache_key,
+                response.model_dump(mode='json'),
+                expire=settings.CACHE_LEADER_TTL
+            )
+        
+        return response
 
     async def get_top_by_questions_solved(self, limit: int = 10) -> BestPerformersListResponse:
-        """Get top N users by number of correct questions solved"""
+        """Get top N users by number of correct questions solved (cached)"""
+        cache_key = f"{self.CACHE_PREFIX}:top:questions:{limit}"
+        
+        # Try cache first
+        if self.redis_service:
+            cached = await self.redis_service.get_value(cache_key)
+            if cached is not None:
+                return BestPerformersListResponse(**cached)
+        
         results = await get_top_users_by_questions_solved(self.db, limit)
         
         performers = [
@@ -172,10 +234,20 @@ class LeaderboardService:
             for user, count in results
         ]
         
-        return BestPerformersListResponse(
+        response = BestPerformersListResponse(
             performers=performers,
             total=len(performers),
         )
+        
+        # Cache result
+        if self.redis_service:
+            await self.redis_service.set_value(
+                cache_key,
+                response.model_dump(mode='json'),
+                expire=settings.CACHE_LEADER_TTL
+            )
+        
+        return response
 
     async def get_top_performers_all_categories(self) -> TopPerformersResponse:
         """Get best performers in all categories (cached)"""
@@ -202,7 +274,7 @@ class LeaderboardService:
             await self.redis_service.set_value(
                 cache_key,
                 response.model_dump(mode='json'),
-                expire=settings.CACHE_SHARED
+                expire=settings.CACHE_LEADER_TTL
             )
         
         return response
@@ -270,7 +342,7 @@ class LeaderboardService:
             await self.redis_service.set_value(
                 cache_key,
                 response.model_dump(mode='json'),
-                expire=settings.CACHE_SHARED
+                expire=settings.CACHE_LEADER_TTL
             )
         
         return response
@@ -336,23 +408,41 @@ class LeaderboardService:
             await self.redis_service.set_value(
                 cache_key,
                 response.model_dump(mode='json'),
-                expire=settings.CACHE_SHARED
+                expire=settings.CACHE_LEADER_TTL
             )
         
         return response
 
     async def get_best_by_longest_streak(self) -> Optional[BestPerformerResponse]:
-        """Get user with longest study streak"""
+        """Get user with longest study streak (cached)"""
+        cache_key = f"{self.CACHE_PREFIX}:best:streak"
+        
+        # Try cache first
+        if self.redis_service:
+            cached = await self.redis_service.get_value(cache_key)
+            if cached is not None:
+                return BestPerformerResponse(**cached)
+        
         result = await get_user_with_longest_streak(self.db)
         if not result:
             return None
         
         user, longest_streak = result
-        return BestPerformerResponse(
+        response = BestPerformerResponse(
             user=UserProfileResponse.model_validate(user),
             metric_value=longest_streak,
             metric_type="longest_streak",
         )
+        
+        # Cache result
+        if self.redis_service:
+            await self.redis_service.set_value(
+                cache_key,
+                response.model_dump(mode='json'),
+                expire=settings.CACHE_LEADER_TTL
+            )
+        
+        return response
 
     async def get_contest_ranking(
         self,
@@ -426,7 +516,7 @@ class LeaderboardService:
             await self.redis_service.set_value(
                 cache_key,
                 response.model_dump(mode='json'),
-                expire=settings.CACHE_SHARED
+                expire=settings.CACHE_LEADER_TTL
             )
         
         return response

@@ -167,9 +167,9 @@ async def get_leaderboard_service(db: DBSession, redis_service: RedisServiceDep)
 LeaderboardServiceDep = Annotated[LeaderboardService, Depends(get_leaderboard_service)]
 
 
-async def get_badge_service(db: DBSession) -> BadgeService:
-    """Get badge service"""
-    return BadgeService(db)
+async def get_badge_service(db: DBSession, redis_service: RedisServiceDep) -> BadgeService:
+    """Get badge service with Redis caching"""
+    return BadgeService(db, redis_service)
 
 
 BadgeServiceDep = Annotated[BadgeService, Depends(get_badge_service)]
@@ -304,15 +304,32 @@ async def get_current_user(
     if not is_valid:
         raise SessionExpiredException()
 
-    # Optimized: Use get() for primary key lookup (fastest for PK)
-    # Then check is_active in application code (minimal overhead)
-    user = await db.get(User, user_id)
+    # CACHE USER: Fast path - avoid DB query
+    user_cache_key = f"user:{user_id_str}:{session_id}"
+    cached_user = await redis.get_value(user_cache_key)
+    
+    if cached_user is not None:
+        # Direct return - cached data is already in correct format for User model
+        # Pydantic/SQLModel will handle type conversion automatically
+        user = User.model_validate(cached_user)
+        if not user.is_active:
+            raise UnauthorizedException("Account is inactive")
+        return user
 
+    # Cache miss - fetch from database
+    user = await db.get(User, user_id)
     if not user:
         raise UnauthorizedException("User not found")
-
     if not user.is_active:
         raise UnauthorizedException("Account is inactive")
+
+    # Cache user using model_dump (handles all serialization automatically)
+    from app.core.config import settings
+    await redis.set_value(
+        user_cache_key,
+        user.model_dump(mode='json'),  # Automatically converts UUIDs, datetimes, enums to JSON-compatible types
+        expire=settings.CACHE_USER_TTL
+    )
 
     return user
 

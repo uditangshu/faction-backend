@@ -341,6 +341,10 @@ class AuthService:
                     update(UserSession).where(UserSession.id == UUID(session_id)).values(push_token=None, is_active=False)
                 )
                 await self.db.commit()
+                
+                # Invalidate user cache for this session
+                user_cache_key = f"user:{user_id}:{session_id}"
+                await self.otp_service.redis.delete_key(user_cache_key)
             
             await self.otp_service.redis.invalidate_user_session(user_id)
             print(f"✅ Logged out user {user_id}")

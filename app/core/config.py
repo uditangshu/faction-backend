@@ -74,7 +74,9 @@ class Settings(BaseSettings):
 
     # Redis Cache TTL (in seconds)
     CACHE_SHARED: int = 600  # 10 minutes default for shared/public API caches
+    CACHE_LEADER_TTL: int = 600  # 10 minutes default for leaderboard API caches
     LONG_TERM_CACHE_TTL: int = 3600  # 1 hour default for long-term caches (notes, treasure)
+    CACHE_USER_TTL: int = 60  # 1 minute default for user cache (short TTL for freshness)
 
     model_config = SettingsConfigDict(
         env_file=str(ENV_FILE),
