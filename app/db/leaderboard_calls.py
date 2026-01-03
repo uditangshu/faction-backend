@@ -460,59 +460,6 @@ async def get_contest_leaderboard_entry(
     return result.scalar_one_or_none()
 
 
-async def get_scholarship_ranking(
-    db: AsyncSession,
-    contest_id: UUID,
-    skip: int = 0,
-    limit: int = 20,
-) -> Tuple[List[Tuple[ContestLeaderboard, User, Contest]], int]:
-    """
-    Get scholarship contest ranking ordered by score (desc) and total_time (asc).
-    
-    Fetches leaderboard entries for a specific scholarship contest (isScholarship=True),
-    ordered by highest score first, then by lowest total_time for same scores.
-    
-    Args:
-        db: Database session
-        contest_id: Contest ID to get ranking for (must be a scholarship contest)
-        skip: Number of records to skip for pagination
-        limit: Maximum number of records to return
-    
-    Returns:
-        Tuple of (List of tuples (ContestLeaderboard, User, Contest), total_count)
-    """
-    # Count total leaderboard entries for this scholarship contest
-    count_result = await db.execute(
-        select(func.count(ContestLeaderboard.id))
-        .join(Contest, ContestLeaderboard.contest_id == Contest.id)
-        .where(
-            ContestLeaderboard.contest_id == contest_id,
-            Contest.isScholarship == True
-        )
-    )
-    total = count_result.scalar() or 0
-    
-    # Get paginated leaderboard entries with ordering
-    # Order by score DESC, then total_time ASC (lower time is better)
-    result = await db.execute(
-        select(ContestLeaderboard, User, Contest)
-        .join(User, ContestLeaderboard.user_id == User.id)
-        .join(Contest, ContestLeaderboard.contest_id == Contest.id)
-        .where(
-            ContestLeaderboard.contest_id == contest_id,
-            Contest.isScholarship == True
-        )
-        .order_by(
-            desc(ContestLeaderboard.score),
-            asc(ContestLeaderboard.total_time)
-        )
-        .offset(skip)
-        .limit(limit)
-    )
-    
-    return [(row[0], row[1], row[2]) for row in result.all()], total
-
-
 async def get_rating_ranking_by_filter(
     db: AsyncSession,
     skip: int = 0,

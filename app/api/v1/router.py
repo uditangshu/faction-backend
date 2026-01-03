@@ -18,6 +18,7 @@ from app.api.v1.endpoints.doubt_forum import doubt_forum
 from app.api.v1.endpoints.notification import notification
 from app.api.v1.endpoints.treasure import treasure
 from app.api.v1.endpoints.notes import notes
+from app.api.v1.endpoints.scholarship import scholarship
 
 api_router = APIRouter()
 
@@ -76,3 +77,6 @@ api_router.include_router(treasure.router)
 
 # Notes routes
 api_router.include_router(notes.router)
+
+# Scholarship routes
+api_router.include_router(scholarship.router)

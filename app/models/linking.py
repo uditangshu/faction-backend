@@ -9,6 +9,7 @@ if TYPE_CHECKING:
     from Basequestion import Question
     from custom_test import CustomTest
     from contest import Contest
+    from scholarship import Scholarship
 
 class CustomTestQuestion(SQLModel, table=True):
     id: UUID = Field(default_factory=uuid4, primary_key=True)
@@ -25,3 +26,13 @@ class ContestQuestions(SQLModel, table=True):
 
     contest: "Contest" = Relationship(back_populates="questions")
     question: "Question" = Relationship(back_populates="contest")
+
+
+class ScholarshipQuestion(SQLModel, table=True):
+    """Linking table for Scholarship and Question"""
+    id: UUID = Field(default_factory=uuid4, primary_key=True)
+    scholarship_id: UUID = Field(foreign_key="scholarship.id", index=True)
+    question_id: UUID = Field(foreign_key="question.id", index=True)
+
+    scholarship: "Scholarship" = Relationship(back_populates="questions")
+    question: "Question" = Relationship(back_populates="scholarship")

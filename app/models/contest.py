@@ -20,8 +20,7 @@ class Contest(SQLModel,table=True):
     total_time: int
     status: ContestStatus
     starts_at: datetime
-    ends_at: datetime 
-    isScholarship: bool = Field(default=False)
+    ends_at: datetime
     
     created_at: datetime = Field(default_factory=datetime.utcnow)
 

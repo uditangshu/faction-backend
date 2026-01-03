@@ -91,6 +91,7 @@ class Question(SQLModel, table=True):
     #relations
     tests: list["CustomTestQuestion"] = Relationship(back_populates="question")
     contest: list["ContestQuestions"] = Relationship(back_populates="question")
+    scholarship: list["ScholarshipQuestion"] = Relationship(back_populates="question")
     
     # Core Attributes
     type: QuestionType

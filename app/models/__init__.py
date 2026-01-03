@@ -9,7 +9,7 @@ from app.models.streak import UserStudyStats, UserDailyStreak
 from app.models.analysis import BookMarkedQuestion
 from app.models.pyq import PreviousYearProblems
 from app.models.custom_test import CustomTest, CustomTestAnalysis
-from app.models.linking import CustomTestQuestion
+from app.models.linking import CustomTestQuestion, ScholarshipQuestion
 from app.models.contest import Contest, ContestLeaderboard, ContestQuestions 
 from app.models.youtube_video import YouTubeVideo, BookmarkedVideo
 from app.models.badge import Badge, BadgeCategory
@@ -20,6 +20,7 @@ from app.models.treasure import Treasure
 from app.models.notes import Notes
 from app.models.user_badge import UserBadge
 from app.models.qotd import QOTD
+from app.models.scholarship import Scholarship, ScholarshipResult
 
 __all__ = [
     "User",
@@ -45,6 +46,7 @@ __all__ = [
     "CustomTest",
     "CustomTestAnalysis",
     "CustomTestQuestion",
+    "ScholarshipQuestion",
     "Contest",
     "ContestQuestions",
     "ContestLeaderboard",
@@ -62,5 +64,7 @@ __all__ = [
     "Notes",
     "UserBadge",
     "QOTD",
+    "Scholarship",
+    "ScholarshipResult",
 ]
 

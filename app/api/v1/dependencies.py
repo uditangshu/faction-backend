@@ -36,6 +36,7 @@ from app.services.doubt_forum_service import DoubtForumService
 from app.services.notification_service import NotificationService
 from app.services.treasure_service import TreasureService
 from app.services.notes_service import NotesService
+from app.services.scholarship_service import ScholarshipService
 
 # Database session dependency
 DBSession = Annotated[AsyncSession, Depends(get_db_session)]
@@ -245,6 +246,14 @@ async def get_notes_service(db: DBSession, redis_service: RedisServiceDep) -> No
 
 
 NotesServiceDep = Annotated[NotesService, Depends(get_notes_service)]
+
+
+async def get_scholarship_service(db: DBSession) -> ScholarshipService:
+    """Get scholarship service"""
+    return ScholarshipService(db)
+
+
+ScholarshipServiceDep = Annotated[ScholarshipService, Depends(get_scholarship_service)]
 
 
 bearer_scheme = HTTPBearer()
