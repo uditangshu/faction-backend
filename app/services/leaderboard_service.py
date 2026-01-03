@@ -17,6 +17,7 @@ from app.db.leaderboard_calls import (
     get_user_with_most_questions_solved,
     get_top_users_by_questions_solved,
     get_arena_ranking_by_submissions,
+    get_user_arena_rank,
     get_contest_ranking_by_filter,
     get_contest_ranking_by_contest_id,
     get_rating_ranking_by_filter,
@@ -286,9 +287,10 @@ class LeaderboardService:
         limit: int = 20,
         class_id: Optional[UUID] = None,
         exam_type: Optional[str] = None,
+        user_id: Optional[UUID] = None,
     ) -> ArenaRankingResponse:
         """
-        Get arena ranking by maximum submissions solved with time filtering and pagination (cached).
+        Get arena ranking by maximum submissions solved with time filtering and pagination.
         
         Args:
             time_filter: Time filter - "daily", "weekly", or "all_time"
@@ -296,21 +298,11 @@ class LeaderboardService:
             limit: Maximum number of records to return
             class_id: Optional class ID to filter users by class
             exam_type: Optional target exam type to filter users by matching exam
+            user_id: Optional user ID to get current user's rank
         
         Returns:
             ArenaRankingResponse with paginated users and their solved counts
         """
-        # Create cache key based on all parameters
-        exam_type_str = exam_type if exam_type else "none"
-        class_id_str = str(class_id) if class_id else "none"
-        cache_key = f"{self.CACHE_PREFIX}:arena_ranking:{time_filter}:{class_id_str}:{exam_type_str}:{skip}:{limit}"
-        
-        # Try cache first
-        if self.redis_service:
-            cached = await self.redis_service.get_value(cache_key)
-            if cached is not None:
-                return ArenaRankingResponse(**cached)
-        
         results, total = await get_arena_ranking_by_submissions(
             self.db,
             time_filter=time_filter,
@@ -330,20 +322,24 @@ class LeaderboardService:
             for user, count in results
         ]
         
+        # Get user rank if user_id provided
+        user_rank, user_data = None, None
+        if user_id:
+            user_rank, user_data = await get_user_arena_rank(self.db, user_id, time_filter, class_id, exam_type)
+        
         response = ArenaRankingResponse(
             users=users,
             total=total,
             skip=skip,
             limit=limit,
+            current_user_rank=user_rank,
+            current_user=ArenaRankingUserResponse(
+                user_id=user_data[0].id,
+                user_name=user_data[0].name,
+                avatar_url=user_data[0].avatar_url,
+                questions_solved=user_data[1],
+            ) if user_data else None,
         )
-        
-        # Cache result
-        if self.redis_service:
-            await self.redis_service.set_value(
-                cache_key,
-                response.model_dump(mode='json'),
-                expire=settings.CACHE_LEADER_TTL
-            )
         
         return response
 

@@ -44,6 +44,8 @@ class ArenaRankingResponse(BaseModel):
     total: int
     skip: int
     limit: int
+    current_user_rank: int | None = None
+    current_user: ArenaRankingUserResponse | None = None
 
 
 class StreakRankingUserResponse(BaseModel):

@@ -1,6 +1,6 @@
 """Study streak calculation service"""
 
-from datetime import datetime, date, timedelta
+from datetime import datetime, date, timedelta, time
 from uuid import UUID
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func, and_, desc
@@ -10,7 +10,48 @@ from app.models.streak import UserStudyStats, UserDailyStreak
 from app.models.attempt import QuestionAttempt
 from app.models.attempt import QuestionAttempt
 from app.models.user import User
+from app.models.qotd import QOTD
 from app.services.badge_rules import BadgeAwardingService
+
+
+async def is_question_from_qotd(
+    db: AsyncSession,
+    question_id: UUID,
+    class_id: UUID,
+    timezone_offset: int
+) -> bool:
+    """
+    Quick check if a question is from today's QOTD for the given class.
+    
+    Args:
+        db: Database session
+        question_id: Question ID to check
+        class_id: User's class ID
+        timezone_offset: User's timezone offset in minutes from UTC
+    
+    Returns:
+        True if question is from today's QOTD, False otherwise
+    """
+    # Calculate today's start in UTC
+    utc_now = datetime.utcnow()
+    user_local_date = (utc_now + timedelta(minutes=timezone_offset)).date()
+    today_start_utc = datetime.combine(user_local_date, time(0, 0, 0)) - timedelta(minutes=timezone_offset)
+    
+    # Get today's QOTD for this class
+    qotd_result = await db.execute(
+        select(QOTD)
+        .where(and_(QOTD.class_id == class_id, QOTD.created_at >= today_start_utc))
+        .order_by(QOTD.created_at.desc())
+        .limit(1)
+    )
+    qotd = qotd_result.scalar_one_or_none()
+    
+    if not qotd or not qotd.questions:
+        return False
+    
+    # Check if question_id exists in QOTD questions
+    question_id_str = str(question_id)
+    return any(str(q.get("id", "")) == question_id_str for q in qotd.questions)
 
 
 class StreakService:
@@ -29,91 +70,6 @@ class StreakService:
             self.db.add(stats)
             await self.db.commit()
             await self.db.refresh(stats)
-
-        return stats
-
-    async def update_streak_on_correct_answer(self, user_id: UUID) -> UserStudyStats:
-        """
-        Update user streak after a correct answer.
-
-        Args:
-            user_id: User UUID
-
-        Returns:
-            Updated UserStudyStats
-        """
-        stats = await self.get_or_create_user_stats(user_id)
-        
-        # Get user's timezone offset
-        user_result = await self.db.execute(select(User).where(User.id == user_id))
-        user = user_result.scalar_one_or_none()
-        timezone_offset = user.timezone_offset if user else 330  # Default to IST
-        
-        # Calculate user's local date (UTC + offset)
-        utc_now = datetime.utcnow()
-        user_local_time = utc_now + timedelta(minutes=timezone_offset)
-        user_local_date = user_local_time.date()
-
-        # Get or create today's streak record (using user's local date)
-        result = await self.db.execute(
-            select(UserDailyStreak).where(
-                and_(UserDailyStreak.user_id == user_id, UserDailyStreak.streak_date == user_local_date)
-            )
-        )
-        daily_streak = result.scalar_one_or_none()
-
-        if not daily_streak:
-            daily_streak = UserDailyStreak(
-                user_id=user_id,
-                streak_date=user_local_date,
-                problems_solved=1,
-                first_solve_time=datetime.utcnow(),
-                last_solve_time=datetime.utcnow(),
-                streak_maintained=True,
-            )
-            self.db.add(daily_streak)
-
-            # Update streak count
-            yesterday_date = user_local_date - timedelta(days=1)
-            if stats.last_study_date == yesterday_date:
-                # Consecutive day
-                stats.current_study_streak += 1
-            elif stats.last_study_date != user_local_date:
-                # Streak broken, start new
-                stats.current_study_streak = 1
-
-            stats.last_study_date = user_local_date
-        else:
-            # Update existing daily streak
-            daily_streak.problems_solved += 1
-            daily_streak.last_solve_time = datetime.utcnow()
-
-        # Update overall stats
-        stats.questions_solved += 1
-        stats.total_attempts += 1
-
-        # Update longest streak
-        if stats.current_study_streak > stats.longest_study_streak:
-            stats.longest_study_streak = stats.current_study_streak
-
-        # Recalculate accuracy
-        # Note: This is called only when answer is correct, so we can optimize
-        # by incrementing a counter instead of counting all attempts every time
-        correct_attempts = await self._count_correct_attempts(user_id)
-        if stats.total_attempts > 0:
-            stats.accuracy_rate = (correct_attempts / stats.total_attempts) * 100
-
-        stats.updated_at = datetime.utcnow()
-
-        await self.db.commit()
-        await self.db.refresh(stats)
-        
-        # Check for streak badges
-        try:
-            badge_service = BadgeAwardingService(self.db)
-            await badge_service.check_streak_badges(user_id, stats.current_study_streak)
-        except Exception as e:
-            print(f"Error checking streak badges: {e}")
 
         return stats
 

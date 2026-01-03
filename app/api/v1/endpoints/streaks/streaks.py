@@ -53,18 +53,6 @@ async def create_study_entry(
         id= result.id,
     )
 
-    
-@router.post("/me/update_study_stats", response_model= Successful_Query )
-async def update_study_stats(
-    streakService: StreakServiceDep,
-    current_user: CurrentUser,
-) -> Successful_Query:
-    result = await streakService.update_streak_on_correct_answer(current_user.id)
-    return Successful_Query(
-        msg= "Successfully updated the streak",
-        id= result.id,
-    )
-
 
 @router.get("/me/stats", response_model=StudyStatsResponse)
 async def get_my_study_stats(

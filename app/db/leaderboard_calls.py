@@ -264,6 +264,39 @@ async def get_arena_ranking_by_submissions(
     return [(row[0], row[1]) for row in result.all()], total
 
 
+async def get_user_arena_rank(
+    db: AsyncSession,
+    user_id: UUID,
+    time_filter: str = "all_time",
+    class_id: Optional[UUID] = None,
+    exam_type: Optional[str] = None,
+) -> Tuple[Optional[int], Optional[Tuple[User, int]]]:
+    """Get user's arena rank efficiently. Returns (rank, user_data)."""
+    threshold = (datetime.utcnow() - timedelta(days=1)) if time_filter == "daily" else \
+                ((datetime.utcnow() - timedelta(weeks=1)) if time_filter == "weekly" else None)
+    
+    subquery = (
+        select(QuestionAttempt.user_id, func.count(func.distinct(QuestionAttempt.question_id)).label("count"))
+        .where(QuestionAttempt.is_correct == True)
+    )
+    if threshold:
+        subquery = subquery.where(QuestionAttempt.attempted_at >= threshold)
+    subquery = subquery.group_by(QuestionAttempt.user_id).subquery()
+    
+    filters = [User.is_active == True]
+    if class_id:
+        filters.append(User.class_id == class_id)
+    if exam_type:
+        filters.append(cast(User.target_exams, JSONB).contains([exam_type]))
+    
+    user_data = (await db.execute(select(User, subquery.c.count).join(subquery, User.id == subquery.c.user_id).where(and_(User.id == user_id, *filters)))).first()
+    if not user_data:
+        return None, None
+    
+    user_rank = (await db.execute(select(func.count(subquery.c.user_id)).select_from(subquery).join(User, subquery.c.user_id == User.id).where(and_(subquery.c.count > user_data[1], *filters)))).scalar() or 0
+    return user_rank + 1, (user_data[0], user_data[1])
+
+
 async def get_contest_ranking_by_filter(
     db: AsyncSession,
     filter_type: str = "best_rating_first",

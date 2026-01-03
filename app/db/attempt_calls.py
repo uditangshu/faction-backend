@@ -11,6 +11,7 @@ from app.models.attempt import QuestionAttempt
 from app.models.streak import UserStudyStats, UserDailyStreak
 from app.models.Basequestion import Question, Topic, Chapter, Subject, DifficultyLevel
 from app.models.user import User
+from app.services.streak_service import is_question_from_qotd
 
 
 async def create_attempt(
@@ -137,7 +138,18 @@ async def create_attempt(
                 # Explicitly tell SQLAlchemy that this JSON column has been modified
                 flag_modified(stats, "study_activity_graph")
             
-            # Get or create today's streak record (using user's local date)
+            # Check if question is from QOTD
+            is_qotd_question = False
+            if user and user.class_id:
+                is_qotd_question = await is_question_from_qotd(
+                    db=db,
+                    question_id=question_id,
+                    class_id=user.class_id,
+                    timezone_offset=timezone_offset
+                )
+            
+            # Only update streak if question is from QOTD
+                # Get or create today's streak record (using user's local date)
             streak_result = await db.execute(
                 select(UserDailyStreak).where(
                     and_(UserDailyStreak.user_id == user_id, UserDailyStreak.streak_date == user_local_date)
@@ -158,27 +170,28 @@ async def create_attempt(
                 db.add(daily_streak)
                 
                 # Update streak count
-                yesterday_date = user_local_date - timedelta(days=1)
-                if stats.last_study_date == yesterday_date:
-                    # Consecutive day
-                    stats.current_study_streak += 1
-                elif stats.last_study_date != user_local_date:
-                    # Streak broken, start new
-                    stats.current_study_streak = 1
-                
-                stats.last_study_date = user_local_date
+                if is_qotd_question:
+                    yesterday_date = user_local_date - timedelta(days=1)
+                    if stats.last_study_date == yesterday_date:
+                        # Consecutive day
+                        stats.current_study_streak += 1
+                    elif stats.last_study_date != user_local_date:
+                        # Streak broken, start new
+                        stats.current_study_streak = 1
+                    
+                    stats.last_study_date = user_local_date
             else:
                 # Update existing daily streak
                 daily_streak.problems_solved += 1
                 daily_streak.last_solve_time = datetime.utcnow()
             
+            # Update longest streak only if question is from QOTD
+            if stats.current_study_streak > stats.longest_study_streak:
+                stats.longest_study_streak = stats.current_study_streak
+            
             # Update overall stats
             stats.questions_solved += 1
             stats.total_attempts += 1
-            
-            # Update longest streak
-            if stats.current_study_streak > stats.longest_study_streak:
-                stats.longest_study_streak = stats.current_study_streak
             
             # Recalculate accuracy
             # Count correct attempts (the current attempt hasn't been committed yet, so we add 1 if correct)
