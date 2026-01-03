@@ -28,14 +28,16 @@ class ScholarshipService:
         user_id: UUID,
         class_id: UUID,
         exam_type: TargetExam,
+        time_required: int,
     ) -> tuple[Scholarship, List[Question]]:
         """
-        Create a scholarship test with 5 questions from 3 randomly selected subjects.
+        Create a scholarship test with 5 questions from each of 3 randomly selected subjects (15 questions total).
         
         Args:
             user_id: User ID who owns the test
             class_id: Class ID to filter subjects
             exam_type: Exam type to filter subjects and questions
+            time_required: Time required for the test in seconds
             
         Returns:
             Tuple of (Scholarship instance, List of questions)
@@ -80,33 +82,37 @@ class ScholarshipService:
         selected_subjects = random.sample(all_subjects, 3)
         selected_subject_ids = [s.id for s in selected_subjects]
 
-        # Get 5 questions from the 3 selected subjects
-        query = select(Question)
-        query = query.join(Topic, Question.topic_id == Topic.id)
-        query = query.join(Chapter, Topic.chapter_id == Chapter.id)
-        query = query.join(Subject, Chapter.subject_id == Subject.id)
-        query = query.where(Subject.id.in_(selected_subject_ids))
-        query = query.where(
-            cast(Question.exam_type, JSONB).contains([exam_type.value])
-        )
-        query = query.order_by(func.random()).limit(5)
-        
-        result = await self.db.execute(query)
-        questions = list(result.scalars().all())
-
-        # Check if we have exactly 5 questions
-        if len(questions) < 5:
-            raise NotFoundException(
-                f"Not enough questions found. Found {len(questions)} questions, but need 5. "
-                f"Please ensure there are enough questions in the selected subjects for exam type {exam_type.value}."
+        # Get 5 questions from EACH of the 3 selected subjects (15 questions total)
+        questions = []
+        for subject_id in selected_subject_ids:
+            query = select(Question)
+            query = query.join(Topic, Question.topic_id == Topic.id)
+            query = query.join(Chapter, Topic.chapter_id == Chapter.id)
+            query = query.join(Subject, Chapter.subject_id == Subject.id)
+            query = query.where(Subject.id == subject_id)
+            query = query.where(
+                cast(Question.exam_type, JSONB).contains([exam_type.value])
             )
+            query = query.order_by(func.random()).limit(5)
+            
+            result = await self.db.execute(query)
+            subject_questions = list(result.scalars().all())
+            
+            # Check if we have enough questions for this subject
+            if len(subject_questions) < 5:
+                raise NotFoundException(
+                    f"Not enough questions found for subject. Found {len(subject_questions)} questions, but need 5. "
+                    f"Please ensure there are enough questions in the selected subjects for exam type {exam_type.value}."
+                )
+            
+            questions.extend(subject_questions)
 
         # Create the scholarship test
         scholarship = Scholarship(
             user_id=user_id,
             class_id=class_id,
             exam_type=exam_type,
-            time_assigned=0,  # Default time, can be set later
+            time_assigned=time_required,
             status=AttemptStatus.not_started,
         )
         self.db.add(scholarship)

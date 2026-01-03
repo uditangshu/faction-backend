@@ -11,6 +11,7 @@ class ScholarshipTestCreateRequest(BaseModel):
     """Request to create a scholarship test"""
     class_id: UUID = Field(..., description="Class ID to filter subjects")
     exam_type: TargetExam = Field(..., description="Target exam type")
+    time_required: int = Field(..., ge=0, description="Time required for the test in seconds")
 
 
 class ScholarshipQuestionResponse(BaseModel):

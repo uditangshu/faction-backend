@@ -1,10 +1,11 @@
 """Arena Ranking endpoints"""
 
-from typing import Literal
+from typing import Literal, Optional
 from fastapi import APIRouter, Query
 
 from app.api.v1.dependencies import LeaderboardServiceDep, CurrentUser
 from app.schemas.leaderboard import ArenaRankingResponse
+from app.models.user import TargetExam
 
 router = APIRouter(prefix="/arena-ranking", tags=["Arena Ranking"])
 
@@ -17,6 +18,10 @@ async def get_arena_ranking(
         "all_time",
         description="Filter by time period: daily, weekly, or all_time"
     ),
+    exam_type: Optional[TargetExam] = Query(
+        None,
+        description="Filter users by target exam type (optional)"
+    ),
     skip: int = Query(0, ge=0, description="Number of records to skip"),
     limit: int = Query(20, ge=1, le=100, description="Maximum number of records"),
 ) -> ArenaRankingResponse:
@@ -24,7 +29,7 @@ async def get_arena_ranking(
     Get arena ranking by maximum submissions solved.
     
     Returns paginated list of users ranked by number of distinct questions solved,
-    filtered by the current user's class and target exams,
+    filtered by the current user's class and optionally by exam type,
     with optional time filtering (daily, weekly, or all_time).
     """
     return await leaderboard_service.get_arena_ranking(
@@ -32,6 +37,6 @@ async def get_arena_ranking(
         skip=skip,
         limit=limit,
         class_id=current_user.class_id,
-        target_exams=current_user.target_exams,
+        exam_type=exam_type.value if exam_type else None,
     )
 

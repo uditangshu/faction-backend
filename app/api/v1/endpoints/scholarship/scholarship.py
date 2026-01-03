@@ -25,9 +25,10 @@ async def create_scholarship_test(
     """
     Create a scholarship test.
     
-    Generates 5 questions from 3 randomly selected subjects based on:
+    Generates 5 questions from EACH of 3 randomly selected subjects (15 questions total) based on:
     - class_id: Class to filter subjects
     - exam_type: Exam type to filter subjects and questions
+    - time_required: Time required for the test in seconds
     
     Returns questions without answers (no solution_text, no correct options).
     """
@@ -37,6 +38,7 @@ async def create_scholarship_test(
             user_id=current_user.id,
             class_id=request.class_id,
             exam_type=request.exam_type,
+            time_required=request.time_required,
         )
         
         # Build response - questions without answers

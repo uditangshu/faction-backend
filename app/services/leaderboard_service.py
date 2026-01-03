@@ -285,7 +285,7 @@ class LeaderboardService:
         skip: int = 0,
         limit: int = 20,
         class_id: Optional[UUID] = None,
-        target_exams: Optional[List[str]] = None,
+        exam_type: Optional[str] = None,
     ) -> ArenaRankingResponse:
         """
         Get arena ranking by maximum submissions solved with time filtering and pagination (cached).
@@ -295,15 +295,15 @@ class LeaderboardService:
             skip: Number of records to skip for pagination
             limit: Maximum number of records to return
             class_id: Optional class ID to filter users by class
-            target_exams: Optional list of target exams to filter users by matching exams
+            exam_type: Optional target exam type to filter users by matching exam
         
         Returns:
             ArenaRankingResponse with paginated users and their solved counts
         """
         # Create cache key based on all parameters
-        target_exams_str = ":".join(sorted(target_exams)) if target_exams else "none"
+        exam_type_str = exam_type if exam_type else "none"
         class_id_str = str(class_id) if class_id else "none"
-        cache_key = f"{self.CACHE_PREFIX}:arena_ranking:{time_filter}:{class_id_str}:{target_exams_str}:{skip}:{limit}"
+        cache_key = f"{self.CACHE_PREFIX}:arena_ranking:{time_filter}:{class_id_str}:{exam_type_str}:{skip}:{limit}"
         
         # Try cache first
         if self.redis_service:
@@ -317,7 +317,7 @@ class LeaderboardService:
             skip=skip,
             limit=limit,
             class_id=class_id,
-            target_exams=target_exams,
+            exam_type=exam_type,
         )
         
         users = [
@@ -352,7 +352,7 @@ class LeaderboardService:
         skip: int = 0,
         limit: int = 20,
         class_id: Optional[UUID] = None,
-        target_exams: Optional[List[str]] = None,
+        exam_type: Optional[str] = None,
     ) -> StreakRankingResponse:
         """
         Get streak ranking sorted by longest streak with pagination (cached).
@@ -361,15 +361,15 @@ class LeaderboardService:
             skip: Number of records to skip for pagination
             limit: Maximum number of records to return
             class_id: Optional class ID to filter users by class
-            target_exams: Optional list of target exams to filter users by matching exams
+            exam_type: Optional target exam type to filter users by matching exam
         
         Returns:
             StreakRankingResponse with paginated users and their streak counts
         """
         # Create cache key based on all parameters
-        target_exams_str = ":".join(sorted(target_exams)) if target_exams else "none"
+        exam_type_str = exam_type if exam_type else "none"
         class_id_str = str(class_id) if class_id else "none"
-        cache_key = f"{self.CACHE_PREFIX}:streak_ranking:{class_id_str}:{target_exams_str}:{skip}:{limit}"
+        cache_key = f"{self.CACHE_PREFIX}:streak_ranking:{class_id_str}:{exam_type_str}:{skip}:{limit}"
         
         # Try cache first
         if self.redis_service:
@@ -382,7 +382,7 @@ class LeaderboardService:
             skip=skip,
             limit=limit,
             class_id=class_id,
-            target_exams=target_exams,
+            exam_type=exam_type,
         )
         
         users = [
@@ -450,7 +450,7 @@ class LeaderboardService:
         skip: int = 0,
         limit: int = 20,
         class_id: Optional[UUID] = None,
-        target_exams: Optional[List[str]] = None,
+        exam_type: Optional[str] = None,
     ) -> ContestRankingResponse:
         """
         Get contest ranking from the most recent contest with filter options (cached).
@@ -460,15 +460,15 @@ class LeaderboardService:
             skip: Number of records to skip for pagination
             limit: Maximum number of records to return
             class_id: Optional class ID to filter users by class
-            target_exams: Optional list of target exams to filter users by matching exams
+            exam_type: Optional target exam type to filter users by matching exam
         
         Returns:
             ContestRankingResponse with paginated users and their contest performance
         """
         # Create cache key based on all parameters
-        target_exams_str = ":".join(sorted(target_exams)) if target_exams else "none"
+        exam_type_str = exam_type if exam_type else "none"
         class_id_str = str(class_id) if class_id else "none"
-        cache_key = f"{self.CACHE_PREFIX}:contest_ranking:{filter_type}:{class_id_str}:{target_exams_str}:{skip}:{limit}"
+        cache_key = f"{self.CACHE_PREFIX}:contest_ranking:{filter_type}:{class_id_str}:{exam_type_str}:{skip}:{limit}"
         
         # Try cache first
         if self.redis_service:
@@ -482,7 +482,7 @@ class LeaderboardService:
             skip=skip,
             limit=limit,
             class_id=class_id,
-            target_exams=target_exams,
+            exam_type=exam_type,
             redis_service=self.redis_service,
         )
         
@@ -578,24 +578,24 @@ class LeaderboardService:
         skip: int = 0,
         limit: int = 20,
         class_id: Optional[UUID] = None,
-        target_exams: Optional[List[str]] = None,
+        exam_type: Optional[str] = None,
     ) -> RatingRankingResponse:
         """
-        Get rating ranking filtered by class_id and target_exams (cached).
+        Get rating ranking filtered by class_id and exam_type (cached).
         
         Args:
             skip: Number of records to skip for pagination
             limit: Maximum number of records to return
             class_id: Optional class ID to filter users by class
-            target_exams: Optional list of target exams to filter users by matching exams
+            exam_type: Optional target exam type to filter users by matching exam
         
         Returns:
             RatingRankingResponse with paginated users and their rating information
         """
-        # Create cache key based on class_id, target_exams (sorted), skip, and limit
-        target_exams_str = ":".join(sorted(target_exams)) if target_exams else "none"
+        # Create cache key based on class_id, exam_type, skip, and limit
+        exam_type_str = exam_type if exam_type else "none"
         class_id_str = str(class_id) if class_id else "none"
-        cache_key = f"{self.CACHE_PREFIX}:rating_ranking:{class_id_str}:{target_exams_str}:{skip}:{limit}"
+        cache_key = f"{self.CACHE_PREFIX}:rating_ranking:{class_id_str}:{exam_type_str}:{skip}:{limit}"
         
         # Try cache first
         if self.redis_service:
@@ -608,7 +608,7 @@ class LeaderboardService:
             skip=skip,
             limit=limit,
             class_id=class_id,
-            target_exams=target_exams,
+            exam_type=exam_type,
         )
         
         users = [

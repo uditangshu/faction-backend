@@ -119,7 +119,7 @@ async def get_streak_ranking(
     skip: int = 0,
     limit: int = 20,
     class_id: Optional[UUID] = None,
-    target_exams: Optional[List[str]] = None,
+    exam_type: Optional[str] = None,
 ) -> Tuple[List[Tuple[User, int, int]], int]:
     """
     Get streak ranking sorted by current streak descending with pagination.
@@ -129,7 +129,7 @@ async def get_streak_ranking(
         skip: Number of records to skip for pagination
         limit: Maximum number of records to return
         class_id: Optional class ID to filter users by class
-        target_exams: Optional list of target exams to filter users by matching exams
+        exam_type: Optional target exam type to filter users by matching exam
     
     Returns:
         Tuple of (List of tuples (User, longest_streak, current_streak), total_count)
@@ -141,13 +141,11 @@ async def get_streak_ranking(
     if class_id is not None:
         user_filters.append(User.class_id == class_id)
     
-    # Filter by target_exams overlap if provided
-    if target_exams and len(target_exams) > 0:
-        # Check if any of the target_exams exist in the user's target_exams array
-        exam_conditions = [
-            cast(User.target_exams, JSONB).contains([exam]) for exam in target_exams
-        ]
-        user_filters.append(or_(*exam_conditions))
+    # Filter by exam_type if provided
+    if exam_type:
+        # Check if the exam_type exists in the user's target_exams array
+        # Using JSONB contains operator to check for the exam type
+        user_filters.append(cast(User.target_exams, JSONB).contains([exam_type]))
     
     total_result = await db.execute(
         select(func.count(UserStudyStats.id))

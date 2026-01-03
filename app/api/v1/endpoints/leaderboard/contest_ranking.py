@@ -1,11 +1,12 @@
 """Contest Ranking endpoints"""
 
-from typing import Literal
+from typing import Literal, Optional
 from uuid import UUID
 from fastapi import APIRouter, Query, Path
 
 from app.api.v1.dependencies import LeaderboardServiceDep, CurrentUser
 from app.schemas.leaderboard import ContestRankingResponse
+from app.models.user import TargetExam
 
 router = APIRouter(prefix="/contest-ranking", tags=["Contest Ranking"])
 
@@ -18,13 +19,17 @@ async def get_contest_ranking(
         "best_rating_first",
         description="Filter by ranking: best_rating_first or best_delta_first"
     ),
+    exam_type: Optional[TargetExam] = Query(
+        None,
+        description="Filter users by target exam type (optional)"
+    ),
     skip: int = Query(0, ge=0, description="Number of records to skip"),
     limit: int = Query(20, ge=1, le=100, description="Maximum number of records"),
 ) -> ContestRankingResponse:
     """
     Get contest ranking from the most recent contest.
     
-    Returns paginated list of all users who attended the contest, filtered by the current user's class and target exams, ranked by:
+    Returns paginated list of all users who attended the contest, filtered by the current user's class and optionally by exam type, ranked by:
     - best_rating_first: Highest rating after contest first, then highest delta
     - best_delta_first: Highest rating delta first, then highest rating
     
@@ -35,7 +40,7 @@ async def get_contest_ranking(
         skip=skip,
         limit=limit,
         class_id=current_user.class_id,
-        target_exams=current_user.target_exams,
+        exam_type=exam_type.value if exam_type else None,
     )
 
 

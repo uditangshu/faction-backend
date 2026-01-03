@@ -184,7 +184,7 @@ async def get_arena_ranking_by_submissions(
     skip: int = 0,
     limit: int = 20,
     class_id: Optional[UUID] = None,
-    target_exams: Optional[List[str]] = None,
+    exam_type: Optional[str] = None,
 ) -> Tuple[List[Tuple[User, int]], int]:
     """
     Get arena ranking by maximum submissions solved with time filtering and pagination.
@@ -195,7 +195,7 @@ async def get_arena_ranking_by_submissions(
         skip: Number of records to skip for pagination
         limit: Maximum number of records to return
         class_id: Optional class ID to filter users by class
-        target_exams: Optional list of target exams to filter users by matching exams
+        exam_type: Optional target exam type to filter users by matching exam
     
     Returns:
         Tuple of (List of tuples (User, question_count), total_count)
@@ -235,14 +235,11 @@ async def get_arena_ranking_by_submissions(
     if class_id is not None:
         user_filters.append(User.class_id == class_id)
     
-    # Filter by target_exams overlap if provided
-    if target_exams and len(target_exams) > 0:
-        # Check if any of the target_exams exist in the user's target_exams array
-        # Using JSONB contains operator to check for overlap
-        exam_conditions = [
-            cast(User.target_exams, JSONB).contains([exam]) for exam in target_exams
-        ]
-        user_filters.append(or_(*exam_conditions))
+    # Filter by exam_type if provided
+    if exam_type:
+        # Check if the exam_type exists in the user's target_exams array
+        # Using JSONB contains operator to check for the exam type
+        user_filters.append(cast(User.target_exams, JSONB).contains([exam_type]))
     
     # Count total users for pagination
     count_query = (
@@ -273,7 +270,7 @@ async def get_contest_ranking_by_filter(
     skip: int = 0,
     limit: int = 20,
     class_id: Optional[UUID] = None,
-    target_exams: Optional[List[str]] = None,
+    exam_type: Optional[str] = None,
     redis_service: Optional[RedisService] = None,
 ) -> Tuple[List[Tuple[ContestLeaderboard, User]], int]:
     """
@@ -285,7 +282,7 @@ async def get_contest_ranking_by_filter(
         skip: Number of records to skip for pagination
         limit: Maximum number of records to return
         class_id: Optional class ID to filter users by class
-        target_exams: Optional list of target exams to filter users by matching exams
+        exam_type: Optional target exam type to filter users by matching exam
         redis_service: Optional Redis service for caching most recent contest
     
     Returns:
@@ -332,14 +329,11 @@ async def get_contest_ranking_by_filter(
     if class_id is not None:
         user_filters.append(User.class_id == class_id)
     
-    # Filter by target_exams overlap if provided
-    if target_exams and len(target_exams) > 0:
-        # Check if any of the target_exams exist in the user's target_exams array
-        # Using JSONB contains operator to check for overlap
-        exam_conditions = [
-            cast(User.target_exams, JSONB).contains([exam]) for exam in target_exams
-        ]
-        user_filters.append(or_(*exam_conditions))
+    # Filter by exam_type if provided
+    if exam_type:
+        # Check if the exam_type exists in the user's target_exams array
+        # Using JSONB contains operator to check for the exam type
+        user_filters.append(cast(User.target_exams, JSONB).contains([exam_type]))
     
     # Count total leaderboard entries for this contest
     count_result = await db.execute(
@@ -465,17 +459,17 @@ async def get_rating_ranking_by_filter(
     skip: int = 0,
     limit: int = 20,
     class_id: Optional[UUID] = None,
-    target_exams: Optional[List[str]] = None,
+    exam_type: Optional[str] = None,
 ) -> Tuple[List[User], int]:
     """
-    Get rating ranking filtered by class_id and target_exams.
+    Get rating ranking filtered by class_id and exam_type.
     
     Args:
         db: Database session
         skip: Number of records to skip for pagination
         limit: Maximum number of records to return
         class_id: Optional class ID to filter users by class
-        target_exams: Optional list of target exams to filter users by matching exams
+        exam_type: Optional target exam type to filter users by matching exam
     
     Returns:
         Tuple of (List of Users, total_count) ordered by current_rating descending
@@ -487,14 +481,11 @@ async def get_rating_ranking_by_filter(
     if class_id is not None:
         user_filters.append(User.class_id == class_id)
     
-    # Filter by target_exams overlap if provided
-    if target_exams and len(target_exams) > 0:
-        # Check if any of the target_exams exist in the user's target_exams array
-        # Using JSONB contains operator to check for overlap
-        exam_conditions = [
-            cast(User.target_exams, JSONB).contains([exam]) for exam in target_exams
-        ]
-        user_filters.append(or_(*exam_conditions))
+    # Filter by exam_type if provided
+    if exam_type:
+        # Check if the exam_type exists in the user's target_exams array
+        # Using JSONB contains operator to check for the exam type
+        user_filters.append(cast(User.target_exams, JSONB).contains([exam_type]))
     
     # Count total users for pagination
     count_query = select(func.count(User.id)).where(and_(*user_filters))
