@@ -65,6 +65,8 @@ class StreakRankingResponse(BaseModel):
     total: int
     skip: int
     limit: int
+    current_user_rank: int | None = None
+    current_user: StreakRankingUserResponse | None = None
 
 
 class ContestRankingUserResponse(BaseModel):
@@ -91,6 +93,8 @@ class ContestRankingResponse(BaseModel):
     total: int
     skip: int
     limit: int
+    current_user_rank: int | None = None
+    current_user: ContestRankingUserResponse | None = None
 
 
 class RatingRankingUserResponse(BaseModel):
@@ -111,4 +115,6 @@ class RatingRankingResponse(BaseModel):
     total: int
     skip: int
     limit: int
+    current_user_rank: int | None = None
+    current_user: RatingRankingUserResponse | None = None
 

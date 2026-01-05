@@ -28,11 +28,17 @@ async def get_rating_ranking(
     and optionally filtered by exam type, ranked by current_rating (descending).
     
     Includes rating information: current_rating, max_rating, and title.
+    
+    Note: current_user_rank is only returned if exam_type is None or if current user has that exam_type.
     """
+    exam_type_value = exam_type.value if exam_type else None
+    should_get_user_rank = exam_type_value is None or (exam_type_value in (current_user.target_exams or []))
+    
     return await leaderboard_service.get_rating_ranking(
         skip=skip,
         limit=limit,
         class_id=current_user.class_id,
-        exam_type=exam_type.value if exam_type else None,
+        exam_type=exam_type_value,
+        user_id=current_user.id if should_get_user_rank else None,
     )
 

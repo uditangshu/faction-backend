@@ -297,6 +297,72 @@ async def get_user_arena_rank(
     return user_rank + 1, (user_data[0], user_data[1])
 
 
+async def get_user_contest_rank(
+    db: AsyncSession,
+    user_id: UUID,
+    filter_type: str = "best_rating_first",
+    contest_id: Optional[UUID] = None,
+    class_id: Optional[UUID] = None,
+    exam_type: Optional[str] = None,
+    redis_service: Optional[RedisService] = None,
+) -> Tuple[Optional[int], Optional[Tuple[ContestLeaderboard, User]]]:
+    """Get user's contest rank efficiently. Returns (rank, user_data)."""
+    # Get contest_id if not provided
+    if not contest_id:
+        cache_key = "leaderboard:most_recent_contest_id"
+        if redis_service:
+            cached_contest_id = await redis_service.get_value(cache_key)
+            if cached_contest_id:
+                try:
+                    contest_id = UUID(cached_contest_id)
+                except (ValueError, TypeError):
+                    contest_id = None
+        if not contest_id:
+            result = await db.execute(select(Contest).order_by(desc(Contest.ends_at), desc(Contest.created_at)).limit(1))
+            contest = result.scalar_one_or_none()
+            if not contest:
+                return None, None
+            contest_id = contest.id
+    
+    filters = [User.is_active == True]
+    if class_id:
+        filters.append(User.class_id == class_id)
+    if exam_type:
+        filters.append(cast(User.target_exams, JSONB).contains([exam_type]))
+    
+    user_data = (await db.execute(select(ContestLeaderboard, User).join(User, ContestLeaderboard.user_id == User.id).where(and_(ContestLeaderboard.contest_id == contest_id, ContestLeaderboard.user_id == user_id, *filters)))).first()
+    if not user_data:
+        return None, None
+    
+    if filter_type == "best_delta_first":
+        user_rank = (await db.execute(select(func.count(ContestLeaderboard.id)).join(User, ContestLeaderboard.user_id == User.id).where(and_(ContestLeaderboard.contest_id == contest_id, ContestLeaderboard.rating_delta > user_data[0].rating_delta, *filters)))).scalar() or 0
+    else:
+        user_rank = (await db.execute(select(func.count(ContestLeaderboard.id)).join(User, ContestLeaderboard.user_id == User.id).where(and_(ContestLeaderboard.contest_id == contest_id, ContestLeaderboard.rating_after > user_data[0].rating_after, *filters)))).scalar() or 0
+    
+    return user_rank + 1, (user_data[0], user_data[1])
+
+
+async def get_user_rating_rank(
+    db: AsyncSession,
+    user_id: UUID,
+    class_id: Optional[UUID] = None,
+    exam_type: Optional[str] = None,
+) -> Tuple[Optional[int], Optional[User]]:
+    """Get user's rating rank efficiently. Returns (rank, user_data)."""
+    filters = [User.is_active == True]
+    if class_id:
+        filters.append(User.class_id == class_id)
+    if exam_type:
+        filters.append(cast(User.target_exams, JSONB).contains([exam_type]))
+    
+    user = (await db.execute(select(User).where(and_(User.id == user_id, *filters)))).scalar_one_or_none()
+    if not user:
+        return None, None
+    
+    user_rank = (await db.execute(select(func.count(User.id)).where(and_(User.current_rating > user.current_rating, *filters)))).scalar() or 0
+    return user_rank + 1, user
+
+
 async def get_contest_ranking_by_filter(
     db: AsyncSession,
     filter_type: str = "best_rating_first",

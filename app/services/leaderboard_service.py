@@ -18,6 +18,8 @@ from app.db.leaderboard_calls import (
     get_top_users_by_questions_solved,
     get_arena_ranking_by_submissions,
     get_user_arena_rank,
+    get_user_contest_rank,
+    get_user_rating_rank,
     get_contest_ranking_by_filter,
     get_contest_ranking_by_contest_id,
     get_rating_ranking_by_filter,
@@ -35,7 +37,7 @@ from app.schemas.leaderboard import (
     RatingRankingResponse,
     RatingRankingUserResponse,
 )
-from app.db.streak_calls import get_streak_ranking, get_user_with_longest_streak
+from app.db.streak_calls import get_streak_ranking, get_user_with_longest_streak, get_user_streak_rank
 from app.schemas.user import UserProfileResponse
 from app.core.config import settings
 
@@ -349,6 +351,7 @@ class LeaderboardService:
         limit: int = 20,
         class_id: Optional[UUID] = None,
         exam_type: Optional[str] = None,
+        user_id: Optional[UUID] = None,
     ) -> StreakRankingResponse:
         """
         Get streak ranking sorted by longest streak with pagination (cached).
@@ -358,6 +361,7 @@ class LeaderboardService:
             limit: Maximum number of records to return
             class_id: Optional class ID to filter users by class
             exam_type: Optional target exam type to filter users by matching exam
+            user_id: Optional user ID to get current user's rank
         
         Returns:
             StreakRankingResponse with paginated users and their streak counts
@@ -371,41 +375,42 @@ class LeaderboardService:
         if self.redis_service:
             cached = await self.redis_service.get_value(cache_key)
             if cached is not None:
-                return StreakRankingResponse(**cached)
+                response = StreakRankingResponse(**cached)
+                if user_id:
+                    user_rank, user_data = await get_user_streak_rank(self.db, user_id, class_id, exam_type)
+                    response.current_user_rank = user_rank
+                    if user_data:
+                        user, longest_streak, current_streak = user_data
+                        response.current_user = StreakRankingUserResponse(
+                            user_id=user.id, user_name=user.name,
+                            avatar_url=user.avatar_url, longest_streak=longest_streak, current_streak=current_streak
+                        )
+                return response
         
-        results, total = await get_streak_ranking(
-            self.db,
-            skip=skip,
-            limit=limit,
-            class_id=class_id,
-            exam_type=exam_type,
-        )
+        results, total = await get_streak_ranking(self.db, skip, limit, class_id, exam_type)
         
         users = [
-            StreakRankingUserResponse(
-                user_id=user.id,
-                user_name=user.name,
-                avatar_url=user.avatar_url,
-                longest_streak=longest_streak,
-                current_streak=current_streak,
-            )
+            StreakRankingUserResponse(user_id=user.id, user_name=user.name, avatar_url=user.avatar_url, longest_streak=longest_streak, current_streak=current_streak)
             for user, longest_streak, current_streak in results
         ]
         
+        user_rank, user_data = None, None
+        if user_id:
+            user_rank, user_data = await get_user_streak_rank(self.db, user_id, class_id, exam_type)
+        
         response = StreakRankingResponse(
-            users=users,
-            total=total,
-            skip=skip,
-            limit=limit,
+            users=users, total=total, skip=skip, limit=limit,
+            current_user_rank=user_rank,
+            current_user=StreakRankingUserResponse(
+                user_id=user_data[0].id, user_name=user_data[0].name,
+                avatar_url=user_data[0].avatar_url, longest_streak=user_data[1], current_streak=user_data[2]
+            ) if user_data else None,
         )
         
-        # Cache result
+        # Cache result (without user-specific data)
         if self.redis_service:
-            await self.redis_service.set_value(
-                cache_key,
-                response.model_dump(mode='json'),
-                expire=settings.CACHE_LEADER_TTL
-            )
+            cache_response = StreakRankingResponse(users=users, total=total, skip=skip, limit=limit, current_user_rank=None, current_user=None)
+            await self.redis_service.set_value(cache_key, cache_response.model_dump(mode='json'), expire=settings.CACHE_LEADER_TTL)
         
         return response
 
@@ -447,6 +452,7 @@ class LeaderboardService:
         limit: int = 20,
         class_id: Optional[UUID] = None,
         exam_type: Optional[str] = None,
+        user_id: Optional[UUID] = None,
     ) -> ContestRankingResponse:
         """
         Get contest ranking from the most recent contest with filter options (cached).
@@ -457,6 +463,7 @@ class LeaderboardService:
             limit: Maximum number of records to return
             class_id: Optional class ID to filter users by class
             exam_type: Optional target exam type to filter users by matching exam
+            user_id: Optional user ID to get current user's rank
         
         Returns:
             ContestRankingResponse with paginated users and their contest performance
@@ -470,50 +477,57 @@ class LeaderboardService:
         if self.redis_service:
             cached = await self.redis_service.get_value(cache_key)
             if cached is not None:
-                return ContestRankingResponse(**cached)
+                response = ContestRankingResponse(**cached)
+                if user_id:
+                    user_rank, user_data = await get_user_contest_rank(self.db, user_id, filter_type, None, class_id, exam_type, self.redis_service)
+                    response.current_user_rank = user_rank
+                    if user_data:
+                        leaderboard_entry, user = user_data
+                        response.current_user = ContestRankingUserResponse(
+                            user_id=user.id, user_name=user.name, avatar_url=user.avatar_url,
+                            score=leaderboard_entry.score, rank=leaderboard_entry.rank,
+                            rating_before=leaderboard_entry.rating_before, rating_after=leaderboard_entry.rating_after,
+                            rating_delta=leaderboard_entry.rating_delta, accuracy=leaderboard_entry.accuracy,
+                            attempted=leaderboard_entry.attempted, correct=leaderboard_entry.correct,
+                            incorrect=leaderboard_entry.incorrect
+                        )
+                return response
         
-        results, total = await get_contest_ranking_by_filter(
-            self.db,
-            filter_type=filter_type,
-            skip=skip,
-            limit=limit,
-            class_id=class_id,
-            exam_type=exam_type,
-            redis_service=self.redis_service,
-        )
+        results, total = await get_contest_ranking_by_filter(self.db, filter_type, skip, limit, class_id, exam_type, self.redis_service)
         
         users = [
             ContestRankingUserResponse(
-                user_id=user.id,
-                user_name=user.name,
-                avatar_url=user.avatar_url,
-                score=leaderboard_entry.score,
-                rank=leaderboard_entry.rank,
-                rating_before=leaderboard_entry.rating_before,
-                rating_after=leaderboard_entry.rating_after,
-                rating_delta=leaderboard_entry.rating_delta,
-                accuracy=leaderboard_entry.accuracy,
-                attempted=leaderboard_entry.attempted,
-                correct=leaderboard_entry.correct,
-                incorrect=leaderboard_entry.incorrect,
+                user_id=user.id, user_name=user.name, avatar_url=user.avatar_url,
+                score=leaderboard_entry.score, rank=leaderboard_entry.rank,
+                rating_before=leaderboard_entry.rating_before, rating_after=leaderboard_entry.rating_after,
+                rating_delta=leaderboard_entry.rating_delta, accuracy=leaderboard_entry.accuracy,
+                attempted=leaderboard_entry.attempted, correct=leaderboard_entry.correct,
+                incorrect=leaderboard_entry.incorrect
             )
             for leaderboard_entry, user in results
         ]
         
+        user_rank, user_data = None, None
+        if user_id:
+            user_rank, user_data = await get_user_contest_rank(self.db, user_id, filter_type, None, class_id, exam_type, self.redis_service)
+        
         response = ContestRankingResponse(
-            users=users,
-            total=total,
-            skip=skip,
-            limit=limit,
+            users=users, total=total, skip=skip, limit=limit,
+            current_user_rank=user_rank,
+            current_user=ContestRankingUserResponse(
+                user_id=user_data[1].id, user_name=user_data[1].name, avatar_url=user_data[1].avatar_url,
+                score=user_data[0].score, rank=user_data[0].rank,
+                rating_before=user_data[0].rating_before, rating_after=user_data[0].rating_after,
+                rating_delta=user_data[0].rating_delta, accuracy=user_data[0].accuracy,
+                attempted=user_data[0].attempted, correct=user_data[0].correct,
+                incorrect=user_data[0].incorrect
+            ) if user_data else None,
         )
         
-        # Cache result
+        # Cache result (without user-specific data)
         if self.redis_service:
-            await self.redis_service.set_value(
-                cache_key,
-                response.model_dump(mode='json'),
-                expire=settings.CACHE_LEADER_TTL
-            )
+            cache_response = ContestRankingResponse(users=users, total=total, skip=skip, limit=limit, current_user_rank=None, current_user=None)
+            await self.redis_service.set_value(cache_key, cache_response.model_dump(mode='json'), expire=settings.CACHE_LEADER_TTL)
         
         return response
 
@@ -575,6 +589,7 @@ class LeaderboardService:
         limit: int = 20,
         class_id: Optional[UUID] = None,
         exam_type: Optional[str] = None,
+        user_id: Optional[UUID] = None,
     ) -> RatingRankingResponse:
         """
         Get rating ranking filtered by class_id and exam_type (cached).
@@ -584,6 +599,7 @@ class LeaderboardService:
             limit: Maximum number of records to return
             class_id: Optional class ID to filter users by class
             exam_type: Optional target exam type to filter users by matching exam
+            user_id: Optional user ID to get current user's rank
         
         Returns:
             RatingRankingResponse with paginated users and their rating information
@@ -597,42 +613,47 @@ class LeaderboardService:
         if self.redis_service:
             cached = await self.redis_service.get_value(cache_key)
             if cached is not None:
-                return RatingRankingResponse(**cached)
+                response = RatingRankingResponse(**cached)
+                if user_id:
+                    user_rank, user = await get_user_rating_rank(self.db, user_id, class_id, exam_type)
+                    response.current_user_rank = user_rank
+                    if user:
+                        response.current_user = RatingRankingUserResponse(
+                            user_id=user.id, user_name=user.name, avatar_url=user.avatar_url,
+                            current_rating=user.current_rating, max_rating=user.max_rating,
+                            title=user.title.value if user.title else None
+                        )
+                return response
         
-        results, total = await get_rating_ranking_by_filter(
-            self.db,
-            skip=skip,
-            limit=limit,
-            class_id=class_id,
-            exam_type=exam_type,
-        )
+        results, total = await get_rating_ranking_by_filter(self.db, skip, limit, class_id, exam_type)
         
         users = [
             RatingRankingUserResponse(
-                user_id=user.id,
-                user_name=user.name,
-                avatar_url=user.avatar_url,
-                current_rating=user.current_rating,
-                max_rating=user.max_rating,
-                title=user.title.value if user.title else None,
+                user_id=user.id, user_name=user.name, avatar_url=user.avatar_url,
+                current_rating=user.current_rating, max_rating=user.max_rating,
+                title=user.title.value if user.title else None
             )
             for user in results
         ]
         
+        user_rank, user = None, None
+        if user_id:
+            user_rank, user = await get_user_rating_rank(self.db, user_id, class_id, exam_type)
+        
         response = RatingRankingResponse(
-            users=users,
-            total=total,
-            skip=skip,
-            limit=limit,
+            users=users, total=total, skip=skip, limit=limit,
+            current_user_rank=user_rank,
+            current_user=RatingRankingUserResponse(
+                user_id=user.id, user_name=user.name, avatar_url=user.avatar_url,
+                current_rating=user.current_rating, max_rating=user.max_rating,
+                title=user.title.value if user.title else None
+            ) if user else None,
         )
         
-        # Cache result
+        # Cache result (without user-specific data)
         if self.redis_service:
-            await self.redis_service.set_value(
-                cache_key,
-                response.model_dump(mode='json'),
-                expire=settings.LONG_TERM_CACHE_TTL
-            )
+            cache_response = RatingRankingResponse(users=users, total=total, skip=skip, limit=limit, current_user_rank=None, current_user=None)
+            await self.redis_service.set_value(cache_key, cache_response.model_dump(mode='json'), expire=settings.LONG_TERM_CACHE_TTL)
         
         return response
 

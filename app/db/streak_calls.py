@@ -165,6 +165,29 @@ async def get_streak_ranking(
     return [(row[0], row[1], row[2]) for row in result.all()], total
 
 
+async def get_user_streak_rank(
+    db: AsyncSession,
+    user_id: UUID,
+    class_id: Optional[UUID] = None,
+    exam_type: Optional[str] = None,
+) -> Tuple[Optional[int], Optional[Tuple[User, int, int]]]:
+    """Get user's streak rank efficiently. Returns (rank, user_data)."""
+    from app.models.streak import UserStudyStats
+    
+    filters = [User.is_active == True]
+    if class_id:
+        filters.append(User.class_id == class_id)
+    if exam_type:
+        filters.append(cast(User.target_exams, JSONB).contains([exam_type]))
+    
+    user_data = (await db.execute(select(User, UserStudyStats.longest_study_streak, UserStudyStats.current_study_streak).join(UserStudyStats, User.id == UserStudyStats.user_id).where(and_(User.id == user_id, *filters)))).first()
+    if not user_data:
+        return None, None
+    
+    user_rank = (await db.execute(select(func.count(UserStudyStats.id)).join(User, UserStudyStats.user_id == User.id).where(and_(UserStudyStats.current_study_streak > user_data[2], *filters)))).scalar() or 0
+    return user_rank + 1, (user_data[0], user_data[1], user_data[2])
+
+
 async def get_user_with_longest_streak(db: AsyncSession) -> Optional[Tuple[User, int]]:
     """
     Get user with the longest study streak.
