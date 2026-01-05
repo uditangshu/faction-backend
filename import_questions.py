@@ -1,16 +1,8 @@
 """
-General seed script to populate questions and PYQ (Previous Year Questions) into the database.
+Script to import questions from JSON file into the database.
 
 Usage:
-    python seed/seed.py --data seed/example_data.json
-    or
-    python -m seed.seed --data seed/example_data.json
-
-This script will:
-1. Parse the JSON data file
-2. Create/Find Class, Subject, Chapter, Topic entries based on hierarchy
-3. Create Question entries with all details
-4. Create PYQ (Previous Year Problems) entries if provided
+    python import_questions.py --data questions_combined.json
 """
 
 import asyncio
@@ -22,7 +14,7 @@ from typing import Dict, Optional, List
 from uuid import UUID
 
 # Add the project root to Python path
-project_root = Path(__file__).parent.parent
+project_root = Path(__file__).parent
 sys.path.insert(0, str(project_root))
 
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -141,6 +133,7 @@ def parse_question_type(q_type: str) -> QuestionType:
         "match_the_column": QuestionType.MATCH,
         "match": QuestionType.MATCH,
         "scq": QuestionType.SCQ,
+        "numerical": QuestionType.INTEGER,  # Handle numerical as integer
     }
     return type_mapping.get(q_type.lower(), QuestionType.MCQ)
 
@@ -176,6 +169,31 @@ def parse_exam_types(exam_types: List[str]) -> List[TargetExam]:
         "CBSE": TargetExam.CBSE,
     }
     return [exam_mapping.get(exam.upper(), TargetExam.JEE_MAINS) for exam in exam_types]
+
+
+def parse_subject_type(subject_type_str: str) -> Subject_Type:
+    """Parse subject type string to enum"""
+    # Handle various formats
+    subject_mapping = {
+        "PHYSICS": Subject_Type.PHYSICS,
+        "CHEMISTRY": Subject_Type.CHEMISTRY,
+        "MATHS": Subject_Type.MATHS,
+        "MATHEMATICS": Subject_Type.MATHS,  # Handle MATHEMATICS as MATHS
+        "BIOLOGY": Subject_Type.BIOLOGY,
+    }
+    return subject_mapping.get(subject_type_str.upper(), Subject_Type.MATHS)
+
+
+def parse_class_level(class_level_str: str) -> str:
+    """Parse class level string to class name (number as string)"""
+    class_name_map = {
+        "Ninth": "9",
+        "Tenth": "10",
+        "Eleventh": "11",
+        "Twelth": "12",
+        "Twelfth": "12",  # Handle both spellings
+    }
+    return class_name_map.get(class_level_str, class_level_str)
 
 
 async def create_question(
@@ -225,14 +243,14 @@ async def create_pyq(
     return pyq
 
 
-async def seed_database(data_file: Path):
-    """Main function to seed the database from JSON file"""
-    print(f"📖 Reading data from: {data_file}")
+async def import_questions(data_file: Path):
+    """Main function to import questions from JSON file"""
+    print("📖 Reading JSON file...")
     # Read JSON data
     with open(data_file, 'r', encoding='utf-8') as f:
         data = json.load(f)
     
-    print(f"✅ Loaded {len(data)} items from JSON")
+    print(f"✅ Loaded {len(data)} questions from JSON")
     print("🔌 Connecting to database...")
     
     async with AsyncSessionLocal() as db:
@@ -245,38 +263,15 @@ async def seed_database(data_file: Path):
             for idx, item in enumerate(data, 1):
                 try:
                     # Extract hierarchy information
-                    # Convert class_level to string name (handle both enum and direct string)
                     class_level_value = item["class_level"]
                     if isinstance(class_level_value, str):
-                        # If it's a string like "Ninth", "Tenth", etc., convert to number string
-                        class_name_map = {
-                            "Ninth": "9",
-                            "Tenth": "10", 
-                            "Eleventh": "11",
-                            "Twelth": "12",
-                            "Twelfth": "12"  # Handle both spellings
-                        }
-                        class_name = class_name_map.get(class_level_value, str(class_level_value))
+                        class_name = parse_class_level(class_level_value)
                     else:
-                        # If it's a number, convert to string
                         class_name = str(class_level_value)
                     
-                    # Handle subject type - support both "MATHS" and "MATHEMATICS"
                     subject_type_str = item["subject_type"]
-                    if subject_type_str.upper() == "MATHEMATICS":
-                        subject_type = Subject_Type.MATHS
-                    else:
-                        try:
-                            subject_type = Subject_Type[subject_type_str] if isinstance(subject_type_str, str) else Subject_Type(subject_type_str)
-                        except (KeyError, ValueError):
-                            # Fallback mapping
-                            subject_mapping = {
-                                "PHYSICS": Subject_Type.PHYSICS,
-                                "CHEMISTRY": Subject_Type.CHEMISTRY,
-                                "MATHS": Subject_Type.MATHS,
-                                "BIOLOGY": Subject_Type.BIOLOGY,
-                            }
-                            subject_type = subject_mapping.get(subject_type_str.upper(), Subject_Type.MATHS)
+                    subject_type = parse_subject_type(subject_type_str)
+                    
                     chapter_name = item["chapter_name"]
                     topic_name = item["topic_name"]
                     exam_types = item.get("exam_types", ["JEE_MAINS"])
@@ -304,41 +299,41 @@ async def seed_database(data_file: Path):
                 except Exception as e:
                     print(f"❌ Error processing item {idx}: {str(e)}")
                     skipped_count += 1
-                    import traceback
-                    traceback.print_exc()
                     continue
             
             # Final commit
             await db.commit()
-            print(f"\n✅ Successfully seeded {created_count} questions and {pyq_count} PYQ entries!")
+            print(f"\n✅ Successfully imported {created_count} questions and {pyq_count} PYQ entries!")
             if skipped_count > 0:
                 print(f"⚠️  Skipped {skipped_count} items due to errors.")
             
         except Exception as e:
             await db.rollback()
-            print(f"❌ Error seeding database: {str(e)}")
+            print(f"❌ Error importing questions: {str(e)}")
+            import traceback
+            traceback.print_exc()
             raise
 
 
 def main():
     """Main entry point"""
-    parser = argparse.ArgumentParser(description="Seed database with questions and PYQ data")
+    parser = argparse.ArgumentParser(description="Import questions from JSON file into database")
     parser.add_argument(
         "--data",
         type=str,
-        default="seed/example_data.json",
-        help="Path to JSON data file (default: seed/example_data.json)"
+        default="questions_combined.json",
+        help="Path to JSON data file (default: questions_combined.json)"
     )
     args = parser.parse_args()
     
     data_file = Path(args.data)
     if not data_file.exists():
         print(f"❌ Error: Data file not found: {data_file}")
-        print(f"Please create a JSON file following the example schema.")
+        print(f"Please provide a valid JSON file path.")
         sys.exit(1)
     
     print(f"📖 Reading data from: {data_file}")
-    asyncio.run(seed_database(data_file))
+    asyncio.run(import_questions(data_file))
 
 
 if __name__ == "__main__":

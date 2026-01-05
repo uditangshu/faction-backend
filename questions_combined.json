@@ -1,0 +1,2694 @@
+[
+  {
+    "class_level": "Eleventh",
+    "subject_type": "MATHS",
+    "chapter_name": "Binomial Theorem",
+    "topic_name": "General Term",
+    "exam_types": ["JEE_MAINS"],
+    "question": {
+      "type": "mcq",
+      "difficulty": 2,
+      "exam_type": ["JEE_MAINS"],
+      "question_text": "The coefficient of $--content_latex--$t^4$--content_latex--$ in the expansion of $--content_latex--$\\left(\\frac{1 - t^6}{1 - t}\\right)^3$--content_latex--$ is:",
+      "marks": 4,
+      "solution_text": "The correct coefficient is 15.",
+      "question_image": null,
+      "mcq_options": [
+        "10",
+        "12",
+        "14",
+        "15"
+      ],
+      "mcq_correct_option": [3]
+    },
+    "pyq": {
+      "year": 2019,
+      "exam_detail": ["JEE_MAINS", "09 Jan", "Shift 2"]
+    }
+  },
+  {
+    "class_level": "Eleventh",
+    "subject_type": "MATHS",
+    "chapter_name": "Binomial Theorem",
+    "topic_name": "Middle Term",
+    "exam_types": ["JEE_MAINS"],
+    "question": {
+      "type": "scq",
+      "difficulty": 2,
+      "exam_type": ["JEE_MAINS"],
+      "question_text": "The sum of the real values of $--content_latex--$x$--content_latex--$ for which the middle term in the binomial expansion of $--content_latex--$\\left(\\frac{x^3}{3} + \\frac{3}{x}\\right)^8$--content_latex--$ equals 5670 is:",
+      "marks": 4,
+      "solution_text": "The correct sum is 0.",
+      "question_image": null,
+      "scq_options": [
+        "0",
+        "4",
+        "6",
+        "8"
+      ],
+      "scq_correct_options": 0
+    },
+    "pyq": {
+      "year": 2019,
+      "exam_detail": ["JEE_MAINS", "11 Jan", "Shift 1"]
+    }
+  },
+  {
+    "class_level": "Eleventh",
+    "subject_type": "MATHS",
+    "chapter_name": "Permutations and Combinations",
+    "topic_name": "Combination Properties",
+    "exam_types": ["JEE_MAINS"],
+    "question": {
+      "type": "scq",
+      "difficulty": 3,
+      "exam_type": ["JEE_MAINS"],
+      "question_text": "If $--content_latex--$^nC_4,\\ ^nC_5$--content_latex--$ and $--content_latex--$^nC_6$--content_latex--$ are in A.P., then $--content_latex--$n$--content_latex--$ can be:",
+      "marks": 4,
+      "solution_text": "The correct value is 14.",
+      "question_image": null,
+      "scq_options": [
+        "9",
+        "11",
+        "12",
+        "14"
+      ],
+      "scq_correct_options": 3
+    },
+    "pyq": {
+      "year": 2019,
+      "exam_detail": ["JEE_MAINS", "12 Jan", "Shift 2"]
+    }
+  },
+  {
+    "class_level": "Eleventh",
+    "subject_type": "MATHS",
+    "chapter_name": "Binomial Theorem",
+    "topic_name": "Coefficient of Term",
+    "exam_types": ["JEE_MAINS"],
+    "question": {
+      "type": "scq",
+      "difficulty": 2,
+      "exam_type": ["JEE_MAINS"],
+      "question_text": "The smallest natural number $--content_latex--$n$--content_latex--$ such that the coefficient of $--content_latex--$x$--content_latex--$ in the expansion of $--content_latex--$\\left(x^2 + \\frac{1}{x^3}\\right)^n$--content_latex--$ is $--content_latex--$^{n}C_{23}$--content_latex--$, is:",
+      "marks": 4,
+      "solution_text": "The correct answer is 38.",
+      "question_image": null,
+      "scq_options": [
+        "23",
+        "35",
+        "38",
+        "58"
+      ],
+      "scq_correct_options": 2
+    },
+    "pyq": {
+      "year": 2019,
+      "exam_detail": ["JEE_MAINS", "10 Apr", "Shift 2"]
+    }
+  },
+  {
+    "class_level": "Eleventh",
+    "subject_type": "MATHS",
+    "chapter_name": "Binomial Theorem",
+    "topic_name": "Independent Term",
+    "exam_types": ["JEE_MAINS"],
+    "question": {
+      "type": "scq",
+      "difficulty": 2,
+      "exam_type": ["JEE_MAINS"],
+      "question_text": "If the term independent of $--content_latex--$x$--content_latex--$ in the expansion of $--content_latex--$\\left(\\frac{3}{2}x^2 - \\frac{1}{3x}\\right)^9$--content_latex--$ is $--content_latex--$k$--content_latex--$, then $--content_latex--$18k$--content_latex--$ is equal to:",
+      "marks": 4,
+      "solution_text": "The correct value is 7.",
+      "question_image": null,
+      "scq_options": [
+        "5",
+        "7",
+        "9",
+        "11"
+      ],
+      "scq_correct_options": 1
+    },
+    "pyq": {
+      "year": 2020,
+      "exam_detail": ["JEE_MAINS", "03 Sep", "Shift 2"]
+    }
+  },
+  {
+    "class_level": "Eleventh",
+    "subject_type": "MATHS",
+    "chapter_name": "Functions",
+    "topic_name": "Greatest Integer and Fractional Part",
+    "exam_types": ["JEE_MAINS"],
+    "question": {
+      "type": "scq",
+      "difficulty": 1,
+      "exam_type": ["JEE_MAINS"],
+      "question_text": "If $--content_latex--$\\{p\\}$--content_latex--$ denotes the fractional part of the number $--content_latex--$p$--content_latex--$, then $--content_latex--$\\left\\{\\frac{3^{200}}{8}\\right\\}$--content_latex--$ is equal to:",
+      "marks": 4,
+      "solution_text": "The correct fractional part is $--content_latex--$\\frac{1}{8}$--content_latex--$.",
+      "question_image": null,
+      "scq_options": [
+        "$--content_latex--$\\frac{5}{8}$--content_latex--$",
+        "$--content_latex--$\\frac{7}{8}$--content_latex--$",
+        "$--content_latex--$\\frac{3}{8}$--content_latex--$",
+        "$--content_latex--$\\frac{1}{8}$--content_latex--$"
+      ],
+      "scq_correct_options": 3
+    },
+    "pyq": {
+      "year": 2020,
+      "exam_detail": ["JEE_MAINS", "06 Sep", "Shift 1"]
+    }
+  },
+  {
+    "class_level": "Eleventh",
+    "subject_type": "MATHS",
+    "chapter_name": "Binomial Theorem",
+    "topic_name": "Constant Term",
+    "exam_types": ["JEE_MAINS"],
+    "question": {
+      "type": "scq",
+      "difficulty": 2,
+      "exam_type": ["JEE_MAINS"],
+      "question_text": "If the constant term in the binomial expansion of $--content_latex--$\\left(\\sqrt{x} - \\frac{k}{x^2}\\right)^{10}$--content_latex--$ is 405, then $--content_latex--$|k|$--content_latex--$ equals:",
+      "marks": 4,
+      "solution_text": "The correct value is 3.",
+      "question_image": null,
+      "scq_options": [
+        "1",
+        "2",
+        "3",
+        "9"
+      ],
+      "scq_correct_options": 2
+    },
+    "pyq": {
+      "year": 2020,
+      "exam_detail": ["JEE_MAINS", "06 Sep", "Shift 2"]
+    }
+  },
+  {
+    "class_level": "Eleventh",
+    "subject_type": "MATHS",
+    "chapter_name": "Binomial Theorem",
+    "topic_name": "Ratio of Coefficients",
+    "exam_types": ["JEE_MAINS"],
+    "question": {
+      "type": "integer",
+      "difficulty": 3,
+      "exam_type": ["JEE_MAINS"],
+      "question_text": "Let the coefficients of third, fourth and fifth terms in the expansion of $--content_latex--$\\left(x + \\frac{a}{x^2}\\right)^n$--content_latex--$, $--content_latex--$x \\neq 0$--content_latex--$, be in the ratio $--content_latex--$12 : 8 : 3$--content_latex--$. Then the term independent of $--content_latex--$x$--content_latex--$ in the expansion is equal to:",
+      "marks": 4,
+      "solution_text": "The correct value is 4.",
+      "question_image": null,
+      "integer_answer": 4
+    },
+    "pyq": {
+      "year": 2021,
+      "exam_detail": ["JEE_MAINS", "17 Mar", "Shift 2"]
+    }
+  },
+  {
+    "class_level": "Eleventh",
+    "subject_type": "MATHS",
+    "chapter_name": "Binomial Theorem",
+    "topic_name": "Middle Term",
+    "exam_types": ["JEE_MAINS"],
+    "question": {
+      "type": "integer",
+      "difficulty": 2,
+      "exam_type": ["JEE_MAINS"],
+      "question_text": "The ratio of the coefficient of the middle term in the expansion of $--content_latex--$(1 + x)^{20}$--content_latex--$ and the sum of the coefficients of two middle terms in the expansion of $--content_latex--$(1 + x)^{19}$--content_latex--$ is:",
+      "marks": 4,
+      "solution_text": "The correct ratio is 1.",
+      "question_image": null,
+      "integer_answer": 1
+    },
+    "pyq": {
+      "year": 2021,
+      "exam_detail": ["JEE_MAINS", "25 Jul", "Shift 1"]
+    }
+  },
+  {
+    "class_level": "Eleventh",
+    "subject_type": "MATHS",
+    "chapter_name": "Binomial Theorem",
+    "topic_name": "Maximum Term",
+    "exam_types": ["JEE_MAINS"],
+    "question": {
+      "type": "scq",
+      "difficulty": 3,
+      "exam_type": ["JEE_MAINS"],
+      "question_text": "If the greatest value of the term independent of $--content_latex--$x$--content_latex--$ in the expansion of $--content_latex--$\\left(x\\sin\\alpha + a\\frac{\\cos\\alpha}{x}\\right)^{10}$--content_latex--$ is $--content_latex--$\\frac{10!}{(5!)^2}$--content_latex--$, then the value of $--content_latex--$a$--content_latex--$ is equal to:",
+      "marks": 4,
+      "solution_text": "The correct value is 2.",
+      "question_image": null,
+      "scq_options": [
+        "-2",
+        "-1",
+        "1",
+        "2"
+      ],
+      "scq_correct_options": 3
+    },
+    "pyq": {
+      "year": 2021,
+      "exam_detail": ["JEE_MAINS", "25 Jul", "Shift 2"]
+    }
+  },
+  {
+    "class_level": "Eleventh",
+    "subject_type": "MATHS",
+    "chapter_name": "Permutations and Combinations",
+    "topic_name": "Relations between nPr and nCr",
+    "exam_types": ["JEE_MAINS"],
+    "question": {
+      "type": "scq",
+      "difficulty": 2,
+      "exam_type": ["JEE_MAINS"],
+      "question_text": "If $--content_latex--$^nP_r = ^nP_{r+1}$--content_latex--$ and $--content_latex--$^nC_r = ^nC_{r-1}$--content_latex--$, then the value of $--content_latex--$r$--content_latex--$ is equal to:",
+      "marks": 4,
+      "solution_text": "The correct value of r is 2.",
+      "question_image": null,
+      "scq_options": ["1", "2", "3", "4"],
+      "scq_correct_options": 1
+    },
+    "pyq": {
+      "year": 2021,
+      "exam_detail": ["JEE_MAINS", "25 Jul", "Shift 2"]
+    }
+  },
+  {
+    "class_level": "Eleventh",
+    "subject_type": "MATHS",
+    "chapter_name": "Binomial Theorem",
+    "topic_name": "Equality of Coefficients",
+    "exam_types": ["JEE_MAINS"],
+    "question": {
+      "type": "integer",
+      "difficulty": 3,
+      "exam_type": ["JEE_MAINS"],
+      "question_text": "If the coefficients of $--content_latex--$x^7$--content_latex--$ and $--content_latex--$x^8$--content_latex--$ in the expansion of $--content_latex--$(2 + \\frac{x}{3})^n$--content_latex--$ are equal, then the value of $--content_latex--$n$--content_latex--$ is:",
+      "marks": 4,
+      "solution_text": "The correct value of n is 55.",
+      "question_image": null,
+      "integer_answer": 55
+    },
+    "pyq": {
+      "year": 2021,
+      "exam_detail": ["JEE_MAINS", "25 Jul", "Shift 2"]
+    }
+  },
+  {
+    "class_level": "Eleventh",
+    "subject_type": "MATHS",
+    "chapter_name": "Binomial Theorem",
+    "topic_name": "Comparison of Coefficients",
+    "exam_types": ["JEE_MAINS"],
+    "question": {
+      "type": "scq",
+      "difficulty": 3,
+      "exam_type": ["JEE_MAINS"],
+      "question_text": "If the coefficients of $--content_latex--$x^7$--content_latex--$ in $--content_latex--$(x^2 + \\frac{1}{bx})^{11}$--content_latex--$ and $--content_latex--$x^{-7}$--content_latex--$ in $--content_latex--$(x - \\frac{1}{bx^2})^{11}$--content_latex--$, $--content_latex--$b \\neq 0$--content_latex--$, are equal, then the value of $--content_latex--$b$--content_latex--$ is:",
+      "marks": 4,
+      "solution_text": "The correct value of b is 1.",
+      "question_image": null,
+      "scq_options": ["-2", "-1", "1", "2"],
+      "scq_correct_options": 2
+    },
+    "pyq": {
+      "year": 2021,
+      "exam_detail": ["JEE_MAINS", "27 Jul", "Shift 1"]
+    }
+  },
+  {
+    "class_level": "Eleventh",
+    "subject_type": "MATHS",
+    "chapter_name": "Binomial Theorem",
+    "topic_name": "Independent Term",
+    "exam_types": ["JEE_MAINS"],
+    "question": {
+      "type": "integer",
+      "difficulty": 3,
+      "exam_type": ["JEE_MAINS"],
+      "question_text": "If $--content_latex--$(\\frac{3^6}{4})k$--content_latex--$ is the term independent of $--content_latex--$x$--content_latex--$ in the binomial expansion of $--content_latex--$(\\frac{x}{4} - \\frac{12}{x^2})^{12}$--content_latex--$, then the value of $--content_latex--$k$--content_latex--$ is:",
+      "marks": 4,
+      "solution_text": "The correct value of k is 55.",
+      "question_image": null,
+      "integer_answer": 55
+    },
+    "pyq": {
+      "year": 2021,
+      "exam_detail": ["JEE_MAINS", "31 Aug", "Shift 1"]
+    }
+  },
+  {
+    "class_level": "Eleventh",
+    "subject_type": "MATHS",
+    "chapter_name": "Binomial Theorem",
+    "topic_name": "Greatest Coefficient",
+    "exam_types": ["JEE_MAINS"],
+    "question": {
+      "type": "integer",
+      "difficulty": 2,
+      "exam_type": ["JEE_MAINS"],
+      "question_text": "If the sum of the coefficients in the expansion of $--content_latex--$(x + y)^n$--content_latex--$ is $--content_latex--$4096$--content_latex--$, then the greatest coefficient in the expansion is:",
+      "marks": 4,
+      "solution_text": "The greatest coefficient is 924.",
+      "question_image": null,
+      "integer_answer": 924
+    },
+    "pyq": {
+      "year": 2021,
+      "exam_detail": ["JEE_MAINS", "01 Sep", "Shift 2"]
+    }
+  },
+  {
+    "class_level": "Eleventh",
+    "subject_type": "MATHS",
+    "chapter_name": "Number Theory",
+    "topic_name": "Remainder Theorem",
+    "exam_types": ["JEE_MAINS"],
+    "question": {
+      "type": "scq",
+      "difficulty": 1,
+      "exam_type": ["JEE_MAINS"],
+      "question_text": "The remainder when $--content_latex--$3^{2022}$--content_latex--$ is divided by $--content_latex--$5$--content_latex--$ is:",
+      "marks": 4,
+      "solution_text": "The correct remainder is 4.",
+      "question_image": null,
+      "scq_options": ["1", "2", "3", "4"],
+      "scq_correct_options": 3
+    },
+    "pyq": {
+      "year": 2022,
+      "exam_detail": ["JEE_MAINS", "24 Jun", "Shift 1"]
+    }
+  },
+  {
+    "class_level": "Eleventh",
+    "subject_type": "MATHS",
+    "chapter_name": "Binomial Theorem",
+    "topic_name": "Coefficient of Term",
+    "exam_types": ["JEE_MAINS"],
+    "question": {
+      "type": "integer",
+      "difficulty": 3,
+      "exam_type": ["JEE_MAINS"],
+      "question_text": "If the coefficient of $--content_latex--$x^{10}$--content_latex--$ in the binomial expansion of $--content_latex--$(\\frac{\\sqrt{x}}{5^{1/4}} + \\frac{\\sqrt{5}}{x^{3/2}})^{60}$--content_latex--$ is $--content_latex--$5^k l$--content_latex--$, where $--content_latex--$l$--content_latex--$ is coprime to 5, then the value of $--content_latex--$k$--content_latex--$ is:",
+      "marks": 4,
+      "solution_text": "The correct value of k is 5.",
+      "question_image": null,
+      "integer_answer": 5
+    },
+    "pyq": {
+      "year": 2022,
+      "exam_detail": ["JEE_MAINS", "27 Jun", "Shift 1"]
+    }
+  },
+  {
+    "class_level": "Eleventh",
+    "subject_type": "MATHS",
+    "chapter_name": "Binomial Theorem",
+    "topic_name": "Constant Term",
+    "exam_types": ["JEE_MAINS"],
+    "question": {
+      "type": "integer",
+      "difficulty": 3,
+      "exam_type": ["JEE_MAINS"],
+      "question_text": "The number of positive integers $--content_latex--$k$--content_latex--$ such that the constant term in the binomial expansion of $--content_latex--$(2x^3 + \\frac{3}{x^k})^{12}$--content_latex--$, $--content_latex--$x \\neq 0$--content_latex--$, is $--content_latex--$2^8 \\cdot l$--content_latex--$, where $--content_latex--$l$--content_latex--$ is an odd integer, is:",
+      "marks": 4,
+      "solution_text": "The correct number of values is 2.",
+      "question_image": null,
+      "integer_answer": 2
+    },
+    "pyq": {
+      "year": 2022,
+      "exam_detail": ["JEE_MAINS", "28 Jun", "Shift 1"]
+    }
+  },
+  {
+    "class_level": "Eleventh",
+    "subject_type": "MATHS",
+    "chapter_name": "Binomial Theorem",
+    "topic_name": "Coefficient of Power",
+    "exam_types": ["JEE_MAINS"],
+    "question": {
+      "type": "integer",
+      "difficulty": 3,
+      "exam_type": ["JEE_MAINS"],
+      "question_text": "Let the sum of the coefficients of first three terms in the expansion of $--content_latex--$(x - \\frac{3}{x^2})^n$--content_latex--$, $--content_latex--$x \\neq 0$--content_latex--$, $--content_latex--$n \\in \\mathbb{N}$--content_latex--$, be $--content_latex--$376$--content_latex--$. Then the coefficient of $--content_latex--$x^4$--content_latex--$ is equal to:",
+      "marks": 4,
+      "solution_text": "The correct coefficient is 405.",
+      "question_image": null,
+      "integer_answer": 405
+    },
+    "pyq": {
+      "year": 2023,
+      "exam_detail": ["JEE_MAINS", "24 Jan", "Shift 2"]
+    }
+  },
+  {
+    "class_level": "Eleventh",
+    "subject_type": "MATHS",
+    "chapter_name": "Binomial Theorem",
+    "topic_name": "Equality of Coefficients",
+    "exam_types": ["JEE_MAINS"],
+    "question": {
+      "type": "integer",
+      "difficulty": 3,
+      "exam_type": ["JEE_MAINS"],
+      "question_text": "If the coefficient of $--content_latex--$x^9$--content_latex--$ in $--content_latex--$(\\alpha x^3 + \\frac{1}{\\beta x})^{11}$--content_latex--$ and the coefficient of $--content_latex--$x^{-9}$--content_latex--$ in $--content_latex--$(\\alpha x - \\frac{1}{\\beta x^3})^{11}$--content_latex--$ are equal, then $--content_latex--$(\\alpha\\beta)^2$--content_latex--$ is equal to:",
+      "marks": 4,
+      "solution_text": "The correct value is 1.",
+      "question_image": null,
+      "integer_answer": 1
+    },
+    "pyq": {
+      "year": 2023,
+      "exam_detail": ["JEE_MAINS", "29 Jan", "Shift 1"]
+    }
+  },
+  {
+    "class_level": "Eleventh",
+    "subject_type": "MATHS",
+    "chapter_name": "Binomial Theorem",
+    "topic_name": "Equality of Coefficients",
+    "exam_types": ["JEE_MAINS"],
+    "question": {
+      "type": "scq",
+      "difficulty": 3,
+      "exam_type": ["JEE_MAINS"],
+      "question_text": "If the coefficient of $--content_latex--$x^{15}$--content_latex--$ in the expansion of $--content_latex--$(a x^3 + \\frac{1}{b x^3})^{15}$--content_latex--$ is equal to the coefficient of $--content_latex--$x^{-15}$--content_latex--$ in the expansion of $--content_latex--$(a x^{1/3} - \\frac{1}{b x^3})^{15}$--content_latex--$, where $--content_latex--$a$--content_latex--$ and $--content_latex--$b$--content_latex--$ are positive real numbers, then for each such ordered pair $--content_latex--$(a,b)$--content_latex--$:",
+      "marks": 4,
+      "solution_text": "The correct condition is $--content_latex--$ab = 1$--content_latex--$.",
+      "question_image": null,
+      "scq_options": [
+        "$--content_latex--$a=b$--content_latex--$",
+        "$--content_latex--$ab=1$--content_latex--$",
+        "$--content_latex--$a=3b$--content_latex--$",
+        "$--content_latex--$ab=3$--content_latex--$"
+      ],
+      "scq_correct_options": 1
+    },
+    "pyq": {
+      "year": 2023,
+      "exam_detail": ["JEE_MAINS", "30 Jan", "Shift 1"]
+    }
+  },
+  {
+    "class_level": "Eleventh",
+    "subject_type": "MATHS",
+    "chapter_name": "Binomial Theorem",
+    "topic_name": "Coefficient of Power",
+    "exam_types": ["JEE_MAINS"],
+    "question": {
+      "type": "integer",
+      "difficulty": 3,
+      "exam_type": ["JEE_MAINS"],
+      "question_text": "The coefficient of $--content_latex--$x^{-6}$--content_latex--$ in the expansion of $--content_latex--$(\\frac{4x}{5} + \\frac{5}{2x^2})^{9}$--content_latex--$ is:",
+      "marks": 4,
+      "solution_text": "The correct coefficient is 5040.",
+      "question_image": null,
+      "integer_answer": 5040
+    },
+    "pyq": {
+      "year": 2023,
+      "exam_detail": ["JEE_MAINS", "31 Jan", "Shift 2"]
+    }
+  },
+  {
+    "class_level": "Eleventh",
+    "subject_type": "MATHS",
+    "chapter_name": "Permutations and Combinations",
+    "topic_name": "Permutation Ratios",
+    "exam_types": ["JEE_MAINS"],
+    "question": {
+      "type": "integer",
+      "difficulty": 3,
+      "exam_type": ["JEE_MAINS"],
+      "question_text": "If $--content_latex--$^{2n+1}P_{n-1} : ^{2n-1}P_n = 11 : 21$--content_latex--$, then $--content_latex--$n^2+n+15$--content_latex--$ is equal to:",
+      "marks": 4,
+      "solution_text": "The correct value is 45.",
+      "question_image": null,
+      "integer_answer": 45
+    },
+    "pyq": {
+      "year": 2023,
+      "exam_detail": ["JEE_MAINS", "31 Jan", "Shift 2"]
+    }
+  },
+  {
+    "class_level": "Eleventh",
+    "subject_type": "MATHS",
+    "chapter_name": "Binomial Theorem",
+    "topic_name": "Constant Term",
+    "exam_types": ["JEE_MAINS"],
+    "question": {
+      "type": "integer",
+      "difficulty": 2,
+      "exam_type": ["JEE_MAINS"],
+      "question_text": "If the term without $--content_latex--$x$--content_latex--$ in the expansion of $--content_latex--$(\\alpha x^{2/3} + \\frac{\\alpha}{x^3})^{22}$--content_latex--$ is 7315, then $--content_latex--$|\\alpha|$--content_latex--$ is equal to:",
+      "marks": 4,
+      "solution_text": "The correct value is 1.",
+      "question_image": null,
+      "integer_answer": 1
+    },
+    "pyq": {
+      "year": 2023,
+      "exam_detail": ["JEE_MAINS", "01 Feb", "Shift 2"]
+    }
+  },
+  {
+    "class_level": "Eleventh",
+    "subject_type": "MATHS",
+    "chapter_name": "Binomial Theorem",
+    "topic_name": "Ratio of Terms",
+    "exam_types": ["JEE_MAINS"],
+    "question": {
+      "type": "scq",
+      "difficulty": 3,
+      "exam_type": ["JEE_MAINS"],
+      "question_text": "If the ratio of the fifth term from the beginning to the fifth term from the end in the expansion of $--content_latex--$(\\sqrt{2} + \\frac{1}{\\sqrt[4]{3}})^n$--content_latex--$ is $--content_latex--$\\sqrt{6}:1$--content_latex--$, then the third term from the beginning is:",
+      "marks": 4,
+      "solution_text": "The correct value is $--content_latex--$60\\sqrt{3}$--content_latex--$.",
+      "question_image": null,
+      "scq_options": [
+        "$--content_latex--$30\\sqrt{2}$--content_latex--$",
+        "$--content_latex--$30\\sqrt{3}$--content_latex--$",
+        "$--content_latex--$60\\sqrt{2}$--content_latex--$",
+        "$--content_latex--$60\\sqrt{3}$--content_latex--$"
+      ],
+      "scq_correct_options": 3
+    },
+    "pyq": {
+      "year": 2023,
+      "exam_detail": ["JEE_MAINS", "06 Apr", "Shift 1"]
+    }
+  },
+  {
+    "class_level": "Eleventh",
+    "subject_type": "MATHS",
+    "chapter_name": "Permutations and Combinations",
+    "topic_name": "Combination Ratios",
+    "exam_types": ["JEE_MAINS"],
+    "question": {
+      "type": "scq",
+      "difficulty": 2,
+      "exam_type": ["JEE_MAINS"],
+      "question_text": "If $--content_latex--$^{2n}C_3 : ^nC_3 = 10 : 1$--content_latex--$, then the ratio $--content_latex--$(n^2+3n):(n^2-3n+4)$--content_latex--$ is:",
+      "marks": 4,
+      "solution_text": "The correct ratio is $--content_latex--$2:1$--content_latex--$.",
+      "question_image": null,
+      "scq_options": [
+        "35:16",
+        "27:11",
+        "65:37",
+        "2:1"
+      ],
+      "scq_correct_options": 3
+    },
+    "pyq": {
+      "year": 2023,
+      "exam_detail": ["JEE_MAINS", "06 Apr", "Shift 1"]
+    }
+  },
+  {
+    "class_level": "Eleventh",
+    "subject_type": "MATHS",
+    "chapter_name": "Binomial Theorem",
+    "topic_name": "Coefficient of Power",
+    "exam_types": ["JEE_MAINS"],
+    "question": {
+      "type": "integer",
+      "difficulty": 3,
+      "exam_type": ["JEE_MAINS"],
+      "question_text": "The coefficient of $--content_latex--$x^{18}$--content_latex--$ in the expansion of $--content_latex--$(x^4 - \\frac{1}{x^3})^{15}$--content_latex--$ is:",
+      "marks": 4,
+      "solution_text": "The correct coefficient is 5005.",
+      "question_image": null,
+      "integer_answer": 5005
+    },
+    "pyq": {
+      "year": 2023,
+      "exam_detail": ["JEE_MAINS", "06 Apr", "Shift 1"]
+    }
+  },
+  {
+    "class_level": "Eleventh",
+    "subject_type": "MATHS",
+    "chapter_name": "Binomial Theorem",
+    "topic_name": "Equality of Coefficients",
+    "exam_types": ["JEE_MAINS"],
+    "question": {
+      "type": "scq",
+      "difficulty": 3,
+      "exam_type": ["JEE_MAINS"],
+      "question_text": "If the coefficients of $--content_latex--$x^7$--content_latex--$ in $--content_latex--$(a x^2 + \\frac{1}{2bx})^{11}$--content_latex--$ and $--content_latex--$x^{-7}$--content_latex--$ in $--content_latex--$(a x - \\frac{1}{3b x^2})^{11}$--content_latex--$ are equal, then:",
+      "marks": 4,
+      "solution_text": "The correct relation is $--content_latex--$729ab=32$--content_latex--$.",
+      "question_image": null,
+      "scq_options": [
+        "$--content_latex--$729ab=32$--content_latex--$",
+        "$--content_latex--$32ab=729$--content_latex--$",
+        "$--content_latex--$64ab=243$--content_latex--$",
+        "$--content_latex--$243ab=64$--content_latex--$"
+      ],
+      "scq_correct_options": 0
+    },
+    "pyq": {
+      "year": 2023,
+      "exam_detail": ["JEE_MAINS", "06 Apr", "Shift 2"]
+    }
+  },
+  {
+    "class_level": "Eleventh",
+    "subject_type": "MATHS",
+    "chapter_name": "Binomial Theorem",
+    "topic_name": "Consecutive Coefficients",
+    "exam_types": ["JEE_MAINS"],
+    "question": {
+      "type": "scq",
+      "difficulty": 3,
+      "exam_type": ["JEE_MAINS"],
+      "question_text": "If the coefficients of three consecutive terms in the expansion of $--content_latex--$(1+x)^n$--content_latex--$ are in the ratio $--content_latex--$1:5:20$--content_latex--$, then the coefficient of the fourth term is:",
+      "marks": 4,
+      "solution_text": "The correct coefficient is 3654.",
+      "question_image": null,
+      "scq_options": ["2436", "5481", "1827", "3654"],
+      "scq_correct_options": 3
+    },
+    "pyq": {
+      "year": 2023,
+      "exam_detail": ["JEE_MAINS", "08 Apr", "Shift 1"]
+    }
+  },
+  {
+    "class_level": "Eleventh",
+    "subject_type": "MATHS",
+    "chapter_name": "Binomial Theorem",
+    "topic_name": "Absolute Difference of Coefficients",
+    "exam_types": ["JEE_MAINS"],
+    "question": {
+      "type": "scq",
+      "difficulty": 2,
+      "exam_type": ["JEE_MAINS"],
+      "question_text": "The absolute difference of the coefficients of $--content_latex--$x^{10}$--content_latex--$ and $--content_latex--$x^7$--content_latex--$ in the expansion of $--content_latex--$(2x^2 + \\frac{1}{2x})^{11}$--content_latex--$ is equal to:",
+      "marks": 4,
+      "solution_text": "The correct answer is $--content_latex--$12^3 - 12$--content_latex--$.",
+      "question_image": null,
+      "scq_options": [
+        "$--content_latex--$13^3-13$--content_latex--$",
+        "$--content_latex--$11^3-11$--content_latex--$",
+        "$--content_latex--$10^3-10$--content_latex--$",
+        "$--content_latex--$12^3-12$--content_latex--$"
+      ],
+      "scq_correct_options": 3
+    },
+    "pyq": {
+      "year": 2023,
+      "exam_detail": ["JEE_MAINS", "08 Apr", "Shift 2"]
+    }
+  },
+  {
+    "class_level": "Eleventh",
+    "subject_type": "MATHS",
+    "chapter_name": "Binomial Theorem",
+    "topic_name": "Equality of Coefficients",
+    "exam_types": ["JEE_MAINS"],
+    "question": {
+      "type": "scq",
+      "difficulty": 3,
+      "exam_type": ["JEE_MAINS"],
+      "question_text": "If the coefficient of $--content_latex--$x^7$--content_latex--$ in $--content_latex--$(ax-\\frac{1}{bx^2})^{13}$--content_latex--$ and the coefficient of $--content_latex--$x^{-5}$--content_latex--$ in $--content_latex--$(ax+\\frac{1}{bx^2})^{13}$--content_latex--$ are equal, then $--content_latex--$a^4b^4$--content_latex--$ is equal to:",
+      "marks": 4,
+      "solution_text": "Correct value is 22.",
+      "question_image": null,
+      "scq_options": ["11", "22", "33", "44"],
+      "scq_correct_options": 1
+    },
+    "pyq": {
+      "year": 2023,
+      "exam_detail": ["JEE_MAINS", "10 Apr", "Shift 1"]
+    }
+  },
+  {
+    "class_level": "Eleventh",
+    "subject_type": "MATHS",
+    "chapter_name": "Binomial Theorem",
+    "topic_name": "Consecutive Coefficients",
+    "exam_types": ["JEE_MAINS"],
+    "question": {
+      "type": "scq",
+      "difficulty": 2,
+      "exam_type": ["JEE_MAINS"],
+      "question_text": "The sum of coefficients of three consecutive terms in the binomial expansion of $--content_latex--$(1+x)^{n+2}$--content_latex--$ which are in the ratio $--content_latex--$1:3:5$--content_latex--$ is equal to:",
+      "marks": 4,
+      "solution_text": "Correct sum is 63.",
+      "question_image": null,
+      "scq_options": ["25", "41", "63", "92"],
+      "scq_correct_options": 2
+    },
+    "pyq": {
+      "year": 2023,
+      "exam_detail": ["JEE_MAINS", "11 Apr", "Shift 2"]
+    }
+  },
+  {
+    "class_level": "Eleventh",
+    "subject_type": "MATHS",
+    "chapter_name": "Binomial Theorem",
+    "topic_name": "Sum of Coefficients",
+    "exam_types": ["JEE_MAINS"],
+    "question": {
+      "type": "scq",
+      "difficulty": 3,
+      "exam_type": ["JEE_MAINS"],
+      "question_text": "The sum of the coefficients of the first $--content_latex--$50$--content_latex--$ terms in the binomial expansion of $--content_latex--$(1-x)^{100}$--content_latex--$ is equal to:",
+      "marks": 4,
+      "solution_text": "Correct answer is $--content_latex--$-^{99}C_{49}$--content_latex--$.",
+      "question_image": null,
+      "scq_options": [
+        "$--content_latex--$^{101}C_{50}$--content_latex--$",
+        "$--content_latex--$^{99}C_{49}$--content_latex--$",
+        "$--content_latex--$-^{101}C_{50}$--content_latex--$",
+        "$--content_latex--$-^{99}C_{49}$--content_latex--$"
+      ],
+      "scq_correct_options": 3
+    },
+    "pyq": {
+      "year": 2023,
+      "exam_detail": ["JEE_MAINS", "12 Apr", "Shift 1"]
+    }
+  },
+  {
+    "class_level": "Eleventh",
+    "subject_type": "MATHS",
+    "chapter_name": "Binomial Theorem",
+    "topic_name": "Coefficient of Term",
+    "exam_types": ["JEE_MAINS"],
+    "question": {
+      "type": "scq",
+      "difficulty": 2,
+      "exam_type": ["JEE_MAINS"],
+      "question_text": "The coefficient of $--content_latex--$x^5$--content_latex--$ in the expansion of $--content_latex--$(2x^3-\\frac{1}{3x^2})^5$--content_latex--$ is:",
+      "marks": 4,
+      "solution_text": "Correct coefficient is $--content_latex--$\\frac{80}{9}$--content_latex--$.",
+      "question_image": null,
+      "scq_options": ["8", "9", "$--content_latex--$\\frac{26}{3}$--content_latex--$", "$--content_latex--$\\frac{80}{9}$--content_latex--$"],
+      "scq_correct_options": 3
+    },
+    "pyq": {
+      "year": 2023,
+      "exam_detail": ["JEE_MAINS", "13 Apr", "Shift 2"]
+    }
+  },
+  {
+    "class_level": "Eleventh",
+    "subject_type": "MATHS",
+    "chapter_name": "Binomial Theorem",
+    "topic_name": "Ratio of Coefficients",
+    "exam_types": ["JEE_MAINS"],
+    "question": {
+      "type": "scq",
+      "difficulty": 3,
+      "exam_type": ["JEE_MAINS"],
+      "question_text": "Let $--content_latex--$m$--content_latex--$ and $--content_latex--$n$--content_latex--$ be the coefficients of seventh and thirteenth terms respectively in the expansion of $--content_latex--$(\\frac{1}{3}x^{5/3}+\\frac{1}{2x^{2/3}})^{18}$--content_latex--$. Then $--content_latex--$(\\frac{n}{m})^{1/3}$--content_latex--$ is:",
+      "marks": 4,
+      "solution_text": "Correct value is $--content_latex--$\\frac{9}{4}$--content_latex--$.",
+      "question_image": null,
+      "scq_options": [
+        "$--content_latex--$\\frac{1}{9}$--content_latex--$",
+        "$--content_latex--$\\frac{1}{4}$--content_latex--$",
+        "$--content_latex--$\\frac{4}{9}$--content_latex--$",
+        "$--content_latex--$\\frac{9}{4}$--content_latex--$"
+      ],
+      "scq_correct_options": 3
+    },
+    "pyq": {
+      "year": 2024,
+      "exam_detail": ["JEE_MAINS", "01 Feb", "Shift 2"]
+    }
+  },
+  {
+    "class_level": "Eleventh",
+    "subject_type": "MATHS",
+    "chapter_name": "Binomial Theorem",
+    "topic_name": "Arithmetic Progression of Coefficients",
+    "exam_types": ["JEE_MAINS"],
+    "question": {
+      "type": "scq",
+      "difficulty": 2,
+      "exam_type": ["JEE_MAINS"],
+      "question_text": "If the coefficients of $--content_latex--$x^4,x^5$--content_latex--$ and $--content_latex--$x^6$--content_latex--$ in the expansion of $--content_latex--$(1+x)^n$--content_latex--$ are in arithmetic progression, then the maximum value of $--content_latex--$n$--content_latex--$ is:",
+      "marks": 4,
+      "solution_text": "Correct value is 14.",
+      "question_image": null,
+      "scq_options": ["7", "14", "21", "28"],
+      "scq_correct_options": 1
+    },
+    "pyq": {
+      "year": 2024,
+      "exam_detail": ["JEE_MAINS", "04 Apr", "Shift 2"]
+    }
+  },
+  {
+    "class_level": "Eleventh",
+    "subject_type": "MATHS",
+    "chapter_name": "Binomial Theorem",
+    "topic_name": "Constant Term",
+    "exam_types": ["JEE_MAINS"],
+    "question": {
+      "type": "scq",
+      "difficulty": 3,
+      "exam_type": ["JEE_MAINS"],
+      "question_text": "If the constant term in the expansion of $--content_latex--$(\\frac{\\sqrt[5]{3}}{x}+\\frac{2x}{\\sqrt[5]{3}})^{12}$--content_latex--$, $--content_latex--$x\\neq0$--content_latex--$, is $--content_latex--$\\alpha\\times2^8\\times\\sqrt[5]{3}$--content_latex--$, then $--content_latex--$25\\alpha$--content_latex--$ is equal to:",
+      "marks": 4,
+      "solution_text": "Correct value is 693.",
+      "question_image": null,
+      "scq_options": ["639", "693", "724", "742"],
+      "scq_correct_options": 1
+    },
+    "pyq": {
+      "year": 2024,
+      "exam_detail": ["JEE_MAINS", "05 Apr", "Shift 2"]
+    }
+  },
+  {
+    "class_level": "Eleventh",
+    "subject_type": "MATHS",
+    "chapter_name": "Binomial Theorem",
+    "topic_name": "Independent Term",
+    "exam_types": ["JEE_MAINS"],
+    "question": {
+      "type": "scq",
+      "difficulty": 2,
+      "exam_type": ["JEE_MAINS"],
+      "question_text": "If the term independent of $--content_latex--$x$--content_latex--$ in the expansion of $--content_latex--$(\\sqrt{a}x^2+\\frac{1}{2x^3})^{10}$--content_latex--$ is 105, then $--content_latex--$a^2$--content_latex--$ is equal to:",
+      "marks": 4,
+      "solution_text": "Correct value is 4.",
+      "question_image": null,
+      "scq_options": ["2", "4", "6", "9"],
+      "scq_correct_options": 1
+    },
+    "pyq": {
+      "year": 2024,
+      "exam_detail": ["JEE_MAINS", "08 Apr", "Shift 2"]
+    }
+  },
+  {
+    "class_level": "Eleventh",
+    "subject_type": "MATHS",
+    "chapter_name": "Number Theory",
+    "topic_name": "Remainders",
+    "exam_types": ["JEE_MAINS"],
+    "question": {
+      "type": "integer",
+      "difficulty": 1,
+      "exam_type": ["JEE_MAINS"],
+      "question_text": "The remainder when $--content_latex--$428^{2024}$--content_latex--$ is divided by $--content_latex--$21$--content_latex--$ is:",
+      "marks": 4,
+      "solution_text": "Correct remainder is 1.",
+      "question_image": null,
+      "integer_answer": 1
+    },
+    "pyq": {
+      "year": 2024,
+      "exam_detail": ["JEE_MAINS", "09 Apr", "Shift 1"]
+    }
+  },
+  {
+    "class_level": "Twelth",
+    "subject_type": "CHEMISTRY",
+    "chapter_name": "Equilibrium",
+    "topic_name": "Ionic Product of Water",
+    "exam_types": ["JEE_MAINS"],
+    "question": {
+      "type": "integer",
+      "difficulty": 1,
+      "exam_type": ["JEE_MAINS"],
+      "question_text": "Calculate the $--content_latex--$pH$--content_latex--$ of pure water at 298 K given that $--content_latex--$K_w = 1.0 \\times 10^{-14}$--content_latex--$.",
+      "marks": 4,
+      "solution_text": "pH of pure water is 7.",
+      "question_image": null,
+      "integer_answer": 7
+    },
+    "pyq": null
+  },
+  {
+    "class_level": "Twelth",
+    "subject_type": "CHEMISTRY",
+    "chapter_name": "Equilibrium",
+    "topic_name": "pH Scale",
+    "exam_types": ["JEE_MAINS"],
+    "question": {
+      "type": "scq",
+      "difficulty": 1,
+      "exam_type": ["JEE_MAINS"],
+      "question_text": "Which of the following solutions has the highest $--content_latex--$pH$--content_latex--$?",
+      "marks": 4,
+      "solution_text": "Strong base with highest concentration gives highest pH.",
+      "question_image": null,
+      "scq_options": [
+        "$--content_latex--$0.01\\,M$--content_latex--$ HCl",
+        "$--content_latex--$0.01\\,M$--content_latex--$ NaOH",
+        "$--content_latex--$0.1\\,M$--content_latex--$ CH$_3$COOH",
+        "$--content_latex--$0.1\\,M$--content_latex--$ NH$_4$Cl"
+      ],
+      "scq_correct_options": 1
+    },
+    "pyq": null
+  },
+  {
+    "class_level": "Twelth",
+    "subject_type": "CHEMISTRY",
+    "chapter_name": "Equilibrium",
+    "topic_name": "Solubility Product",
+    "exam_types": ["JEE_MAINS"],
+    "question": {
+      "type": "integer",
+      "difficulty": 2,
+      "exam_type": ["JEE_MAINS"],
+      "question_text": "For the salt $--content_latex--$AgCl$--content_latex--$, $--content_latex--$K_{sp} = 1.8 \\times 10^{-10}$--content_latex--$. Calculate its molar solubility in water as $--content_latex--$x \\times 10^{-5}$--content_latex--$ mol $--content_latex--$L^{-1}$--content_latex--$ (nearest integer).",
+      "marks": 4,
+      "solution_text": "Molar solubility is $--content_latex--$1.34 \\times 10^{-5}$--content_latex--$.",
+      "question_image": null,
+      "integer_answer": 1
+    },
+    "pyq": null
+  },
+  {
+    "class_level": "Twelth",
+    "subject_type": "CHEMISTRY",
+    "chapter_name": "Equilibrium",
+    "topic_name": "Acid Strength",
+    "exam_types": ["JEE_MAINS"],
+    "question": {
+      "type": "mcq",
+      "difficulty": 2,
+      "exam_type": ["JEE_MAINS"],
+      "question_text": "Which of the following acids is the strongest?",
+      "marks": 4,
+      "solution_text": "$--content_latex--$HClO_4$--content_latex--$ is the strongest acid.",
+      "question_image": null,
+      "mcq_options": [
+        "$--content_latex--$HClO$--content_latex--$",
+        "$--content_latex--$HClO_2$--content_latex--$",
+        "$--content_latex--$HClO_3$--content_latex--$",
+        "$--content_latex--$HClO_4$--content_latex--$"
+      ],
+      "mcq_correct_option": [3]
+    },
+    "pyq": null
+  },
+  {
+    "class_level": "Twelth",
+    "subject_type": "CHEMISTRY",
+    "chapter_name": "Equilibrium",
+    "topic_name": "Common Ion Effect",
+    "exam_types": ["JEE_MAINS"],
+    "question": {
+      "type": "scq",
+      "difficulty": 2,
+      "exam_type": ["JEE_MAINS"],
+      "question_text": "The solubility of $--content_latex--$AgCl$--content_latex--$ decreases on addition of:",
+      "marks": 4,
+      "solution_text": "Common ion suppresses solubility.",
+      "question_image": null,
+      "scq_options": [
+        "NaNO$_3$",
+        "AgNO$_3$",
+        "KNO$_3$",
+        "NH$_4$NO$_3$"
+      ],
+      "scq_correct_options": 1
+    },
+    "pyq": null
+  },
+  {
+    "class_level": "Twelth",
+    "subject_type": "CHEMISTRY",
+    "chapter_name": "Equilibrium",
+    "topic_name": "Buffer Solutions",
+    "exam_types": ["JEE_MAINS"],
+    "question": {
+      "type": "integer",
+      "difficulty": 2,
+      "exam_type": ["JEE_MAINS"],
+      "question_text": "Calculate the $--content_latex--$pH$--content_latex--$ of a buffer solution having $--content_latex--$pK_a = 4.0$--content_latex--$ and $--content_latex--$[A^-]/[HA] = 1$--content_latex--$.",
+      "marks": 4,
+      "solution_text": "pH = pKa when ratio is 1.",
+      "question_image": null,
+      "integer_answer": 4
+    },
+    "pyq": null
+  },
+  {
+    "class_level": "Twelth",
+    "subject_type": "CHEMISTRY",
+    "chapter_name": "Chemical Bonding",
+    "topic_name": "Lewis Acids",
+    "exam_types": ["JEE_MAINS"],
+    "question": {
+      "type": "mcq",
+      "difficulty": 1,
+      "exam_type": ["JEE_MAINS"],
+      "question_text": "Which of the following acts as a Lewis acid?",
+      "marks": 4,
+      "solution_text": "$--content_latex--$BF_3$--content_latex--$ accepts electron pair.",
+      "question_image": null,
+      "mcq_options": [
+        "$--content_latex--$NH_3$--content_latex--$",
+        "$--content_latex--$H_2O$--content_latex--$",
+        "$--content_latex--$BF_3$--content_latex--$",
+        "$--content_latex--$OH^-$--content_latex--$"
+      ],
+      "mcq_correct_option": [2]
+    },
+    "pyq": null
+  },
+  {
+    "class_level": "Twelth",
+    "subject_type": "CHEMISTRY",
+    "chapter_name": "Equilibrium",
+    "topic_name": "Degree of Dissociation",
+    "exam_types": ["JEE_MAINS"],
+    "question": {
+      "type": "integer",
+      "difficulty": 3,
+      "exam_type": ["JEE_MAINS"],
+      "question_text": "For a weak acid HA, $--content_latex--$K_a = 1.0 \\times 10^{-5}$--content_latex--$. Calculate the degree of dissociation for $--content_latex--$0.1\\,M$--content_latex--$ solution as $--content_latex--$x \\times 10^{-3}$--content_latex--$ (nearest integer).",
+      "marks": 4,
+      "solution_text": "Degree of dissociation is approximately $--content_latex--$1.0 \\times 10^{-2}$--content_latex--$.",
+      "question_image": null,
+      "integer_answer": 10
+    },
+    "pyq": null
+  },
+  {
+    "class_level": "Twelth",
+    "subject_type": "CHEMISTRY",
+    "chapter_name": "Equilibrium",
+    "topic_name": "pH Calculation",
+    "exam_types": ["JEE_MAINS"],
+    "question": {
+      "type": "scq",
+      "difficulty": 1,
+      "exam_type": ["JEE_MAINS"],
+      "question_text": "The $--content_latex--$pH$--content_latex--$ of $--content_latex--$10^{-3}$--content_latex--$ M HCl is:",
+      "marks": 4,
+      "solution_text": "pH = 3.",
+      "question_image": null,
+      "scq_options": [
+        "1",
+        "2",
+        "3",
+        "4"
+      ],
+      "scq_correct_options": 2
+    },
+    "pyq": null
+  },
+  {
+    "class_level": "Twelth",
+    "subject_type": "CHEMISTRY",
+    "chapter_name": "Equilibrium",
+    "topic_name": "Ionic Product of Water",
+    "exam_types": ["JEE_MAINS"],
+    "question": {
+      "type": "integer",
+      "difficulty": 1,
+      "exam_type": ["JEE_MAINS"],
+      "question_text": "Calculate the $--content_latex--$pH$--content_latex--$ of pure water at 298 K given that $--content_latex--$K_w = 1.0 \\times 10^{-14}$--content_latex--$.",
+      "marks": 4,
+      "solution_text": "pH of pure water is 7.",
+      "question_image": null,
+      "integer_answer": 7
+    },
+    "pyq": null
+  },
+  {
+    "class_level": "Twelth",
+    "subject_type": "CHEMISTRY",
+    "chapter_name": "Equilibrium",
+    "topic_name": "pH Scale",
+    "exam_types": ["JEE_MAINS"],
+    "question": {
+      "type": "scq",
+      "difficulty": 1,
+      "exam_type": ["JEE_MAINS"],
+      "question_text": "Which of the following solutions has the highest $--content_latex--$pH$--content_latex--$?",
+      "marks": 4,
+      "solution_text": "Strong base with highest concentration gives highest pH.",
+      "question_image": null,
+      "scq_options": [
+        "$--content_latex--$0.01\\,M$--content_latex--$ HCl",
+        "$--content_latex--$0.01\\,M$--content_latex--$ NaOH",
+        "$--content_latex--$0.1\\,M$--content_latex--$ CH$_3$COOH",
+        "$--content_latex--$0.1\\,M$--content_latex--$ NH$_4$Cl"
+      ],
+      "scq_correct_options": 1
+    },
+    "pyq": null
+  },
+  {
+    "class_level": "Twelth",
+    "subject_type": "CHEMISTRY",
+    "chapter_name": "Equilibrium",
+    "topic_name": "Solubility Product",
+    "exam_types": ["JEE_MAINS"],
+    "question": {
+      "type": "integer",
+      "difficulty": 2,
+      "exam_type": ["JEE_MAINS"],
+      "question_text": "For the salt $--content_latex--$AgCl$--content_latex--$, $--content_latex--$K_{sp} = 1.8 \\times 10^{-10}$--content_latex--$. Calculate its molar solubility in water as $--content_latex--$x \\times 10^{-5}$--content_latex--$ mol $--content_latex--$L^{-1}$--content_latex--$ (nearest integer).",
+      "marks": 4,
+      "solution_text": "Molar solubility is $--content_latex--$1.34 \\times 10^{-5}$--content_latex--$.",
+      "question_image": null,
+      "integer_answer": 1
+    },
+    "pyq": null
+  },
+  {
+    "class_level": "Twelth",
+    "subject_type": "CHEMISTRY",
+    "chapter_name": "Equilibrium",
+    "topic_name": "Acid Strength",
+    "exam_types": ["JEE_MAINS"],
+    "question": {
+      "type": "mcq",
+      "difficulty": 2,
+      "exam_type": ["JEE_MAINS"],
+      "question_text": "Which of the following acids is the strongest?",
+      "marks": 4,
+      "solution_text": "$--content_latex--$HClO_4$--content_latex--$ is the strongest acid.",
+      "question_image": null,
+      "mcq_options": [
+        "$--content_latex--$HClO$--content_latex--$",
+        "$--content_latex--$HClO_2$--content_latex--$",
+        "$--content_latex--$HClO_3$--content_latex--$",
+        "$--content_latex--$HClO_4$--content_latex--$"
+      ],
+      "mcq_correct_option": [3]
+    },
+    "pyq": null
+  },
+  {
+    "class_level": "Twelth",
+    "subject_type": "CHEMISTRY",
+    "chapter_name": "Equilibrium",
+    "topic_name": "Common Ion Effect",
+    "exam_types": ["JEE_MAINS"],
+    "question": {
+      "type": "scq",
+      "difficulty": 2,
+      "exam_type": ["JEE_MAINS"],
+      "question_text": "The solubility of $--content_latex--$AgCl$--content_latex--$ decreases on addition of:",
+      "marks": 4,
+      "solution_text": "Common ion suppresses solubility.",
+      "question_image": null,
+      "scq_options": [
+        "NaNO$_3$",
+        "AgNO$_3$",
+        "KNO$_3$",
+        "NH$_4$NO$_3$"
+      ],
+      "scq_correct_options": 1
+    },
+    "pyq": null
+  },
+  {
+    "class_level": "Twelth",
+    "subject_type": "CHEMISTRY",
+    "chapter_name": "Equilibrium",
+    "topic_name": "Buffer Solutions",
+    "exam_types": ["JEE_MAINS"],
+    "question": {
+      "type": "integer",
+      "difficulty": 2,
+      "exam_type": ["JEE_MAINS"],
+      "question_text": "Calculate the $--content_latex--$pH$--content_latex--$ of a buffer solution having $--content_latex--$pK_a = 4.0$--content_latex--$ and $--content_latex--$[A^-]/[HA] = 1$--content_latex--$.",
+      "marks": 4,
+      "solution_text": "pH = pKa when ratio is 1.",
+      "question_image": null,
+      "integer_answer": 4
+    },
+    "pyq": null
+  },
+  {
+    "class_level": "Twelth",
+    "subject_type": "CHEMISTRY",
+    "chapter_name": "Chemical Bonding",
+    "topic_name": "Lewis Acids",
+    "exam_types": ["JEE_MAINS"],
+    "question": {
+      "type": "mcq",
+      "difficulty": 1,
+      "exam_type": ["JEE_MAINS"],
+      "question_text": "Which of the following acts as a Lewis acid?",
+      "marks": 4,
+      "solution_text": "$--content_latex--$BF_3$--content_latex--$ accepts electron pair.",
+      "question_image": null,
+      "mcq_options": [
+        "$--content_latex--$NH_3$--content_latex--$",
+        "$--content_latex--$H_2O$--content_latex--$",
+        "$--content_latex--$BF_3$--content_latex--$",
+        "$--content_latex--$OH^-$--content_latex--$"
+      ],
+      "mcq_correct_option": [2]
+    },
+    "pyq": null
+  },
+  {
+    "class_level": "Twelth",
+    "subject_type": "CHEMISTRY",
+    "chapter_name": "Equilibrium",
+    "topic_name": "Degree of Dissociation",
+    "exam_types": ["JEE_MAINS"],
+    "question": {
+      "type": "integer",
+      "difficulty": 3,
+      "exam_type": ["JEE_MAINS"],
+      "question_text": "For a weak acid HA, $--content_latex--$K_a = 1.0 \\times 10^{-5}$--content_latex--$. Calculate the degree of dissociation for $--content_latex--$0.1\\,M$--content_latex--$ solution as $--content_latex--$x \\times 10^{-3}$--content_latex--$ (nearest integer).",
+      "marks": 4,
+      "solution_text": "Degree of dissociation is approximately $--content_latex--$1.0 \\times 10^{-2}$--content_latex--$.",
+      "question_image": null,
+      "integer_answer": 10
+    },
+    "pyq": null
+  },
+  {
+    "class_level": "Twelth",
+    "subject_type": "CHEMISTRY",
+    "chapter_name": "Equilibrium",
+    "topic_name": "pH Calculation",
+    "exam_types": ["JEE_MAINS"],
+    "question": {
+      "type": "scq",
+      "difficulty": 1,
+      "exam_type": ["JEE_MAINS"],
+      "question_text": "The $--content_latex--$pH$--content_latex--$ of $--content_latex--$10^{-3}$--content_latex--$ M HCl is:",
+      "marks": 4,
+      "solution_text": "pH = 3.",
+      "question_image": null,
+      "scq_options": [
+        "1",
+        "2",
+        "3",
+        "4"
+      ],
+      "scq_correct_options": 2
+    },
+    "pyq": null
+  },
+  {
+    "class_level": "Twelfth",
+    "subject_type": "MATHEMATICS",
+    "chapter_name": "Exponential and Logarithmic Functions",
+    "topic_name": "Equations Involving Modulus",
+    "exam_types": ["JEE_MAINS"],
+    "question": {
+      "type": "scq",
+      "difficulty": 3,
+      "exam_type": ["JEE_MAINS"],
+      "question_text": "The number of real roots of the equation $--content_latex--$5 + |2^x - 1| = 2^x(2^x - 2)$ is:",
+      "marks": 4,
+      "solution_text": "By considering cases for $--content_latex--$2^x - 1 \\ge 0$ and $--content_latex--$2^x - 1 < 0$, only one real solution satisfies the equation.",
+      "question_image": null,
+      "scq_options": [
+        "$--content_latex--$2$",
+        "$--content_latex--$3$",
+        "$--content_latex--$1$",
+        "$--content_latex--$4$"
+      ],
+      "scq_correct_options": 2
+    },
+    "pyq": {
+      "year": 2019,
+      "exam_detail": ["JEE_MAINS", "10 Apr", "Shift 2"]
+    }
+  },
+
+  {
+    "class_level": "Twelfth",
+    "subject_type": "MATHEMATICS",
+    "chapter_name": "Quadratic Equations",
+    "topic_name": "Discriminant Based Analysis",
+    "exam_types": ["JEE_MAINS"],
+    "question": {
+      "type": "scq",
+      "difficulty": 3,
+      "exam_type": ["JEE_MAINS"],
+      "question_text": "The number of integral values of $--content_latex--$m$ for which the equation $--content_latex--$(1 + m^2)x^2 - 2(1 + 3m)x + (1 + 8m) = 0$ has no real root is:",
+      "marks": 4,
+      "solution_text": "The discriminant is negative for infinitely many integer values of $--content_latex--$m$, hence the answer is infinitely many.",
+      "question_image": null,
+      "scq_options": [
+        "$--content_latex--$2$",
+        "$--content_latex--$3$",
+        "$--content_latex--$1$",
+        "$--content_latex--$\\text{Infinitely many}$"
+      ],
+      "scq_correct_options": 3
+    },
+    "pyq": {
+      "year": 2019,
+      "exam_detail": ["JEE_MAINS", "08 Apr", "Shift 2"]
+    }
+  },
+
+  {
+    "class_level": "Twelfth",
+    "subject_type": "MATHEMATICS",
+    "chapter_name": "Quadratic Expressions",
+    "topic_name": "Condition for Positivity",
+    "exam_types": ["JEE_MAINS"],
+    "question": {
+      "type": "scq",
+      "difficulty": 3,
+      "exam_type": ["JEE_MAINS"],
+      "question_text": "The number of integral values of $--content_latex--$m$ for which the quadratic expression $--content_latex--$(1 + 2m)x^2 - 2(1 + 3m)x + 4(1 + m)$ is always positive for all $--content_latex--$x \\in \\mathbb{R}$ is:",
+      "marks": 4,
+      "solution_text": "For the expression to be always positive, leading coefficient must be positive and discriminant negative. Solving both conditions gives $--content_latex--$7$ integral values.",
+      "question_image": null,
+      "scq_options": [
+        "$--content_latex--$7$",
+        "$--content_latex--$3$",
+        "$--content_latex--$6$",
+        "$--content_latex--$8$"
+      ],
+      "scq_correct_options": 0
+    },
+    "pyq": {
+      "year": 2019,
+      "exam_detail": ["JEE_MAINS", "12 Jan", "Shift 2"]
+    }
+  },
+
+  {
+    "class_level": "Twelfth",
+    "subject_type": "MATHEMATICS",
+    "chapter_name": "Quadratic Equations",
+    "topic_name": "Rational Roots",
+    "exam_types": ["JEE_MAINS"],
+    "question": {
+      "type": "scq",
+      "difficulty": 2,
+      "exam_type": ["JEE_MAINS"],
+      "question_text": "The number of all possible positive integral values of $--content_latex--$\\alpha$ for which the roots of the quadratic equation $--content_latex--$6x^2 - 11x + \\alpha = 0$ are rational numbers is:",
+      "marks": 4,
+      "solution_text": "For rational roots, the discriminant $--content_latex--$121 - 24\\alpha$ must be a perfect square. This happens for $--content_latex--$3$ positive integral values of $--content_latex--$\\alpha$.",
+      "question_image": null,
+      "scq_options": [
+        "$--content_latex--$5$",
+        "$--content_latex--$3$",
+        "$--content_latex--$4$",
+        "$--content_latex--$2$"
+      ],
+      "scq_correct_options": 1
+    },
+    "pyq": {
+      "year": 2019,
+      "exam_detail": ["JEE_MAINS", "09 Jan", "Shift 2"]
+    }
+  },
+  {
+    "class_level": "Twelfth",
+    "subject_type": "MATHEMATICS",
+    "chapter_name": "Quadratic Equations",
+    "topic_name": "Nature of Roots",
+    "exam_types": ["JEE_MAINS"],
+    "question": {
+      "type": "numerical",
+      "difficulty": 3,
+      "exam_type": ["JEE_MAINS"],
+      "question_text": "The least positive value of $--content_latex--$a$ for which the equation $--content_latex--$2x^2 + (a - 10)x + \\frac{33}{2} = 2a$ has real roots is __.",
+      "marks": 4,
+      "solution_text": "Rewriting the equation gives $--content_latex--$2x^2 + (a - 10)x + \\left(\\frac{33}{2} - 2a\\right) = 0$. For real roots, the discriminant must satisfy $--content_latex--$D \\ge 0$. Solving $--content_latex--$(a - 10)^2 - 8\\left(\\frac{33}{2} - 2a\\right) \\ge 0$ gives $--content_latex--$a \\ge 8$. Hence, the least positive value of $--content_latex--$a$ is $--content_latex--$8$.",
+      "question_image": null,
+      "numerical_answer": "$--content_latex--$8$"
+    },
+    "pyq": {
+      "year": 2020,
+      "exam_detail": ["JEE_MAINS", "08 Jan", "Shift 1"]
+    }
+  },
+  {
+    "class_level": "Eleventh",
+    "subject_type": "MATHS",
+    "chapter_name": "Functions",
+    "topic_name": "Modulus Equation",
+    "exam_types": ["JEE_MAINS"],
+    "question": {
+      "type": "scq",
+      "difficulty": 2,
+      "exam_type": ["JEE_MAINS"],
+      "question_text": "The number of real solutions of the equation $--content_latex--$x^2 - |x| - 12 = 0$ is:",
+      "marks": 4,
+      "solution_text": "Solving separately for $--content_latex--$x \\ge 0$ and $--content_latex--$x < 0$ gives two real solutions.",
+      "question_image": null,
+      "scq_options": [
+        "$--content_latex--$2$",
+        "$--content_latex--$3$",
+        "$--content_latex--$1$",
+        "$--content_latex--$4$"
+      ],
+      "scq_correct_options": 0
+    },
+    "pyq": {
+      "year": 2021,
+      "exam_detail": ["JEE_MAINS", "25 Jul", "Shift 2"]
+    }
+  },
+
+  {
+    "class_level": "Twelfth",
+    "subject_type": "MATHS",
+    "chapter_name": "Theory of Equations",
+    "topic_name": "Power of Roots",
+    "exam_types": ["JEE_MAINS"],
+    "question": {
+      "type": "numerical",
+      "difficulty": 3,
+      "exam_type": ["JEE_MAINS"],
+      "question_text": "The sum of $--content_latex--$162^{th}$ powers of the roots of the equation $--content_latex--$x^3 - 2x^2 + 2x - 1 = 0$ is:",
+      "marks": 4,
+      "solution_text": "Using recurrence relation from the given cubic, the sum evaluates to $--content_latex--$3$.",
+      "question_image": null,
+      "numerical_correct_answer": "$--content_latex--$3$"
+    },
+    "pyq": {
+      "year": 2021,
+      "exam_detail": ["JEE_MAINS", "26 Feb", "Shift 1"]
+    }
+  },
+
+  {
+    "class_level": "Eleventh",
+    "subject_type": "MATHS",
+    "chapter_name": "Complex Numbers",
+    "topic_name": "Conjugate Roots",
+    "exam_types": ["JEE_MAINS"],
+    "question": {
+      "type": "scq",
+      "difficulty": 2,
+      "exam_type": ["JEE_MAINS"],
+      "question_text": "If $--content_latex--$\\alpha, \\beta \\in \\mathbb{R}$ and $--content_latex--$1 - 2i$ is a root of $--content_latex--$x^2 + \\alpha x + \\beta = 0$, then the value of $--content_latex--$(\\alpha - \\beta)$ is:",
+      "marks": 4,
+      "solution_text": "Using conjugate root theorem and comparing coefficients gives $--content_latex--$-7$.",
+      "question_image": null,
+      "scq_options": [
+        "$--content_latex--$-7$",
+        "$--content_latex--$7$",
+        "$--content_latex--$-3$",
+        "$--content_latex--$3$"
+      ],
+      "scq_correct_options": 0
+    },
+    "pyq": {
+      "year": 2021,
+      "exam_detail": ["JEE_MAINS", "25 Feb", "Shift 2"]
+    }
+  },
+
+  {
+    "class_level": "Eleventh",
+    "subject_type": "MATHS",
+    "chapter_name": "Quadratic Inequalities",
+    "topic_name": "Always Positive Quadratic",
+    "exam_types": ["JEE_MAINS"],
+    "question": {
+      "type": "scq",
+      "difficulty": 3,
+      "exam_type": ["JEE_MAINS"],
+      "question_text": "The integer $--content_latex--$k$ for which the inequality $--content_latex--$x^2 - 2(3k - 1)x + 8k^2 - 7 > 0$ is valid for every $--content_latex--$x \\in \\mathbb{R}$ is:",
+      "marks": 4,
+      "solution_text": "For positivity, discriminant must be negative which gives $--content_latex--$k = 3$.",
+      "question_image": null,
+      "scq_options": [
+        "$--content_latex--$4$",
+        "$--content_latex--$2$",
+        "$--content_latex--$3$",
+        "$--content_latex--$0$"
+      ],
+      "scq_correct_options": 2
+    },
+    "pyq": {
+      "year": 2021,
+      "exam_detail": ["JEE_MAINS", "25 Feb", "Shift 1"]
+    }
+  },
+
+  {
+    "class_level": "Eleventh",
+    "subject_type": "MATHS",
+    "chapter_name": "Functions",
+    "topic_name": "Modulus Quadratic",
+    "exam_types": ["JEE_MAINS"],
+    "question": {
+      "type": "numerical",
+      "difficulty": 2,
+      "exam_type": ["JEE_MAINS"],
+      "question_text": "The number of real roots of the equation $--content_latex--$(x + 1)^2 + |x - 5| = \\frac{27}{4}$ is:",
+      "marks": 4,
+      "solution_text": "Solving separately for $--content_latex--$x \\ge 5$ and $--content_latex--$x < 5$ gives two real solutions.",
+      "question_image": null,
+      "numerical_correct_answer": "$--content_latex--$2$"
+    },
+    "pyq": {
+      "year": 2021,
+      "exam_detail": ["JEE_MAINS", "24 Feb", "Shift 2"]
+    }
+  },
+
+  {
+    "class_level": "Eleventh",
+    "subject_type": "MATHS",
+    "chapter_name": "Theory of Equations",
+    "topic_name": "Formation of Equation",
+    "exam_types": ["JEE_MAINS"],
+    "question": {
+      "type": "scq",
+      "difficulty": 2,
+      "exam_type": ["JEE_MAINS"],
+      "question_text": "Let $--content_latex--$p$ and $--content_latex--$q$ be two positive numbers such that $--content_latex--$p + q = 2$ and $--content_latex--$p^4 + q^4 = 272$. Then $--content_latex--$p$ and $--content_latex--$q$ are roots of:",
+      "marks": 4,
+      "solution_text": "Using symmetric sums, the equation formed is $--content_latex--$x^2 - 2x + 16 = 0$.",
+      "question_image": null,
+      "scq_options": [
+        "$--content_latex--$x^2 - 2x + 2 = 0$",
+        "$--content_latex--$x^2 - 2x + 8 = 0$",
+        "$--content_latex--$x^2 - 2x + 136 = 0$",
+        "$--content_latex--$x^2 - 2x + 16 = 0$"
+      ],
+      "scq_correct_options": 3
+    },
+    "pyq": {
+      "year": 2021,
+      "exam_detail": ["JEE_MAINS", "24 Feb", "Shift 1"]
+    }
+  },
+
+  {
+    "class_level": "Eleventh",
+    "subject_type": "MATHS",
+    "chapter_name": "Quadratic Equations",
+    "topic_name": "Relation Between Roots",
+    "exam_types": ["JEE_MAINS"],
+    "question": {
+      "type": "scq",
+      "difficulty": 2,
+      "exam_type": ["JEE_MAINS"],
+      "question_text": "If $--content_latex--$\\alpha$ and $--content_latex--$\\beta$ are the roots of $--content_latex--$2x(2x + 1) = 1$, then the value of $--content_latex--$\\beta$ is:",
+      "marks": 4,
+      "solution_text": "Using sum and product of roots gives $--content_latex--$\\beta = -2\\alpha(\\alpha + 1)$.",
+      "question_image": null,
+      "scq_options": [
+        "$--content_latex--$2\\alpha(\\alpha + 1)$",
+        "$--content_latex--$-2\\alpha(\\alpha + 1)$",
+        "$--content_latex--$2\\alpha(\\alpha - 1)$",
+        "$--content_latex--$2\\alpha^2$"
+      ],
+      "scq_correct_options": 1
+    },
+    "pyq": {
+      "year": 2020,
+      "exam_detail": ["JEE_MAINS", "06 Sep", "Shift 2"]
+    }
+  },
+
+  {
+    "class_level": "Eleventh",
+    "subject_type": "MATHS",
+    "chapter_name": "Quadratic Equations",
+    "topic_name": "Symmetric Expressions",
+    "exam_types": ["JEE_MAINS"],
+    "question": {
+      "type": "scq",
+      "difficulty": 3,
+      "exam_type": ["JEE_MAINS"],
+      "question_text": "If $--content_latex--$\\alpha$ and $--content_latex--$\\beta$ are roots of $--content_latex--$x^2 - 64x + 256 = 0$, then the value of $--content_latex--$\\left(\\frac{\\alpha^3}{\\beta^5}\\right)^{\\frac{1}{8}} + \\left(\\frac{\\beta^3}{\\alpha^5}\\right)^{\\frac{1}{8}}$ is:",
+      "marks": 4,
+      "solution_text": "Using symmetry and product $--content_latex--$\\alpha\\beta = 256$, the value is $--content_latex--$2$.",
+      "question_image": null,
+      "scq_options": [
+        "$--content_latex--$2$",
+        "$--content_latex--$3$",
+        "$--content_latex--$1$",
+        "$--content_latex--$4$"
+      ],
+      "scq_correct_options": 0
+    },
+    "pyq": {
+      "year": 2020,
+      "exam_detail": ["JEE_MAINS", "06 Sep", "Shift 1"]
+    }
+  },
+
+  {
+    "class_level": "Eleventh",
+    "subject_type": "MATHS",
+    "chapter_name": "Functions",
+    "topic_name": "Modulus Quadratic",
+    "exam_types": ["JEE_MAINS"],
+    "question": {
+      "type": "scq",
+      "difficulty": 2,
+      "exam_type": ["JEE_MAINS"],
+      "question_text": "The product of the roots of the equation $--content_latex--$9x^2 - 18|x| + 5 = 0$ is:",
+      "marks": 4,
+      "solution_text": "Solving separately for $--content_latex--$x \\ge 0$ and $--content_latex--$x < 0$ gives product $--content_latex--$\\frac{25}{81}$.",
+      "question_image": null,
+      "scq_options": [
+        "$--content_latex--$\\frac{5}{9}$",
+        "$--content_latex--$\\frac{25}{81}$",
+        "$--content_latex--$\\frac{5}{27}$",
+        "$--content_latex--$\\frac{25}{9}$"
+      ],
+      "scq_correct_options": 1
+    },
+    "pyq": {
+      "year": 2020,
+      "exam_detail": ["JEE_MAINS", "05 Sep", "Shift 1"]
+    }
+  },
+
+  {
+    "class_level": "Twelfth",
+    "subject_type": "MATHS",
+    "chapter_name": "Sets",
+    "topic_name": "Quadratic Parameter",
+    "exam_types": ["JEE_MAINS"],
+    "question": {
+      "type": "scq",
+      "difficulty": 3,
+      "exam_type": ["JEE_MAINS"],
+      "question_text": "Consider the sets $--content_latex--$A = \\{m \\in \\mathbb{R} :$ both roots of $--content_latex--$x^2 - (m+1)x + m + 4 = 0$ are real$\\}$ and $--content_latex--$B = [-3, 5)$. Which of the following is NOT true?",
+      "marks": 4,
+      "solution_text": "Evaluating discriminant gives $--content_latex--$A = (-\\infty,-3] \\cup [5,\\infty)$. Hence $--content_latex--$A - B = (-\\infty,-3) \\cup (5,\\infty)$ is false.",
+      "question_image": null,
+      "scq_options": [
+        "$--content_latex--$A - B = (-\\infty,-3) \\cup (5,\\infty)$",
+        "$--content_latex--$A \\cap B = \\{-3\\}$",
+        "$--content_latex--$B - A = (-3,5)$",
+        "$--content_latex--$A \\cup B = \\mathbb{R}$"
+      ],
+      "scq_correct_options": 0
+    },
+    "pyq": {
+      "year": 2020,
+      "exam_detail": ["JEE_MAINS", "03 Sep", "Shift 1"]
+    }
+  },
+  {
+    "class_level": "Eleventh",
+    "subject_type": "MATHS",
+    "chapter_name": "Quadratic Equations",
+    "topic_name": "Transformation of Roots",
+    "exam_types": ["JEE_MAINS"],
+    "question": {
+      "type": "scq",
+      "difficulty": 2,
+      "exam_type": ["JEE_MAINS"],
+      "question_text": "If $--content_latex--$2$ and $--content_latex--$6$ are the roots of the equation $--content_latex--$ax^2 + bx + 1 = 0$, then the quadratic equation whose roots are $--content_latex--$\\frac{1}{2a+b}$ and $--content_latex--$\\frac{1}{6a+b}$ is:",
+      "marks": 4,
+      "solution_text": "Using sum and product of transformed roots, the required equation is $--content_latex--$x^2 + 8x + 12 = 0$.",
+      "question_image": null,
+      "scq_options": [
+        "$--content_latex--$2x^2 + 11x + 12 = 0$",
+        "$--content_latex--$x^2 + 8x + 12 = 0$",
+        "$--content_latex--$4x^2 + 14x + 12 = 0$",
+        "$--content_latex--$x^2 + 10x + 16 = 0$"
+      ],
+      "scq_correct_options": 1
+    },
+    "pyq": {
+      "year": 2024,
+      "exam_detail": ["JEE_MAINS", "04 Apr", "Shift 1"]
+    }
+  },
+
+  {
+    "class_level": "Eleventh",
+    "subject_type": "MATHS",
+    "chapter_name": "Quadratic Expressions",
+    "topic_name": "Inequalities",
+    "exam_types": ["JEE_MAINS"],
+    "question": {
+      "type": "scq",
+      "difficulty": 3,
+      "exam_type": ["JEE_MAINS"],
+      "question_text": "Let $--content_latex--$S$ be the set of positive integers $--content_latex--$a$ for which $--content_latex--$\\frac{ax^2 + 2(a+1)x + 9a + 4}{x^2 - 8x + 32} < 0$ for all $--content_latex--$x \\in \\mathbb{R}$. Then $--content_latex--$n(S)$ is:",
+      "marks": 4,
+      "solution_text": "Denominator is always positive. Numerator must be negative definite which gives no valid positive integer $--content_latex--$a$. Hence $--content_latex--$n(S)=0$.",
+      "question_image": null,
+      "scq_options": [
+        "$--content_latex--$1$",
+        "$--content_latex--$0$",
+        "$--content_latex--$\\infty$",
+        "$--content_latex--$3$"
+      ],
+      "scq_correct_options": 1
+    },
+    "pyq": {
+      "year": 2024,
+      "exam_detail": ["JEE_MAINS", "31 Jan", "Shift 1"]
+    }
+  },
+
+  {
+    "class_level": "Eleventh",
+    "subject_type": "MATHS",
+    "chapter_name": "Sequences and Series",
+    "topic_name": "Recurrence Relations",
+    "exam_types": ["JEE_MAINS"],
+    "question": {
+      "type": "scq",
+      "difficulty": 2,
+      "exam_type": ["JEE_MAINS"],
+      "question_text": "If $--content_latex--$\\alpha, \\beta$ are the roots of $--content_latex--$x^2 - x - 1 = 0$ and $--content_latex--$S_n = 2023\\alpha^n + 2024\\beta^n$, then which of the following is correct?",
+      "marks": 4,
+      "solution_text": "Since $--content_latex--$\\alpha^2 = \\alpha + 1$ and $--content_latex--$\\beta^2 = \\beta + 1$, sequence satisfies Fibonacci relation.",
+      "question_image": null,
+      "scq_options": [
+        "$--content_latex--$2S_{12} = S_{11} + S_{10}$",
+        "$--content_latex--$S_{12} = S_{11} + S_{10}$",
+        "$--content_latex--$2S_{11} = S_{12} + S_{10}$",
+        "$--content_latex--$S_{11} = S_{10} + S_{12}$"
+      ],
+      "scq_correct_options": 1
+    },
+    "pyq": {
+      "year": 2024,
+      "exam_detail": ["JEE_MAINS", "27 Jan", "Shift 2"]
+    }
+  },
+
+  {
+    "class_level": "Eleventh",
+    "subject_type": "MATHS",
+    "chapter_name": "Functions",
+    "topic_name": "Modulus Equations",
+    "exam_types": ["JEE_MAINS"],
+    "question": {
+      "type": "scq",
+      "difficulty": 2,
+      "exam_type": ["JEE_MAINS"],
+      "question_text": "The number of real roots of the equation $--content_latex--$x|x| - 5|x+2| + 6 = 0$ is:",
+      "marks": 4,
+      "solution_text": "Solving in intervals based on sign of $--content_latex--$x$ and $--content_latex--$x+2$ gives three real roots.",
+      "question_image": null,
+      "scq_options": [
+        "$--content_latex--$5$",
+        "$--content_latex--$4$",
+        "$--content_latex--$3$",
+        "$--content_latex--$6$"
+      ],
+      "scq_correct_options": 2
+    },
+    "pyq": {
+      "year": 2023,
+      "exam_detail": ["JEE_MAINS", "15 Apr", "Shift 1"]
+    }
+  },
+
+  {
+    "class_level": "Eleventh",
+    "subject_type": "MATHS",
+    "chapter_name": "Complex Numbers",
+    "topic_name": "Powers of Roots",
+    "exam_types": ["JEE_MAINS"],
+    "question": {
+      "type": "scq",
+      "difficulty": 3,
+      "exam_type": ["JEE_MAINS"],
+      "question_text": "Let $--content_latex--$\\alpha, \\beta$ be the roots of $--content_latex--$x^2 - \\sqrt{2}x + 2 = 0$. Then $--content_latex--$\\alpha^{14} + \\beta^{14}$ is equal to:",
+      "marks": 4,
+      "solution_text": "Using De Moivre’s theorem and symmetry of roots, the value is $--content_latex--$-128$.",
+      "question_image": null,
+      "scq_options": [
+        "$--content_latex--$-64$",
+        "$--content_latex--$-64\\sqrt{2}$",
+        "$--content_latex--$-128$",
+        "$--content_latex--$-128\\sqrt{2}$"
+      ],
+      "scq_correct_options": 2
+    },
+    "pyq": {
+      "year": 2023,
+      "exam_detail": ["JEE_MAINS", "13 Apr", "Shift 2"]
+    }
+  },
+
+  {
+    "class_level": "Eleventh",
+    "subject_type": "MATHS",
+    "chapter_name": "Complex Numbers",
+    "topic_name": "Symmetric Expressions",
+    "exam_types": ["JEE_MAINS"],
+    "question": {
+      "type": "scq",
+      "difficulty": 3,
+      "exam_type": ["JEE_MAINS"],
+      "question_text": "Let $--content_latex--$\\alpha, \\beta$ be the roots of $--content_latex--$x^2 + \\sqrt{6}x + 3 = 0$. Then the value of $--content_latex--$\\frac{\\alpha^{23} + \\beta^{23} + \\alpha^{14} + \\beta^{14}}{\\alpha^{15} + \\beta^{15} + \\alpha^{10} + \\beta^{10}}$ is:",
+      "marks": 4,
+      "solution_text": "Using recurrence relations of powers, the expression evaluates to $--content_latex--$81$.",
+      "question_image": null,
+      "scq_options": [
+        "$--content_latex--$81$",
+        "$--content_latex--$9$",
+        "$--content_latex--$72$",
+        "$--content_latex--$729$"
+      ],
+      "scq_correct_options": 0
+    },
+    "pyq": {
+      "year": 2023,
+      "exam_detail": ["JEE_MAINS", "12 Apr", "Shift 1"]
+    }
+  },
+
+  {
+    "class_level": "Eleventh",
+    "subject_type": "MATHS",
+    "chapter_name": "Functions",
+    "topic_name": "Modulus Quadratic Equation",
+    "exam_types": ["JEE_MAINS"],
+    "question": {
+      "type": "scq",
+      "difficulty": 2,
+      "exam_type": ["JEE_MAINS"],
+      "question_text": "The sum of all real roots of the equation $--content_latex--$|x^2 - 8x + 15| - 2x + 7 = 0$ is:",
+      "marks": 4,
+      "solution_text": "Solving cases based on sign of quadratic gives sum $--content_latex--$9 + \\sqrt{3}$.",
+      "question_image": null,
+      "scq_options": [
+        "$--content_latex--$9 - \\sqrt{3}$",
+        "$--content_latex--$9 + \\sqrt{3}$",
+        "$--content_latex--$11 - \\sqrt{3}$",
+        "$--content_latex--$11 + \\sqrt{3}$"
+      ],
+      "scq_correct_options": 1
+    },
+    "pyq": {
+      "year": 2023,
+      "exam_detail": ["JEE_MAINS", "06 Apr", "Shift 1"]
+    }
+  },
+
+  {
+    "class_level": "Eleventh",
+    "subject_type": "MATHS",
+    "chapter_name": "Sets",
+    "topic_name": "Exponential Equations",
+    "exam_types": ["JEE_MAINS"],
+    "question": {
+      "type": "scq",
+      "difficulty": 3,
+      "exam_type": ["JEE_MAINS"],
+      "question_text": "Let $--content_latex--$S = \\{x : x \\in \\mathbb{R}$ and $--content_latex--$(\\sqrt{3}+\\sqrt{2})^{x^2-4} + (\\sqrt{3}-\\sqrt{2})^{x^2-4} = 10\\}$. Then $--content_latex--$n(S)$ is:",
+      "marks": 4,
+      "solution_text": "Using identity $--content_latex--$(a+b)^n + (a-b)^n$, valid solutions give $--content_latex--$4$.",
+      "question_image": null,
+      "scq_options": [
+        "$--content_latex--$2$",
+        "$--content_latex--$4$",
+        "$--content_latex--$6$",
+        "$--content_latex--$0$"
+      ],
+      "scq_correct_options": 1
+    },
+    "pyq": {
+      "year": 2023,
+      "exam_detail": ["JEE_MAINS", "01 Feb", "Shift 1"]
+    }
+  },
+
+  {
+    "class_level": "Eleventh",
+    "subject_type": "MATHS",
+    "chapter_name": "Quadratic Expressions",
+    "topic_name": "Substitution Technique",
+    "exam_types": ["JEE_MAINS"],
+    "question": {
+      "type": "scq",
+      "difficulty": 2,
+      "exam_type": ["JEE_MAINS"],
+      "question_text": "The number of real solutions of the equation $--content_latex--$3\\left(x^2 + \\frac{1}{x^2}\\right) - 2\\left(x + \\frac{1}{x}\\right) + 5 = 0$ is:",
+      "marks": 4,
+      "solution_text": "Let $--content_latex--$t = x + \\frac{1}{x}$. Solving gives no real $--content_latex--$t$, hence no real $--content_latex--$x$.",
+      "question_image": null,
+      "scq_options": [
+        "$--content_latex--$4$",
+        "$--content_latex--$0$",
+        "$--content_latex--$3$",
+        "$--content_latex--$2$"
+      ],
+      "scq_correct_options": 1
+    },
+    "pyq": {
+      "year": 2023,
+      "exam_detail": ["JEE_MAINS", "24 Jan", "Shift 2"]
+    }
+  },
+
+  {
+    "class_level": "Eleventh",
+    "subject_type": "MATHS",
+    "chapter_name": "Quadratic Equations",
+    "topic_name": "Minimum Value",
+    "exam_types": ["JEE_MAINS"],
+    "question": {
+      "type": "scq",
+      "difficulty": 2,
+      "exam_type": ["JEE_MAINS"],
+      "question_text": "The minimum value of the sum of squares of the roots of the equation $--content_latex--$x^2 + (3-a)x = 2a - 1$ is:",
+      "marks": 4,
+      "solution_text": "Using $--content_latex--$\\alpha^2+\\beta^2 = (\\alpha+\\beta)^2 - 2\\alpha\\beta$, minimum value is $--content_latex--$6$.",
+      "question_image": null,
+      "scq_options": [
+        "$--content_latex--$6$",
+        "$--content_latex--$4$",
+        "$--content_latex--$5$",
+        "$--content_latex--$8$"
+      ],
+      "scq_correct_options": 0
+    },
+    "pyq": {
+      "year": 2022,
+      "exam_detail": ["JEE_MAINS", "26 Jul", "Shift 2"]
+    }
+  },
+  {
+    "class_level": "Eleventh",
+    "subject_type": "PHYSICS",
+    "chapter_name": "Laws of Motion",
+    "topic_name": "Variable Force",
+    "exam_types": ["JEE_MAINS"],
+    "question": {
+      "type": "scq",
+      "difficulty": 3,
+      "exam_type": ["JEE_MAINS"],
+      "question_text": "A particle of mass $--content_latex--$m$ is moving in a straight line with momentum $--content_latex--$p$. Starting at time $--content_latex--$t = 0$, a force $--content_latex--$F = kt$ acts in the same direction during time interval $--content_latex--$T$ such that momentum changes from $--content_latex--$p$ to $--content_latex--$3p$. Here $--content_latex--$k$ is a constant. Find the value of $--content_latex--$T$.",
+      "marks": 4,
+      "solution_text": "Impulse equals change in momentum. Integrating $--content_latex--$F = kt$ from $--content_latex--$0$ to $--content_latex--$T$ gives $--content_latex--$\\frac{1}{2}kT^2 = 2p$, hence $--content_latex--$T = 2\\sqrt{\\frac{p}{k}}$.",
+      "question_image": null,
+      "scq_options": [
+        "$--content_latex--$2\\sqrt{\\frac{k}{p}}$",
+        "$--content_latex--$2\\sqrt{\\frac{p}{k}}$",
+        "$--content_latex--$\\sqrt{\\frac{2k}{p}}$",
+        "$--content_latex--$\\sqrt{\\frac{2p}{k}}$"
+      ],
+      "scq_correct_options": 1
+    },
+    "pyq": {
+      "year": 2019,
+      "exam_detail": ["JEE_MAINS", "11 Jan", "Shift 2"]
+    }
+  },
+
+  {
+    "class_level": "Eleventh",
+    "subject_type": "PHYSICS",
+    "chapter_name": "Laws of Motion",
+    "topic_name": "Equilibrium of Forces",
+    "exam_types": ["JEE_MAINS"],
+    "question": {
+      "type": "scq",
+      "difficulty": 2,
+      "exam_type": ["JEE_MAINS"],
+      "question_text": "A mass of $--content_latex--$10\\,kg$ is suspended vertically by a rope from the roof. When a horizontal force is applied at some point on the rope, the rope deviates at an angle of $--content_latex--$45^\\circ$ at the roof point. If the mass remains in equilibrium, find the magnitude of the applied force. Take $--content_latex--$g = 10\\,m\\,s^{-2}$.",
+      "marks": 4,
+      "solution_text": "At the roof point, tension components balance weight and applied force. Using $--content_latex--$\\tan45^\\circ = 1$, applied force equals weight $--content_latex--$= 100\\,N$.",
+      "question_image": null,
+      "scq_options": [
+        "$--content_latex--$100\\,N$",
+        "$--content_latex--$200\\,N$",
+        "$--content_latex--$140\\,N$",
+        "$--content_latex--$70\\,N$"
+      ],
+      "scq_correct_options": 0
+    },
+    "pyq": {
+      "year": 2019,
+      "exam_detail": ["JEE_MAINS", "09 Jan", "Shift 2"]
+    }
+  },
+  {
+    "class_level": "Eleventh",
+    "subject_type": "PHYSICS",
+    "chapter_name": "Laws of Motion",
+    "topic_name": "Connected Bodies",
+    "exam_types": ["JEE_MAINS"],
+    "question": {
+      "type": "integer",
+      "difficulty": 3,
+      "exam_type": ["JEE_MAINS"],
+      "question_text": "A system of $--content_latex--$10$ balls each of mass $--content_latex--$2\\,kg$ are connected via massless and unstretchable string. The system slips over the edge of a smooth table. Find the tension between the $--content_latex--$7^{th}$ and $--content_latex--$8^{th}$ ball when the $--content_latex--$6^{th}$ ball just leaves the table.",
+      "marks": 4,
+      "solution_text": "Applying Newton’s laws to hanging balls gives tension $--content_latex--$36\\,N$.",
+      "question_image": null,
+      "integer_answer": 36
+    },
+    "pyq": {
+      "year": 2022,
+      "exam_detail": ["JEE_MAINS", "26 Jun", "Shift 2"]
+    }
+  },
+
+  {
+    "class_level": "Eleventh",
+    "subject_type": "PHYSICS",
+    "chapter_name": "Laws of Motion",
+    "topic_name": "Equilibrium on Inclined Plane",
+    "exam_types": ["JEE_MAINS"],
+    "question": {
+      "type": "integer",
+      "difficulty": 2,
+      "exam_type": ["JEE_MAINS"],
+      "question_text": "A block of mass $--content_latex--$200\\,g$ is kept stationary on a smooth inclined plane by applying a minimum horizontal force $--content_latex--$F = \\sqrt{x}\\,N$. The angle of incline is $--content_latex--$60^\\circ$. Find the value of $--content_latex--$x$.",
+      "marks": 4,
+      "solution_text": "Resolving forces along incline gives $--content_latex--$x = 12$.",
+      "question_image": null,
+      "integer_answer": 12
+    },
+    "pyq": {
+      "year": 2022,
+      "exam_detail": ["JEE_MAINS", "25 Jun", "Shift 2"]
+    }
+  },
+
+  {
+    "class_level": "Eleventh",
+    "subject_type": "PHYSICS",
+    "chapter_name": "Circular Motion",
+    "topic_name": "Friction on Curved Road",
+    "exam_types": ["JEE_MAINS"],
+    "question": {
+      "type": "integer",
+      "difficulty": 2,
+      "exam_type": ["JEE_MAINS"],
+      "question_text": "A curved road has radius $--content_latex--$75\\,m$. Maximum speed without skidding is $--content_latex--$30\\,m\\,s^{-1}$. If radius becomes $--content_latex--$48\\,m$ and coefficient of friction remains same, find the new maximum speed.",
+      "marks": 4,
+      "solution_text": "Since $--content_latex--$v \\propto \\sqrt{r}$, the new speed is $--content_latex--$24\\,m\\,s^{-1}$.",
+      "question_image": null,
+      "integer_answer": 24
+    },
+    "pyq": {
+      "year": 2022,
+      "exam_detail": ["JEE_MAINS", "25 Jun", "Shift 2"]
+    }
+  },
+
+  {
+    "class_level": "Eleventh",
+    "subject_type": "PHYSICS",
+    "chapter_name": "Laws of Motion",
+    "topic_name": "Vector Motion",
+    "exam_types": ["JEE_MAINS"],
+    "question": {
+      "type": "integer",
+      "difficulty": 2,
+      "exam_type": ["JEE_MAINS"],
+      "question_text": "A force $--content_latex--$\\vec{F} = (10\\hat{i} + 5\\hat{j})\\,N$ acts on a body of mass $--content_latex--$100\\,g$. Starting from rest, its position at $--content_latex--$t = 2\\,s$ is $--content_latex--$(a\\hat{i} + b\\hat{j})\\,m$. Find $--content_latex--$\\frac{a}{b}$.",
+      "marks": 4,
+      "solution_text": "Using $--content_latex--$\\vec{r} = \\frac{1}{2}\\vec{a}t^2$, ratio is $--content_latex--$2$.",
+      "question_image": null,
+      "integer_answer": 2
+    },
+    "pyq": {
+      "year": 2022,
+      "exam_detail": ["JEE_MAINS", "25 Jun", "Shift 1"]
+    }
+  },
+
+  {
+    "class_level": "Eleventh",
+    "subject_type": "PHYSICS",
+    "chapter_name": "Work Energy Power",
+    "topic_name": "Stopping Distance",
+    "exam_types": ["JEE_MAINS"],
+    "question": {
+      "type": "scq",
+      "difficulty": 1,
+      "exam_type": ["JEE_MAINS"],
+      "question_text": "A block of mass $--content_latex--$10\\,kg$ slides with initial velocity $--content_latex--$9.8\\,m\\,s^{-1}$. Coefficient of friction is $--content_latex--$0.5$. Find the distance covered before coming to rest. Take $--content_latex--$g = 9.8\\,m\\,s^{-2}$.",
+      "marks": 4,
+      "solution_text": "Using $--content_latex--$v^2 = u^2 - 2as$, distance is $--content_latex--$9.8\\,m$.",
+      "question_image": null,
+      "scq_options": [
+        "$--content_latex--$9.8\\,m$",
+        "$--content_latex--$4.9\\,m$",
+        "$--content_latex--$12.5\\,m$",
+        "$--content_latex--$19.6\\,m$"
+      ],
+      "scq_correct_options": 0
+    },
+    "pyq": {
+      "year": 2022,
+      "exam_detail": ["JEE_MAINS", "24 Jun", "Shift 1"]
+    }
+  },
+
+  {
+    "class_level": "Eleventh",
+    "subject_type": "PHYSICS",
+    "chapter_name": "Laws of Motion",
+    "topic_name": "Vector Kinematics",
+    "exam_types": ["JEE_MAINS"],
+    "question": {
+      "type": "scq",
+      "difficulty": 2,
+      "exam_type": ["JEE_MAINS"],
+      "question_text": "A force $--content_latex--$\\vec{F} = (40\\hat{i} + 10\\hat{j})\\,N$ acts on a body of mass $--content_latex--$5\\,kg$. Starting from rest, find its position vector at $--content_latex--$t = 10\\,s$.",
+      "marks": 4,
+      "solution_text": "Acceleration components give position $--content_latex--$(400\\hat{i} + 100\\hat{j})\\,m$.",
+      "question_image": null,
+      "scq_options": [
+        "$--content_latex--$(100\\hat{i} + 400\\hat{j})\\,m$",
+        "$--content_latex--$(100\\hat{i} + 100\\hat{j})\\,m$",
+        "$--content_latex--$(400\\hat{i} + 100\\hat{j})\\,m$",
+        "$--content_latex--$(400\\hat{i} + 400\\hat{j})\\,m$"
+      ],
+      "scq_correct_options": 2
+    },
+    "pyq": {
+      "year": 2021,
+      "exam_detail": ["JEE_MAINS", "25 Jul", "Shift 2"]
+    }
+  },
+
+  {
+    "class_level": "Eleventh",
+    "subject_type": "PHYSICS",
+    "chapter_name": "Laws of Motion",
+    "topic_name": "Impulse",
+    "exam_types": ["JEE_MAINS"],
+    "question": {
+      "type": "scq",
+      "difficulty": 3,
+      "exam_type": ["JEE_MAINS"],
+      "question_text": "Two billiard balls of equal mass $--content_latex--$30\\,g$ strike a rigid wall with same speed $--content_latex--$108\\,km\\,h^{-1}$ at different angles and reflect with same speed. Find the ratio of impulses imparted along $--content_latex--$X$-direction.",
+      "marks": 4,
+      "solution_text": "Impulse depends on normal velocity component giving ratio $--content_latex--$\\sqrt{2} : 1$.",
+      "question_image": null,
+      "scq_options": [
+        "$--content_latex--$1:1$",
+        "$--content_latex--$\\sqrt{2}:1$",
+        "$--content_latex--$2:1$",
+        "$--content_latex--$1:\\sqrt{2}$"
+      ],
+      "scq_correct_options": 1
+    },
+    "pyq": {
+      "year": 2021,
+      "exam_detail": ["JEE_MAINS", "25 Jul", "Shift 1"]
+    }
+  },
+
+  {
+    "class_level": "Eleventh",
+    "subject_type": "PHYSICS",
+    "chapter_name": "Laws of Motion",
+    "topic_name": "Normal Reaction",
+    "exam_types": ["JEE_MAINS"],
+    "question": {
+      "type": "scq",
+      "difficulty": 3,
+      "exam_type": ["JEE_MAINS"],
+      "question_text": "A steel block of mass $--content_latex--$10\\,kg$ rests on a horizontal floor. Three iron cylinders each of mass $--content_latex--$20\\,kg$ are placed on it. The system moves down with acceleration $--content_latex--$0.2\\,m\\,s^{-2}$. Find the normal reaction by the floor. Take $--content_latex--$g = 10\\,m\\,s^{-2}$.",
+      "marks": 4,
+      "solution_text": "Applying $--content_latex--$N = M(g-a)$ gives $--content_latex--$686\\,N$.",
+      "question_image": null,
+      "scq_options": [
+        "$--content_latex--$716$",
+        "$--content_latex--$686$",
+        "$--content_latex--$714$",
+        "$--content_latex--$684$"
+      ],
+      "scq_correct_options": 1
+    },
+    "pyq": {
+      "year": 2021,
+      "exam_detail": ["JEE_MAINS", "20 Jul", "Shift 1"]
+    }
+  },
+
+  {
+    "class_level": "Eleventh",
+    "subject_type": "PHYSICS",
+    "chapter_name": "Laws of Motion",
+    "topic_name": "Static Friction",
+    "exam_types": ["JEE_MAINS"],
+    "question": {
+      "type": "integer",
+      "difficulty": 3,
+      "exam_type": ["JEE_MAINS"],
+      "question_text": "Two blocks of masses $--content_latex--$m = 0.5\\,kg$ and $--content_latex--$M = 4.5\\,kg$ are arranged on a frictionless table. Coefficient of static friction is $--content_latex--$\\frac{3}{7}$. Find the maximum horizontal force so that the blocks move together. Take $--content_latex--$g = 9.8\\,m\\,s^{-2}$.",
+      "marks": 4,
+      "solution_text": "Maximum friction condition gives force $--content_latex--$21\\,N$.",
+      "question_image": null,
+      "integer_answer": 21
+    },
+    "pyq": {
+      "year": 2021,
+      "exam_detail": ["JEE_MAINS", "17 Mar", "Shift 1"]
+    }
+  },
+
+  {
+    "class_level": "Eleventh",
+    "subject_type": "PHYSICS",
+    "chapter_name": "Laws of Motion",
+    "topic_name": "Spring Systems",
+    "exam_types": ["JEE_MAINS"],
+    "question": {
+      "type": "scq",
+      "difficulty": 3,
+      "exam_type": ["JEE_MAINS"],
+      "question_text": "Two masses $--content_latex--$A$ and $--content_latex--$B$, each of mass $--content_latex--$M$, are connected by a massless spring. A force acts on mass $--content_latex--$B$. If mass $--content_latex--$A$ moves away from $--content_latex--$B$ with acceleration $--content_latex--$a$, find acceleration of mass $--content_latex--$B$.",
+      "marks": 4,
+      "solution_text": "Using Newton’s third law, acceleration of $--content_latex--$B$ is $--content_latex--$\\frac{F - Ma}{M}$.",
+      "question_image": null,
+      "scq_options": [
+        "$--content_latex--$\\frac{MF}{F+Ma}$",
+        "$--content_latex--$\\frac{F+Ma}{M}$",
+        "$--content_latex--$\\frac{Ma-F}{M}$",
+        "$--content_latex--$\\frac{F-Ma}{M}$"
+      ],
+      "scq_correct_options": 3
+    },
+    "pyq": {
+      "year": 2021,
+      "exam_detail": ["JEE_MAINS", "26 Feb", "Shift 2"]
+    }
+  },
+  {
+    "class_level": "Eleventh",
+    "subject_type": "PHYSICS",
+    "chapter_name": "Laws of Motion",
+    "topic_name": "Elevator Mechanics",
+    "exam_types": ["JEE_MAINS"],
+    "question": {
+      "type": "scq",
+      "difficulty": 2,
+      "exam_type": ["JEE_MAINS"],
+      "question_text": "Statement-I: An elevator can move up or down with uniform speed when its weight is balanced by the tension in its cable.\nStatement-II: Force exerted by the floor of an elevator on the foot of a person is more than his/her weight when the elevator goes down with increasing speed.",
+      "marks": 4,
+      "solution_text": "Uniform speed implies zero acceleration, hence tension equals weight. When elevator accelerates downward, normal reaction becomes less than weight, not more.",
+      "question_image": null,
+      "scq_options": [
+        "Both Statement I and Statement II are false",
+        "Statement I is true but Statement II is false",
+        "Both Statement I and Statement II are true",
+        "Statement I is false but Statement II is true"
+      ],
+      "scq_correct_options": 1
+    },
+    "pyq": {
+      "year": 2023,
+      "exam_detail": ["JEE_MAINS", "24 Jan", "Shift 1"]
+    }
+  },
+
+  {
+    "class_level": "Eleventh",
+    "subject_type": "PHYSICS",
+    "chapter_name": "Laws of Motion",
+    "topic_name": "Forces on Inclined Plane",
+    "exam_types": ["JEE_MAINS"],
+    "question": {
+      "type": "scq",
+      "difficulty": 2,
+      "exam_type": ["JEE_MAINS"],
+      "question_text": "Two bodies of masses $--content_latex--$m_1 = 5\\,kg$ and $--content_latex--$m_2 = 3\\,kg$ are connected by a light string over a smooth pulley on a smooth inclined plane. The system is at rest. Find the force exerted by the inclined plane on mass $--content_latex--$m_1$. Take $--content_latex--$g = 10\\,m\\,s^{-2}$.",
+      "marks": 4,
+      "solution_text": "Normal reaction on $--content_latex--$m_1$ equals $--content_latex--$40\\,N$.",
+      "question_image": null,
+      "scq_options": [
+        "$--content_latex--$30\\,N$",
+        "$--content_latex--$40\\,N$",
+        "$--content_latex--$50\\,N$",
+        "$--content_latex--$60\\,N$"
+      ],
+      "scq_correct_options": 1
+    },
+    "pyq": {
+      "year": 2022,
+      "exam_detail": ["JEE_MAINS", "29 Jul", "Shift 2"]
+    }
+  },
+
+  {
+    "class_level": "Eleventh",
+    "subject_type": "PHYSICS",
+    "chapter_name": "Laws of Motion",
+    "topic_name": "Variable Mass Systems",
+    "exam_types": ["JEE_MAINS"],
+    "question": {
+      "type": "scq",
+      "difficulty": 3,
+      "exam_type": ["JEE_MAINS"],
+      "question_text": "A balloon has mass $--content_latex--$10\\,g$ in air. Air escapes from it at a uniform rate with velocity $--content_latex--$4.5\\,cm\\,s^{-1}$. The balloon shrinks completely in $--content_latex--$5\\,s$. Find the average force acting on the balloon (in dyne).",
+      "marks": 4,
+      "solution_text": "Using rate of change of momentum, the force evaluates to $--content_latex--$9\\,dyne$.",
+      "question_image": null,
+      "scq_options": [
+        "$--content_latex--$3$",
+        "$--content_latex--$9$",
+        "$--content_latex--$12$",
+        "$--content_latex--$18$"
+      ],
+      "scq_correct_options": 1
+    },
+    "pyq": {
+      "year": 2022,
+      "exam_detail": ["JEE_MAINS", "28 Jul", "Shift 1"]
+    }
+  },
+
+  {
+    "class_level": "Eleventh",
+    "subject_type": "PHYSICS",
+    "chapter_name": "Laws of Motion",
+    "topic_name": "Atwood Machine",
+    "exam_types": ["JEE_MAINS"],
+    "question": {
+      "type": "scq",
+      "difficulty": 2,
+      "exam_type": ["JEE_MAINS"],
+      "question_text": "Two masses $--content_latex--$M_1$ and $--content_latex--$M_2$ are connected by a light string over a frictionless pulley. When $--content_latex--$M_2 = 2M_1$, acceleration is $--content_latex--$a_1$. When $--content_latex--$M_2 = 3M_1$, acceleration is $--content_latex--$a_2$. Find the ratio $--content_latex--$\\frac{a_1}{a_2}$.",
+      "marks": 4,
+      "solution_text": "Using Atwood machine formula, ratio comes out to be $--content_latex--$\\frac{2}{3}$.",
+      "question_image": null,
+      "scq_options": [
+        "$--content_latex--$\\frac{1}{3}$",
+        "$--content_latex--$\\frac{2}{3}$",
+        "$--content_latex--$\\frac{3}{2}$",
+        "$--content_latex--$\\frac{1}{2}$"
+      ],
+      "scq_correct_options": 1
+    },
+    "pyq": {
+      "year": 2022,
+      "exam_detail": ["JEE_MAINS", "26 Jul", "Shift 2"]
+    }
+  },
+
+  {
+    "class_level": "Eleventh",
+    "subject_type": "PHYSICS",
+    "chapter_name": "Laws of Motion",
+    "topic_name": "Accelerated Frames",
+    "exam_types": ["JEE_MAINS"],
+    "question": {
+      "type": "scq",
+      "difficulty": 2,
+      "exam_type": ["JEE_MAINS"],
+      "question_text": "A block of mass $--content_latex--$M$ placed inside a box descends vertically with acceleration $--content_latex--$a$. The block exerts a force equal to one-fourth of its weight on the floor of the box. Find the value of $--content_latex--$a$.",
+      "marks": 4,
+      "solution_text": "Normal force equals $--content_latex--$\\frac{Mg}{4}$, giving $--content_latex--$a = \\frac{3g}{4}$.",
+      "question_image": null,
+      "scq_options": [
+        "$--content_latex--$g$",
+        "$--content_latex--$\\frac{3g}{4}$",
+        "$--content_latex--$\\frac{g}{2}$",
+        "$--content_latex--$\\frac{g}{4}$"
+      ],
+      "scq_correct_options": 1
+    },
+    "pyq": {
+      "year": 2022,
+      "exam_detail": ["JEE_MAINS", "29 Jun", "Shift 2"]
+    }
+  },
+
+  {
+    "class_level": "Eleventh",
+    "subject_type": "PHYSICS",
+    "chapter_name": "Laws of Motion",
+    "topic_name": "Jet Propulsion",
+    "exam_types": ["JEE_MAINS"],
+    "question": {
+      "type": "scq",
+      "difficulty": 3,
+      "exam_type": ["JEE_MAINS"],
+      "question_text": "A block of mass $--content_latex--$2\\,kg$ is struck by a jet of water released at a rate of $--content_latex--$1\\,kg\\,s^{-1}$ with speed $--content_latex--$10\\,m\\,s^{-1}$. Find the initial acceleration of the block.",
+      "marks": 4,
+      "solution_text": "Force due to jet equals rate of momentum transfer giving acceleration $--content_latex--$5\\,m\\,s^{-2}$.",
+      "question_image": null,
+      "scq_options": [
+        "$--content_latex--$3$",
+        "$--content_latex--$6$",
+        "$--content_latex--$5$",
+        "$--content_latex--$4$"
+      ],
+      "scq_correct_options": 2
+    },
+    "pyq": {
+      "year": 2022,
+      "exam_detail": ["JEE_MAINS", "29 Jun", "Shift 1"]
+    }
+  },
+
+  {
+    "class_level": "Eleventh",
+    "subject_type": "PHYSICS",
+    "chapter_name": "Work Energy Power",
+    "topic_name": "Variable Force",
+    "exam_types": ["JEE_MAINS"],
+    "question": {
+      "type": "scq",
+      "difficulty": 3,
+      "exam_type": ["JEE_MAINS"],
+      "question_text": "A block of mass $--content_latex--$2\\,kg$ moving with speed $--content_latex--$4\\,m\\,s^{-1}$ enters a rough surface from $--content_latex--$x = 0.5\\,m$ to $--content_latex--$x = 1.5\\,m$. Retarding force is $--content_latex--$F = -kx$ where $--content_latex--$k = 12\\,N\\,m^{-1}$. Find the speed when the block just crosses the rough surface.",
+      "marks": 4,
+      "solution_text": "Work done by force reduces kinetic energy resulting in final speed $--content_latex--$2\\,m\\,s^{-1}$.",
+      "question_image": null,
+      "scq_options": [
+        "$--content_latex--$2\\,m\\,s^{-1}$",
+        "$--content_latex--$2.5\\,m\\,s^{-1}$",
+        "$--content_latex--$1.5\\,m\\,s^{-1}$",
+        "zero"
+      ],
+      "scq_correct_options": 0
+    },
+    "pyq": {
+      "year": 2022,
+      "exam_detail": ["JEE_MAINS", "28 Jun", "Shift 2"]
+    }
+  },
+
+  {
+    "class_level": "Eleventh",
+    "subject_type": "PHYSICS",
+    "chapter_name": "Laws of Motion",
+    "topic_name": "Pulley System",
+    "exam_types": ["JEE_MAINS"],
+    "question": {
+      "type": "integer",
+      "difficulty": 3,
+      "exam_type": ["JEE_MAINS"],
+      "question_text": "A hanging mass $--content_latex--$M$ is connected to a mass $--content_latex--$4M$ on a frictionless surface using a pulley. The bigger mass is pulled by $--content_latex--$2Mg$. Tension in the string is $--content_latex--$\\frac{x}{5}Mg$. Find $--content_latex--$x$.",
+      "marks": 4,
+      "solution_text": "Solving equations of motion gives $--content_latex--$x = 6$.",
+      "question_image": null,
+      "integer_answer": 6
+    },
+    "pyq": {
+      "year": 2022,
+      "exam_detail": ["JEE_MAINS", "28 Jun", "Shift 1"]
+    }
+  },
+
+  {
+    "class_level": "Eleventh",
+    "subject_type": "PHYSICS",
+    "chapter_name": "Laws of Motion",
+    "topic_name": "Rope Equilibrium",
+    "exam_types": ["JEE_MAINS"],
+    "question": {
+      "type": "integer",
+      "difficulty": 2,
+      "exam_type": ["JEE_MAINS"],
+      "question_text": "A mass $--content_latex--$10\\,kg$ is suspended by a rope of length $--content_latex--$5\\,m$. A horizontal force of $--content_latex--$30\\,N$ is applied at the midpoint. Angle made by upper half with vertical is $--content_latex--$\\alpha = \\tan^{-1}(x \\times 10^{-1})$. Find $--content_latex--$x$. Given $--content_latex--$g = 10\\,m\\,s^{-2}$.",
+      "marks": 4,
+      "solution_text": "Force balance gives $--content_latex--$x = 3$.",
+      "question_image": null,
+      "integer_answer": 3
+    },
+    "pyq": {
+      "year": 2022,
+      "exam_detail": ["JEE_MAINS", "27 Jun", "Shift 2"]
+    }
+  },
+
+  {
+    "class_level": "Eleventh",
+    "subject_type": "PHYSICS",
+    "chapter_name": "Laws of Motion",
+    "topic_name": "Static Friction",
+    "exam_types": ["JEE_MAINS"],
+    "question": {
+      "type": "scq",
+      "difficulty": 2,
+      "exam_type": ["JEE_MAINS"],
+      "question_text": "Two blocks of masses $--content_latex--$m = 2\\,kg$ and $--content_latex--$M = 8\\,kg$ are placed on a smooth table. Coefficient of static friction between them is $--content_latex--$0.5$. Find the maximum horizontal force that can be applied on mass $--content_latex--$M$ so that both blocks move together. Take $--content_latex--$g = 9.8\\,m\\,s^{-2}$.",
+      "marks": 4,
+      "solution_text": "Maximum friction provides limiting acceleration giving force $--content_latex--$49\\,N$.",
+      "question_image": null,
+      "scq_options": [
+        "$--content_latex--$9.8\\,N$",
+        "$--content_latex--$39.2\\,N$",
+        "$--content_latex--$49\\,N$",
+        "$--content_latex--$78.4\\,N$"
+      ],
+      "scq_correct_options": 2
+    },
+    "pyq": {
+      "year": 2022,
+      "exam_detail": ["JEE_MAINS", "27 Jun", "Shift 1"]
+    }
+  },
+  {
+    "class_level": "Eleventh",
+    "subject_type": "PHYSICS",
+    "chapter_name": "Mechanics",
+    "topic_name": "Equilibrium of Forces",
+    "exam_types": ["JEE_MAINS"],
+    "question": {
+      "type": "scq",
+      "difficulty": 2,
+      "exam_type": ["JEE_MAINS"],
+      "question_text": "A $--content_latex--$1\\,kg$ mass is suspended from the ceiling by a rope of length $--content_latex--$4\\,m$. A horizontal force $--content_latex--$F$ is applied at the midpoint of the rope such that the rope makes an angle of $--content_latex--$45^\\circ$ with the vertical. Find the magnitude of $--content_latex--$F$ assuming equilibrium and $--content_latex--$g = 10\\,m\\,s^{-2}$.",
+      "marks": 4,
+      "solution_text": "In equilibrium, vertical tension balances weight and horizontal component balances applied force. Solving gives $--content_latex--$F = 10\\,N$.",
+      "question_image": null,
+      "scq_options": [
+        "$--content_latex--$10\\,N$",
+        "$--content_latex--$\\frac{10}{\\sqrt{2}}\\,N$",
+        "$--content_latex--$1\\,N$",
+        "$--content_latex--$\\frac{1}{10\\sqrt{2}}\\,N$"
+      ],
+      "scq_correct_options": 0
+    },
+    "pyq": {
+      "year": 2024,
+      "exam_detail": ["JEE_MAINS", "09 Apr", "Shift 2"]
+    }
+  },
+
+  {
+    "class_level": "Eleventh",
+    "subject_type": "PHYSICS",
+    "chapter_name": "Mechanics",
+    "topic_name": "Circular Motion",
+    "exam_types": ["JEE_MAINS"],
+    "question": {
+      "type": "scq",
+      "difficulty": 3,
+      "exam_type": ["JEE_MAINS"],
+      "question_text": "A car of mass $--content_latex--$800\\,kg$ moves on a banked road of radius $--content_latex--$300\\,m$ with banking angle $--content_latex--$30^\\circ$. If coefficient of friction is $--content_latex--$0.2$, find the maximum safe speed. Take $--content_latex--$g = 10\\,m\\,s^{-2}$.",
+      "marks": 4,
+      "solution_text": "Using the formula for maximum speed on a banked road with friction, the result is $--content_latex--$51.4\\,m\\,s^{-1}$.",
+      "question_image": null,
+      "scq_options": [
+        "$--content_latex--$264\\,m\\,s^{-1}$",
+        "$--content_latex--$51.4\\,m\\,s^{-1}$",
+        "$--content_latex--$70.4\\,m\\,s^{-1}$",
+        "$--content_latex--$102.8\\,m\\,s^{-1}$"
+      ],
+      "scq_correct_options": 1
+    },
+    "pyq": {
+      "year": 2024,
+      "exam_detail": ["JEE_MAINS", "06 Apr", "Shift 2"]
+    }
+  },
+
+  {
+    "class_level": "Eleventh",
+    "subject_type": "PHYSICS",
+    "chapter_name": "Mechanics",
+    "topic_name": "Tension in Strings",
+    "exam_types": ["JEE_MAINS"],
+    "question": {
+      "type": "scq",
+      "difficulty": 1,
+      "exam_type": ["JEE_MAINS"],
+      "question_text": "A body of weight $--content_latex--$200\\,N$ is suspended from a tree through a chain of mass $--content_latex--$10\\,kg$. Find the force with which the branch pulls the chain. Take $--content_latex--$g = 10\\,m\\,s^{-2}$.",
+      "marks": 4,
+      "solution_text": "Total force equals weight of body plus weight of chain $--content_latex--$(200 + 100) = 300\\,N$.",
+      "question_image": null,
+      "scq_options": [
+        "$--content_latex--$100\\,N$",
+        "$--content_latex--$200\\,N$",
+        "$--content_latex--$300\\,N$",
+        "$--content_latex--$150\\,N$"
+      ],
+      "scq_correct_options": 2
+    },
+    "pyq": {
+      "year": 2024,
+      "exam_detail": ["JEE_MAINS", "06 Apr", "Shift 2"]
+    }
+  },
+
+  {
+    "class_level": "Eleventh",
+    "subject_type": "PHYSICS",
+    "chapter_name": "Laws of Motion",
+    "topic_name": "Friction",
+    "exam_types": ["JEE_MAINS"],
+    "question": {
+      "type": "scq",
+      "difficulty": 1,
+      "exam_type": ["JEE_MAINS"],
+      "question_text": "A box of mass $--content_latex--$50\\,kg$ moves on a horizontal surface. If coefficient of kinetic friction is $--content_latex--$0.3$, find the kinetic friction force. Take $--content_latex--$g = 9.8\\,m\\,s^{-2}$.",
+      "marks": 4,
+      "solution_text": "Kinetic friction is $--content_latex--$f_k = \\mu mg = 147\\,N$.",
+      "question_image": null,
+      "scq_options": [
+        "$--content_latex--$1.47\\,N$",
+        "$--content_latex--$14.7\\,N$",
+        "$--content_latex--$147\\,N$",
+        "$--content_latex--$1470\\,N$"
+      ],
+      "scq_correct_options": 2
+    },
+    "pyq": {
+      "year": 2024,
+      "exam_detail": ["JEE_MAINS", "05 Apr", "Shift 2"]
+    }
+  },
+
+  {
+    "class_level": "Eleventh",
+    "subject_type": "PHYSICS",
+    "chapter_name": "Laws of Motion",
+    "topic_name": "Impulse and Momentum",
+    "exam_types": ["JEE_MAINS"],
+    "question": {
+      "type": "scq",
+      "difficulty": 2,
+      "exam_type": ["JEE_MAINS"],
+      "question_text": "A cricket ball of mass $--content_latex--$120\\,g$ moving at $--content_latex--$25\\,m\\,s^{-1}$ is caught in $--content_latex--$0.1\\,s$. Find the average force exerted.",
+      "marks": 4,
+      "solution_text": "Using impulse-momentum theorem, force equals $--content_latex--$30\\,N$.",
+      "question_image": null,
+      "scq_options": [
+        "$--content_latex--$24\\,N$",
+        "$--content_latex--$12\\,N$",
+        "$--content_latex--$25\\,N$",
+        "$--content_latex--$30\\,N$"
+      ],
+      "scq_correct_options": 3
+    },
+    "pyq": {
+      "year": 2024,
+      "exam_detail": ["JEE_MAINS", "01 Feb", "Shift 2"]
+    }
+  }
+]
+

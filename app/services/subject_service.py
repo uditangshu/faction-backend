@@ -2,7 +2,7 @@
 
 from uuid import UUID
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, cast
+from sqlalchemy import select, cast, func, exists
 from sqlalchemy.dialects.postgresql import JSONB
 from typing import List, Optional
 
@@ -97,8 +97,12 @@ class SubjectService:
                 return list(result.scalars().all())
         
         # Query subjects where exam_type JSON array contains the target exam
+        # The @> operator checks if the left JSONB array contains the right JSONB value
+        # Cast the exam_type column to JSONB and check if it contains an array with the exam_type value
         query = select(Subject).where(
-            cast(Subject.exam_type, JSONB).contains([exam_type.value])
+            cast(Subject.exam_type, JSONB).contains(
+                func.jsonb_build_array(exam_type.value)
+            )
         )
         result = await self.db.execute(query)
         subjects = list(result.scalars().all())
